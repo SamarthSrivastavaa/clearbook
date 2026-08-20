@@ -1,0 +1,187 @@
+@import 'tailwindcss';
+
+/*
+  Clearbook design language.
+
+  Premise: this is a ledger, not a dashboard. The visual model is a printed
+  institutional record — hairline rules, dense tabular data, generous vertical
+  rhythm, and almost no chrome. Colour carries meaning only; nothing is coloured
+  for decoration. Radii are near-zero because rounded cards read as "app template"
+  rather than "record of account".
+
+  The palette is warm monochrome (paper/ink) rather than the cold slate-grey that
+  every framework default lands on. Warmth reads as paper; cold reads as admin UI.
+*/
+
+@theme {
+  /* --- surfaces: warm paper, not cold grey --- */
+  --color-paper: #fbfaf8;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f4f2ee;
+
+  /* --- ink --- */
+  --color-ink: #1a1917;
+  --color-ink-muted: #6b6862;
+  --color-ink-faint: #97938b;
+
+  /* --- structure --- */
+  --color-rule: #e3e0d9;
+  --color-rule-strong: #cfcbc1;
+
+  /* --- meaning. Used ONLY for protocol state. --- */
+  --color-verified: #1f6f43;
+  --color-verified-bg: #eef5f0;
+  --color-breach: #a8321e;
+  --color-breach-bg: #fbefec;
+  --color-pending: #8a6a12;
+  --color-pending-bg: #faf4e6;
+  --color-inert: #6b6862;
+  --color-inert-bg: #f2f1ed;
+
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, 'SFMono-Regular', monospace;
+
+  --radius-none: 0px;
+  --radius-sm: 2px;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: 'kern' 1, 'liga' 1, 'cv05' 1;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Every figure in this product is compared against another figure.
+     Tabular lining numerals are not a preference here, they are legibility. */
+  .tnum,
+  table,
+  .font-mono {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  ::selection {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+
+  /* Focus is always visible. Never removed, never made subtle. */
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* --- Eyebrow: the small uppercase label that titles every region. --- */
+  .eyebrow {
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-ink-faint);
+  }
+
+  /* --- Technical identifier: hashes, addresses, keys. Never body text. --- */
+  .ident {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: -0.01em;
+    color: var(--color-ink-muted);
+    word-break: break-all;
+  }
+
+  .ident-link {
+    text-decoration: underline;
+    text-decoration-color: var(--color-rule-strong);
+    text-underline-offset: 3px;
+    transition: color 120ms ease, text-decoration-color 120ms ease;
+  }
+
+  .ident-link:hover {
+    color: var(--color-ink);
+    text-decoration-color: var(--color-ink);
+  }
+
+  /* --- Status: a rule and a word. Not a pill. --- */
+  .status {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding-left: 0.625rem;
+    border-left: 2px solid currentColor;
+  }
+
+  /* --- Hairline rules do the work that borders and shadows usually do. --- */
+  .rule-t {
+    border-top: 1px solid var(--color-rule);
+  }
+  .rule-b {
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  /* --- Evidence record: the printed-receipt register. --- */
+  .record {
+    background: var(--color-surface);
+    border: 1px solid var(--color-rule);
+    border-left: 2px solid var(--color-rule-strong);
+  }
+
+  /* --- Interpretation register: prose, offset, visibly derived. --- */
+  .interpretation {
+    border-left: 2px solid var(--color-rule);
+    padding-left: 1.25rem;
+  }
+
+  /* --- Not-claimed register: deliberately recessive. --- */
+  .not-claimed {
+    color: var(--color-ink-faint);
+  }
+
+  /* --- Connector between sequential evidence items. --- */
+  .connector {
+    width: 1px;
+    background: var(--color-rule-strong);
+  }
+}
+
+/* A single, purposeful animation: something is being verified. */
+@keyframes pulse-rule {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-working {
+  animation: pulse-rule 1.4s ease-in-out infinite;
+}
