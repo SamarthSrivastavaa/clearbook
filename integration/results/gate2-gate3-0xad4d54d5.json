@@ -1,0 +1,112 @@
+{
+  "gate": "GATE 2 (proof) + GATE 3 (verify) + decode cross-check",
+  "pass": true,
+  "at": "2026-08-20T14:10:28.651Z",
+  "creditcoinRpc": "https://rpc.cc3-testnet.creditcoin.network",
+  "proofBuilderUrl": "https://prover.cc3-testnet.creditcoin.network",
+  "sourceChainRpc": "https://sepolia-proxy-rpc.creditcoin.network",
+  "blockProverPrecompile": "0x0000000000000000000000000000000000000FD2",
+  "chainInfoPrecompile": "0x0000000000000000000000000000000000000fd3",
+  "chainKey": 1,
+  "chainId": 11155111,
+  "txHash": "0xad4d54d5cc86475462ec59d340ec5e91dcc354d834fca986ea7c2b0922c2657d",
+  "blockNumber": 11529477,
+  "timings": {
+    "attestationWaitMs": 5921,
+    "proofMs": 1196,
+    "verifyMs": 1091
+  },
+  "proof": {
+    "headerNumber": 11529477,
+    "txIndex": 1,
+    "cached": true,
+    "txBytesLength": 11200,
+    "merkleRoot": "0x5b4c6980f0a9094878bd337df7ef23e50f815153852c4222d6310ac057d4edde",
+    "merkleSiblings": 7,
+    "lowerEndpointDigest": "0xc398dd5cabfb1f844f1cab4feb5920111e197ac2793be0d46d0582e2b45d6927",
+    "continuityRoots": 4
+  },
+  "verification": {
+    "verifyReturned": true,
+    "calculateTxIndex": 1
+  },
+  "decoded": {
+    "txType": 2,
+    "receiptStatus": 1,
+    "receiptGasUsed": "458112",
+    "logCount": 30,
+    "logIndex": 0,
+    "token": "0xF85938e2Bfc178026f60c5Ea50cC347D42C73b3D",
+    "from": "0x541c655fe515E4f23cEBA008aefE77f76C14704b",
+    "to": "0xFa6419a3d3503a016dF3A59F690734862CA2A78D",
+    "amount": "100893987193682244141056"
+  },
+  "checks": [
+    {
+      "name": "chainKey",
+      "expected": "1",
+      "actual": "1",
+      "pass": true
+    },
+    {
+      "name": "blockHeight",
+      "expected": "11529477",
+      "actual": "11529477",
+      "pass": true
+    },
+    {
+      "name": "txIndex (precompile vs source RPC)",
+      "expected": "1",
+      "actual": "1",
+      "pass": true
+    },
+    {
+      "name": "txIndex (proof bundle vs source RPC)",
+      "expected": "1",
+      "actual": "1",
+      "pass": true
+    },
+    {
+      "name": "txHash",
+      "expected": "0xad4d54d5cc86475462ec59d340ec5e91dcc354d834fca986ea7c2b0922c2657d",
+      "actual": "0xad4d54d5cc86475462ec59d340ec5e91dcc354d834fca986ea7c2b0922c2657d",
+      "pass": true
+    },
+    {
+      "name": "receiptStatus",
+      "expected": "1",
+      "actual": "1",
+      "pass": true
+    },
+    {
+      "name": "receipt log count",
+      "expected": "30",
+      "actual": "30",
+      "pass": true
+    },
+    {
+      "name": "token",
+      "expected": "0xF85938e2Bfc178026f60c5Ea50cC347D42C73b3D",
+      "actual": "0xF85938e2Bfc178026f60c5Ea50cC347D42C73b3D",
+      "pass": true
+    },
+    {
+      "name": "from",
+      "expected": "0x541c655fe515e4f23ceba008aefe77f76c14704b",
+      "actual": "0x541c655fe515E4f23cEBA008aefE77f76C14704b",
+      "pass": true
+    },
+    {
+      "name": "to",
+      "expected": "0xfa6419a3d3503a016df3a59f690734862ca2a78d",
+      "actual": "0xFa6419a3d3503a016dF3A59F690734862CA2A78D",
+      "pass": true
+    },
+    {
+      "name": "amount",
+      "expected": "100893987193682244141056",
+      "actual": "100893987193682244141056",
+      "pass": true
+    }
+  ]
+}

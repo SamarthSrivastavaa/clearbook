@@ -1,0 +1,21 @@
+# --- secrets: never commit ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# --- node ---
+node_modules/
+npm-debug.log*
+
+# --- foundry (Phase 1+) ---
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+
+# --- build output ---
+dist/
+.next/
+
+*.md

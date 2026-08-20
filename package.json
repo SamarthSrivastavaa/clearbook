@@ -1,0 +1,25 @@
+{
+  "name": "clearbook",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Clearbook — evidence-bound covenant compliance for credit originators",
+  "type": "module",
+  "scripts": {
+    "gate0": "tsx integration/gate0-capabilities.ts",
+    "gate0:lag": "tsx integration/gate0-lag.ts",
+    "gate1": "tsx integration/gate1-evidence.ts",
+    "gate2": "tsx integration/gate2-proof.ts"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@gluwa/usc-contracts": "0.2.0",
+    "@gluwa/usc-sdk": "0.18.0",
+    "dotenv": "17.4.2",
+    "ethers": "6.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "tsx": "4.23.12",
+    "typescript": "7.0.2"
+  }
+}

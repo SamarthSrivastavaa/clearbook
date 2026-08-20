@@ -1,0 +1,78 @@
+{
+  "gate": "GATE 0 — capability discovery",
+  "pass": true,
+  "startedAt": "2026-08-20T14:01:21.122Z",
+  "finishedAt": "2026-08-20T14:02:25.678Z",
+  "creditcoin": {
+    "rpcUrl": "https://rpc.cc3-testnet.creditcoin.network",
+    "chainId": 102031,
+    "blockNumber": 5343127
+  },
+  "chainInfoPrecompile": "0x0000000000000000000000000000000000000fd3",
+  "criteria": {
+    "nonEmptyChainList": true,
+    "atLeastOneAttesting": true,
+    "attestationAdvancing": true
+  },
+  "advancingChainKeys": [
+    3
+  ],
+  "run1": {
+    "at": "2026-08-20T14:01:22.363Z",
+    "chains": [
+      {
+        "chainKey": 3,
+        "chainId": 1,
+        "chainNameRaw": "0x457468657265756d",
+        "chainEncoding": 1,
+        "eip155Name": "Ethereum Mainnet",
+        "genesisHeight": 0,
+        "attestedExists": true,
+        "attestedHeight": 25796750,
+        "attestedHash": "0xf6ed93c523bfd0bd4bbd49e7872df0445b86f8f5a09d0ab92f5951c33ba55a91",
+        "isAttestation": true
+      },
+      {
+        "chainKey": 1,
+        "chainId": 11155111,
+        "chainNameRaw": "0x5365706f6c696120657468657265756d",
+        "chainEncoding": 1,
+        "eip155Name": "Ethereum Sepolia",
+        "genesisHeight": 0,
+        "attestedExists": true,
+        "attestedHeight": 11529470,
+        "attestedHash": "0x05fd154cd82c8b3e6454084003450665bf8ea164801600c01e905942858f0804",
+        "isAttestation": true
+      }
+    ]
+  },
+  "run2": {
+    "at": "2026-08-20T14:02:23.841Z",
+    "chains": [
+      {
+        "chainKey": 3,
+        "chainId": 1,
+        "chainNameRaw": "0x457468657265756d",
+        "chainEncoding": 1,
+        "eip155Name": "Ethereum Mainnet",
+        "genesisHeight": 0,
+        "attestedExists": true,
+        "attestedHeight": 25796760,
+        "attestedHash": "0xf996e8fe20403dbf6381edeb153eca0944469267e5f81a51ab95fd76805e8a97",
+        "isAttestation": true
+      },
+      {
+        "chainKey": 1,
+        "chainId": 11155111,
+        "chainNameRaw": "0x5365706f6c696120657468657265756d",
+        "chainEncoding": 1,
+        "eip155Name": "Ethereum Sepolia",
+        "genesisHeight": 0,
+        "attestedExists": true,
+        "attestedHeight": 11529470,
+        "attestedHash": "0x05fd154cd82c8b3e6454084003450665bf8ea164801600c01e905942858f0804",
+        "isAttestation": true
+      }
+    ]
+  }
+}
