@@ -18,9 +18,15 @@ Four loans, **all staged by us**, all labelled as staged on screen and in the fi
 
 | # | Scenario | Source-chain transactions | Expected outcome |
 |---|---|---|---|
-| A | **Legitimate** | `treasury → borrowerA`; later `borrowerA → treasury`, where `borrowerA` was funded from an unrelated faucet address | `challenge()` reverts `NoBreach`. **The honest control — it must be demonstrated.** |
+| A | **Legitimate** | `treasury → borrowerA`; later `borrowerA → treasury`, where `borrowerA` was funded from an unrelated faucet address | `challenge()` reverts `FundingNotFromBoundTreasury` (condition 6). **The honest control — it must be demonstrated.** |
 | B | **Prohibited circular flow** | `treasury → borrowerB`; `treasury → payerB`; `payerB → treasury` within `W` | `challenge()` succeeds: `BREACHED`, bond slashed, bounty paid |
-| C | **Invalid challenge** | cite an unrelated transfer as the funding leg | reverts `FundingNotFromBoundTreasury`, shown as a pre-flight red X |
+| C | **Invalid challenge** | cite an unrelated transfer as the funding leg | reverts `FundingNotFromBoundTreasury` (condition 6), shown as a pre-flight red X |
+
+> **Correction against BUILD.md §13.1.** That table says scenario A reverts `NoBreach`. It does not: `NoBreach` does not exist as an error. §5.3 assigns a distinct error to each of the eleven conditions, and `NoBreach` would be unreachable, so it is not declared (DECISIONS D-023). Scenario A fails at **condition 6**, because the faucet that funded `borrowerA` is not a bound treasury.
+>
+> This is a better beat than the original: the contract names the precise reason the honest loan cannot be breached, rather than just refusing.
+>
+> Note that A and C therefore revert with the **same** error. They remain different scenarios — A cites a genuine unrelated funding source, C cites an unrelated transfer — but do **not** narrate the error name as the thing that distinguishes them.
 | D | **Delinquent** | disbursement only, `maturityBlock` passed | anyone calls `markDelinquent()` |
 
 Scenario A is the one that proves the mechanism *discriminates*. A detector that always fires detects nothing.
@@ -35,7 +41,7 @@ Scenario A is the one that proves the mechanism *discriminates*. A detector that
 | **0:15–0:40** | The Book: four loans, bond posted, covenant `CIRCULAR_REPAYMENT` and window `W` shown as on-chain immutable parameters. Terminal: `cast code $TOKEN` → bytecode; `cast code $TREASURY` → `0x`. *"We deployed nothing on Ethereum."* |
 | **0:40–1:10** | Loan A evidence chain, three tiers. Click a fact → source-chain explorer. Click verification → the Creditcoin transaction containing `TransactionVerified` from `0x0FD2`. *"The precompile proved inclusion. Our contract asserted the receipt succeeded — the precompile does not do that — decoded the transfer, and refused to store it twice."* |
 | **1:10–1:50** | **The challenge, performed by the judge.** `/challenge`, loan B, dry-run: eleven conditions green. Submit from the judge's own wallet. One Creditcoin transaction, ~15 s: `CovenantBreached`, bond slashed, bounty paid to *their* address. |
-| **1:50–2:15** | **Both negative controls, back to back.** Loan A: same button, reverts `NoBreach` — *"an honest loan is not breachable, and we did not have to be trusted for that."* Then a forged proof: one mutated Merkle sibling, rejected on-chain. Show the failed transaction hash. |
+| **1:50–2:15** | **Both negative controls, back to back.** Loan A: same button, reverts `FundingNotFromBoundTreasury` — *"condition six. The address that funded this borrower was never bound by the originator, so this is not a breach — and we did not have to be trusted for that."* Then a forged proof: one mutated Merkle sibling, rejected on-chain. Show the failed transaction hash. |
 | **2:15–2:40** | Kill the worker. Submit the same bundle from a plain script as any third party would. Identical result. *"The worker is orchestration. Delete it and nothing about the outcome changes."* |
 | **2:40–3:00** | Measured gas against the published formula; measured attestation latency P50/P90; then the limits — Ethereum only, readability only, Writability unreleased, absence unprovable, depth-1 covenant. *"This does not prove fraud. It proves a rule the fund published was not met."* Close on the contract address. |
 

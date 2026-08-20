@@ -1,0 +1,28 @@
+{
+  "extends": "solhint:recommended",
+  "rules": {
+    "compiler-version": ["error", "0.8.28"],
+    "max-line-length": ["error", 120],
+    "func-visibility": ["error", { "ignoreConstructors": true }],
+    "no-empty-blocks": "error",
+    "gas-custom-errors": "error",
+    "use-forbidden-name": "error",
+    "avoid-tx-origin": "error",
+    "check-send-result": "error",
+    "reentrancy": "error",
+
+    "avoid-low-level-calls": "off",
+    "function-max-lines": ["warn", 100],
+    "ordering": "off",
+    "one-contract-per-file": "off",
+    "use-natspec": "off",
+    "gas-indexed-events": "off",
+    "gas-small-strings": "off",
+    "gas-strict-inequalities": "off",
+    "gas-struct-packing": "off",
+    "gas-increment-by-one": "off",
+    "gas-length-in-loops": "off",
+    "gas-multitoken1155": "off",
+    "gas-calldata-parameters": "off"
+  }
+}

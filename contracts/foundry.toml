@@ -33,7 +33,10 @@ cbor_metadata = false
 allow_paths = ["../node_modules"]
 
 [fmt]
-line_length = 120
+# 118, not 120: forge fmt and solhint disagree by a character or two on how they
+# count a line, and at 120 fmt emits lines solhint then rejects. 118 makes both
+# tools agree, so `forge fmt` and `solhint` can never fight each other.
+line_length = 118
 tab_width = 4
 bracket_spacing = false
 int_types = "long"

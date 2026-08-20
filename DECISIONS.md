@@ -336,6 +336,104 @@ Every `[C]` claim in BUILD.md §1.2 about the verifier and decoder APIs is now a
 
 ---
 
+### D-022 · `challenge()` requires `REPAYMENT_CLAIMED` — resolving a contradiction inside BUILD.md — [P]
+
+**BUILD.md contradicts itself** about which loan states are challengeable.
+
+| Source | Says |
+|---|---|
+| §4.2 state diagram | `REGISTERED --> BREACHED: challenge() valid` |
+| §4.2 transition table | `REGISTERED`/`REPAYMENT_CLAIMED` → `BREACHED` |
+| §5.3 "the predicate, exactly", condition 1 | `L.status == REPAYMENT_CLAIMED` |
+
+**Resolved in favour of §5.3**, for a reason stronger than it being the more specific text: the predicate is *structurally impossible* on a `REGISTERED` loan. It begins `R = vault.getFact(L.repaymentFactId)`, and a `REGISTERED` loan has `repaymentFactId == bytes32(0)`, so the vault reverts `UnknownFact`. A covenant about repayment cannot be evaluated before a repayment is claimed.
+
+So `challenge()` reverts `WrongStatus` unless the loan is `REPAYMENT_CLAIMED`. §4.2's diagram and table are loose summaries; §5.3 is the specification.
+
+**Recommended BUILD.md correction:** delete the `REGISTERED --> BREACHED` edge from the §4.2 diagram and drop `REGISTERED` from that transition table row.
+**Reverses if:** a future covenant is defined over disbursement evidence alone — that would be a *new* covenant with its own predicate, not a change to `0x01`.
+
+---
+
+### D-023 · The eleven conditions revert with named errors, not a single `NoBreach` — [P]
+
+Second contradiction. §5.2's function table lists `challenge()`'s errors as `NoBreach`, `WindowClosed`, `WrongStatus`. But §5.3 assigns a **distinct named error to each of conditions 3–11** (`ChainMismatch`, `TokenMismatch`, `NotTheSamePayer`, `FundingNotFromBoundTreasury`, `FundingBelowRepayment`, `FundingNotBefore`, `OutsideWindow`, `SameFact`, `DisbursementNotFunding`).
+
+**Resolved in favour of §5.3's granular errors**, and `NoBreach` is deliberately **not declared** — it would be unreachable, and BUILD.md §5 forbids extra surface. Three reasons:
+
+1. §5.3 is labelled "the predicate, exactly".
+2. §12 requires the challenge console to show **each of the eleven conditions as pass/fail before the wallet opens**. A single opaque `NoBreach` cannot drive that UI; the granular errors map one-to-one onto it.
+3. §12 also requires that "a judge must never see a raw revert blob" — a named condition is exactly the human-readable outcome that demands.
+
+**Consequence for the demo, and it is a real one:** §13.1 says scenario A (the honest loan) "reverts `NoBreach`". It will now revert **`FundingNotFromBoundTreasury`** — because scenario A's borrower was funded from an unrelated faucet, so condition 6 is what actually fails. That is a *better* demo beat, since it names the precise reason the honest loan is unbreachable rather than saying "no". `DEMO.md` must be updated to match before recording; it currently still quotes `NoBreach`.
+
+Note this makes §13.1's scenarios A and C revert with the *same* error. They remain distinct scenarios — A cites a genuine unrelated funding source, C cites an unrelated transfer — but the demo narration should not present the error name as what distinguishes them.
+
+---
+
+### D-024 · Two economic parameters BUILD.md never specifies — chosen and flagged — [I]
+
+`REPAYMENT_BPS` is referenced by §4.2, §5.2 and threat T19 (`amount >= principal * repaymentBps / 10000`) but **given no value anywhere** — §4.4's parameter table omits it. `MIN_BOND` is likewise referenced by `registerOriginator`'s validation with no value.
+
+Chosen, and marked `[I]` because they are inference rather than specification:
+
+| Constant | Value | Reasoning |
+|---|---|---|
+| `REPAYMENT_BPS` | `10_000` (100%) | A "repayment" that does not at least cover principal should not settle a loan. Any lower value silently permits partial repayment to close a loan, which would weaken the claim being made. 100% is the conservative reading. |
+| `MIN_BOND` | `1 ether` (= `BOND_PER_LOAN`) | Below one `BOND_PER_LOAN` an originator could register while unable to back a single loan. Equality is the smallest coherent floor. |
+
+Both are `public constant`, so they are readable on-chain and cannot be changed by anyone — consistent with the no-admin design.
+**Reverses if:** BUILD.md is amended with explicit values, or partial repayment becomes a product requirement (which would need its own covenant, since it changes what a claim asserts).
+
+---
+
+### D-025 · OpenZeppelin 5.1.0 used for ECDSA / EIP-712 / ReentrancyGuard — [C]
+
+§5 says "no libraries beyond the official decoder and one internal covenant library". Taken literally that forbids OpenZeppelin — but the same document *requires* what only OpenZeppelin safely provides: §5.2 specifies EIP-712 `TreasuryBinding` with `ECDSA.recover`, and §6 T14 mandates `ReentrancyGuard` on `challenge` and `withdrawBond`.
+
+**Decision: use OpenZeppelin**, reading §5's sentence as a prohibition on *architectural* dependencies (proxies, upgradeability, admin frameworks) rather than on standard cryptographic primitives it elsewhere names by their OpenZeppelin identifiers.
+
+Hand-rolling ECDSA recovery would mean hand-rolling signature-malleability rejection (EIP-2098 / low-s enforcement) in a function that binds a treasury address — the single place where a signature flaw would be most damaging. Writing that ourselves to satisfy a style rule would be trading real security for nominal compliance, which BUILD.md's own security rule forbids.
+
+Pinned to **5.1.0 exactly** — the version `@gluwa/usc-contracts@0.2.0` already depends on — and added as a **direct** dependency so we do not rely on a transitive one that could vanish. npm dedupes to a single copy, so there is no risk of two OZ versions in the tree.
+
+Used: `utils/cryptography/ECDSA.sol`, `utils/cryptography/EIP712.sol`, `utils/ReentrancyGuard.sol`. Nothing else. No `Ownable`, no `AccessControl`, no proxy — those would contradict the trust model.
+
+---
+
+### D-026 · Struct field order follows the spec, not the gas linter — [P]
+
+solhint's `gas-struct-packing` flags `Loan` as inefficiently packed. It is right: reordering would save a slot.
+
+**Kept as specified.** BUILD.md §3.1 and §5.2 give exact field orders, and `TransferFact`'s layout is part of the evidence model that `SECURITY.md`'s provenance table documents field-by-field. Silent reordering would desynchronise the code from the specification and from the security documentation for a marginal gas saving on a testnet.
+
+Rule disabled in `.solhint.json` with this reasoning rather than left as recurring noise. Revisit only if a gas measurement (Phase 12) shows it matters.
+
+---
+
+### D-027 · Toolchain configuration: `line_length = 118`, and which lint rules are off — [L]
+
+**Formatter/linter conflict.** At `line_length = 120`, `forge fmt` emitted a 121-character line that `solhint`'s `max-line-length` (120) then rejected — the two tools count slightly differently, so a "formatted" file failed lint. Setting `forge fmt` to **118** makes both agree, so the two tools can never fight.
+
+**Disabled solhint rules, each deliberate:**
+
+| Rule | Why off |
+|---|---|
+| `use-natspec` | Demands `@author` on every contract and `@notice` on every constant and parameter — ~100 warnings of ceremony. We document with `@notice`/`@dev` where it carries meaning. |
+| `gas-struct-packing` | See D-026 — spec fidelity wins. |
+| `gas-strict-inequalities` | The `>=` / `<=` operators mirror §5.3's predicate wording exactly. Rewriting them to save gas invites off-by-one errors in financial comparisons. |
+| `gas-indexed-events`, `gas-small-strings`, `gas-increment-by-one`, `gas-length-in-loops`, `gas-multitoken1155`, `gas-calldata-parameters` | Micro-gas suggestions; the EIP-712 typehash string in particular must stay byte-exact. |
+| `avoid-low-level-calls` | `call{value:}` with a checked return is the *required* pattern here — T23 explicitly forbids `transfer()`/`send()`. |
+| `ordering`, `one-contract-per-file` | Layout preferences. |
+
+**Kept on, and passing:** `reentrancy`, `avoid-tx-origin`, `check-send-result`, `gas-custom-errors`, `compiler-version` (pinned `0.8.28`), `max-line-length`, `func-visibility`, `no-empty-blocks`, `use-forbidden-name`.
+
+`use-forbidden-name` caught something worth fixing rather than silencing: locals named `l` and `o`. In financial state transitions, `l.status` versus `loan.status` is a real readability difference, so they were renamed to `loan`, `orig` and `fact`.
+
+**Gate 2 result:** `forge build` clean, `forge fmt --check` clean, `solhint` **exit 0 with zero problems**.
+
+---
+
 ### D-016 · Repository is ESM (`"type": "module"`) — [L]
 
 BUILD.md's Phase 0 snippets use top-level `await`. `npm init -y` defaults to `"type": "commonjs"`, under which `import.meta` is unavailable and those snippets do not run.

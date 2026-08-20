@@ -101,6 +101,48 @@ Whether `verifyAndEmit` **reverts** or **returns false** on a bad proof is still
 
 ---
 
+### K-010 · Two internal contradictions in BUILD.md, resolved with evidence
+
+**Class:** DOCUMENTATION/IMPLEMENTATION MISMATCH (in the spec itself). **Status:** resolved in code; BUILD.md text should be corrected.
+
+1. **Which states are challengeable.** §4.2's diagram and transition table allow `REGISTERED → BREACHED`; §5.3's predicate condition 1 requires `REPAYMENT_CLAIMED`. §5.3 wins — the predicate reads the loan's repayment fact, which a `REGISTERED` loan does not have, so challenging one is structurally impossible, not merely disallowed. See DECISIONS D-022.
+
+2. **`challenge()`'s error surface.** §5.2's table lists `NoBreach`; §5.3 names a distinct error per condition. §5.3 wins, and `NoBreach` is not declared because it would be unreachable. This has a knock-on effect on §13.1's demo table, which is corrected in `DEMO.md`. See DECISIONS D-023.
+
+Neither was silently absorbed: both are recorded, and the recommended BUILD.md edits are stated in `DECISIONS.md`.
+
+---
+
+### K-011 · Two economic parameters are referenced by BUILD.md but never given values
+
+**Class:** UNVERIFIED (specification gap). **Status:** chosen conservatively, flagged for confirmation.
+
+`REPAYMENT_BPS` (used by §4.2, §5.2 and T19) and `MIN_BOND` (used by `registerOriginator`) have no value anywhere in BUILD.md — §4.4's parameter table omits both.
+
+Implemented as `REPAYMENT_BPS = 10_000` (repayment must cover principal in full) and `MIN_BOND = 1 ether` (equal to `BOND_PER_LOAN`). Reasoning in DECISIONS D-024. These are marked `[I]` (inference), **not** `[P]` — if the intended economics differ, this is where to look.
+
+---
+
+### K-012 · The §19 forbidden-word check flags its own disclaimers
+
+**Class:** DOCUMENTATION/IMPLEMENTATION MISMATCH (in the audit checklist). **Status:** open — matters at Phase 14.
+
+BUILD.md §19 requires "No occurrence of 'fraud', 'proven fraud', 'money laundering' or 'criminal' anywhere in code, UI, docs, deck or video".
+
+Read literally that is self-defeating. A grep over this repository returns six matches, and **all six are required by BUILD.md itself**:
+
+- the §0.4 "Never say / Always say" table, which cannot state a prohibition without quoting it (`DEMO.md`)
+- the §13.2 closing line *"This does not prove fraud. It proves a rule the fund published was not met."* (`DEMO.md`)
+- the §9 limit *"framed as a covenant the originator chose, not as fraud detection"* (`KNOWN_ISSUES.md`, `README.md`)
+
+**Zero occurrences appear in contract code, and none is an unqualified claim.** Every one is a negation, a disclaimer, or a prohibition.
+
+**Risk:** a Phase 14 auditor running the checklist mechanically could "fix" this by deleting the disclaimers — which would remove precisely the language that makes the project truthful, achieving the opposite of the rule's intent.
+
+**Planned handling:** the audit check should be "no *unqualified* claim of fraud/criminality", verified by reading the six matches, not by grep count. Recorded here so the finding survives to Phase 14.
+
+---
+
 ### K-009 · The specified secret-scanning regex will block legitimate commits
 
 **Class:** DOCUMENTATION/IMPLEMENTATION MISMATCH (in BUILD.md's own spec). **Status:** open — due Phase 8.
