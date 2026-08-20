@@ -32,6 +32,13 @@ cbor_metadata = false
 # project, so the decoder/verifier imports resolve through `../`.
 allow_paths = ["../node_modules"]
 
+[invariant]
+runs = 64
+depth = 64
+# The handler wraps every action in try/catch, so legitimate reverts (wrong status,
+# closed window, insufficient bond) advance the sequence instead of aborting it.
+fail_on_revert = false
+
 [fmt]
 # 118, not 120: forge fmt and solhint disagree by a character or two on how they
 # count a line, and at 120 fmt emits lines solhint then rejects. 118 makes both

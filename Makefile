@@ -17,9 +17,11 @@ help:
 	@echo "  gates        run gate0 -> gate1 -> gate2 in order"
 	@echo "  build        Gate 1a: forge build"
 	@echo "  fmt          format Solidity"
-	@echo "  fmt-check    check Solidity formatting (Phase 2 gate)"
-	@echo "  test         forge test                          (Phase 3)"
-	@echo "  coverage     forge coverage, >=90% required      (Phase 3)"
+	@echo "  fmt-check    check Solidity formatting           (Gate 2)"
+	@echo "  lint         solhint src (strict) and test (relaxed)"
+	@echo "  test         forge test                          (Gate 3)"
+	@echo "  coverage     forge coverage, >=90% of src/ lines (Gate 3)"
+	@echo "  check        build + fmt-check + lint + test + coverage"
 	@echo "  clean        remove forge build output"
 	@echo ""
 	@echo "No target above needs a funded wallet or an API key."
@@ -55,11 +57,22 @@ fmt:
 fmt-check:
 	cd contracts && forge fmt --check
 
+# src/ is linted strictly; test/ uses a relaxed config (test_snake_case names,
+# `catch {}` in the fuzz handler, revert strings in mocks).
+lint:
+	npx solhint "contracts/src/**/*.sol" --config contracts/.solhint.json
+	npx solhint "contracts/test/**/*.sol" --config contracts/test/.solhint.json
+
+# Everything Gate 2 and Gate 3 require, in one command.
+check: build fmt-check lint test coverage
+
 test:
 	cd contracts && forge test -vvv
 
+# --ir-minimum is REQUIRED: coverage disables via_ir, which reintroduces the
+# "stack too deep" error the official decoder triggers (DECISIONS D-018/D-028).
 coverage:
-	cd contracts && forge coverage --report summary
+	cd contracts && forge coverage --ir-minimum --report summary
 
 clean:
 	cd contracts && forge clean

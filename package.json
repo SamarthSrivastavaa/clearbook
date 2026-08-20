@@ -8,7 +8,8 @@
     "gate0": "tsx integration/gate0-capabilities.ts",
     "gate0:lag": "tsx integration/gate0-lag.ts",
     "gate1": "tsx integration/gate1-evidence.ts",
-    "gate2": "tsx integration/gate2-proof.ts"
+    "gate2": "tsx integration/gate2-proof.ts",
+    "lint": "solhint \"contracts/src/**/*.sol\" --config contracts/.solhint.json && solhint \"contracts/test/**/*.sol\" --config contracts/test/.solhint.json"
   },
   "license": "MIT",
   "dependencies": {

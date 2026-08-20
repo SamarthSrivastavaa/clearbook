@@ -434,6 +434,46 @@ Rule disabled in `.solhint.json` with this reasoning rather than left as recurri
 
 ---
 
+### D-028 · GATE 3 PASSED — 100% line coverage of `src/`, and `forge coverage` needs `--ir-minimum` — [L]
+
+**Gate 3 result:** 73 tests pass, and line coverage of `src/` is **100%**, against the required ≥90%.
+
+| File | Lines | Statements | Branches | Funcs |
+|---|---|---|---|---|
+| `src/Clearbook.sol` | **100.00% (110/110)** | 94.38% | 75.61% | 100.00% |
+| `src/EvidenceVault.sol` | **100.00% (33/33)** | 100.00% | 100.00% | 100.00% |
+| `src/libraries/CovenantLib.sol` | **100.00% (8/8)** | 100.00% | 100.00% | 100.00% |
+
+`src/interfaces/IEvidenceVault.sol` has no executable lines. The tool's 39.34% *total* is dominated by untouched OpenZeppelin and gluwa dependency code, which the gate explicitly does not cover ("90% of lines in `src/`").
+
+**Tooling consequence, and it is not optional.** `forge coverage` disables `via_ir` to keep source mappings accurate — which reintroduces exactly the "Stack too deep" failure D-018 documents, this time at `EvidenceVault.sol:72`. Plain `forge coverage` therefore **cannot compile this project**. The command is:
+
+```
+forge coverage --ir-minimum --report summary
+```
+
+Recorded in `Makefile`, `TESTING.md` and `DEPLOYMENT.md` so nobody rediscovers it under deadline. Note forge's own caveat that `--ir-minimum` can produce less accurate source mappings; the 100% line result should be read with that in mind, which is why the named behavioural tests, not the percentage, are the real evidence.
+
+**Branch coverage of `Clearbook.sol` is 75.61%**, below line coverage. The uncovered branches are predominantly compound-condition short-circuits already exercised from one side. Recorded in `TESTING.md` rather than papered over; Gate 3's criterion is lines.
+
+---
+
+### D-029 · Invariant suites can pass vacuously — a reachability test now guards against it — [L]
+
+This nearly shipped as a silent hole, and the process that caught it is worth recording.
+
+The five invariants passed immediately: 64 runs × 64 calls, **zero reverts**. That looked good and was misleading. Zero reverts across 4096 calls is suspicious in a system with this many guards, so I added a temporary "canary" invariant asserting the *opposite* of what should be true — if the canary fails, the handler is genuinely building state.
+
+The canary revealed the fuzzer was **never reaching `challenge()`**. Loans were registered and repayments claimed, but `actChallenge` picked a loan at random and almost never landed on one in `REPAYMENT_CLAIMED`. **I1 and I2 — the invariants that protect bond accounting under slashing — were holding over state where no slashing ever occurred.** They were true, and they proved nothing.
+
+Two fixes:
+1. `actChallenge` now **scans** for a challengeable loan instead of relying on a random pick.
+2. A permanent test, `test_handler_reaches_a_breach`, drives the handler through register → loan → claim → challenge and asserts a slash actually happened. If the handler ever loses the ability to reach the mechanism, that test fails loudly instead of the invariants passing quietly.
+
+**A methodological note for the remaining phases:** during this diagnosis several PowerShell `.Replace()` edits silently no-matched because of CRLF/LF differences, so ghost counters were never incremented and three rounds of measurements were meaningless. Structured file edits are used for Solidity from here on; shell string substitution is not reliable for this.
+
+---
+
 ### D-016 · Repository is ESM (`"type": "module"`) — [L]
 
 BUILD.md's Phase 0 snippets use top-level `await`. `npm init -y` defaults to `"type": "commonjs"`, under which `import.meta` is unavailable and those snippets do not run.
