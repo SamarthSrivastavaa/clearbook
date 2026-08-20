@@ -1,0 +1,39 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+script = "script"
+
+# BUILD.md §5: the published INativeQueryVerifier.sol is `pragma ^0.8.28`.
+solc = "0.8.28"
+
+# Determined from live CC3 testnet behaviour, not assumed. PUSH0, MCOPY, TSTORE
+# and TLOAD all execute on chainId 102031 -> full Cancun support.
+# See integration/gate1a-evm-capabilities.ts and DECISIONS D-017.
+evm_version = "cancun"
+
+optimizer = true
+optimizer_runs = 200
+
+# REQUIRED, not a preference. The official EvmV1Decoder's nested dynamic structs
+# (ReceiptFields -> LogEntry[] -> bytes32[]/bytes) overflow the legacy codegen's
+# stack: without this, `forge build` fails with "Stack too deep ... Variable
+# headStart is 3 slot(s) too deep". The compiler's own recommended fix.
+# See DECISIONS D-018.
+via_ir = true
+
+# Custom errors are part of the interface contract with the frontend (BUILD.md §12
+# requires decoding them to human text), so keep metadata deterministic.
+bytecode_hash = "none"
+cbor_metadata = false
+
+# `node_modules` lives at the repository root, one level above this Foundry
+# project, so the decoder/verifier imports resolve through `../`.
+allow_paths = ["../node_modules"]
+
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = false
+int_types = "long"

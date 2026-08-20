@@ -247,6 +247,95 @@ Phase 0 only ever observed the **success** path (`verify()` → `true`). **The f
 
 ---
 
+### D-017 · `evm_version = "cancun"` — determined from live chain behaviour — [L]
+
+BUILD.md Phase 1 says to "set `solc = 0.8.28` and `evm_version` in foundry.toml" but does not say **which** EVM version. Guessing is a deploy-time failure waiting to happen: contracts compile locally and revert on deployment if the chain lacks an opcode.
+
+Resolved empirically with `integration/gate1a-evm-capabilities.ts`, which executes candidate opcodes via `eth_call` with no `to` address (the node runs the payload as creation code). Costs nothing and needs no funded account. A control probe (`STOP`) runs first, so a failure can never be misread as "the node rejects creation-code calls".
+
+Result on CC3 testnet (`chainId 102031`):
+
+| Opcode | Introduced | Result |
+|---|---|---|
+| `PUSH0` (0x5f) | Shanghai | SUPPORTED |
+| `MCOPY` (0x5e) | Cancun | SUPPORTED |
+| `TSTORE` (0x5d) | Cancun | SUPPORTED |
+| `TLOAD` (0x5c) | Cancun | SUPPORTED |
+
+**Decision:** `evm_version = "cancun"` — which is also solc 0.8.28's default, so the setting is explicit rather than load-bearing. Recording it means a future solc default change cannot silently move us.
+**Reverses if:** CC3 downgrades its EVM, or a mainnet deployment targets a chain with narrower support — rerun the probe against that chain.
+
+---
+
+### D-018 · `via_ir = true` is REQUIRED by the official decoder, not a preference — [L]
+
+Not anticipated by BUILD.md. The first `forge build` of the Gate 1a probe **failed**:
+
+```
+Error: Compiler error: Stack too deep. Try compiling with `--via-ir` ...
+When compiling inline assembly: Variable headStart is 3 slot(s) too deep inside the stack.
+```
+
+Cause: `EvmV1Decoder`'s nested dynamic structs (`ReceiptFields` → `LogEntry[]` → `bytes32[]` / `bytes`) overflow the legacy code generator's stack when ABI-encoded. The library's own header comment says its chunked layout exists "to avoid stack too deep issues" — chunking mitigates it but does not eliminate it at the ABI boundary.
+
+**Decision:** `via_ir = true` in `foundry.toml`, the fix the compiler itself recommends. With it, the build succeeds. This is a **hard requirement for any contract that decodes receipts**, so it applies to `EvidenceVault` in Phase 2, not just the probe.
+
+Consequences to carry forward:
+- Compilation is slower; acceptable.
+- `via_ir` changes codegen, so gas figures must be measured under this exact setting (BUILD.md §16 requires measured, not quoted, gas).
+- Bytecode verification on the explorer must use identical settings — recorded in `DEPLOYMENT.md`.
+
+**Reverses if:** upstream restructures the decoder to stay within legacy stack limits.
+
+---
+
+### D-019 · `forge-std` pinned to v1.16.2 as a git submodule — [L]
+
+`forge init --no-git contracts` vendored forge-std as **plain files with its `.git` stripped** — no version pin, no submodule, ~70 files of third-party code unpinned in our tree. `git -C contracts/lib/forge-std rev-parse HEAD` returned *our* repo's HEAD, confirming it was not a repository at all.
+
+That violates BUILD.md's reproducibility rule (18) and pinning rule (19).
+
+**Decision:** removed the vendored copy and reinstalled with `forge install foundry-rs/forge-std@v1.16.2` from inside `contracts/`, which registers a proper submodule pinned to that tag and creates `.gitmodules`. Version chosen by reading the vendored copy's `package.json` (1.16.2), so the pin matches what forge selected rather than an arbitrary newer tag.
+
+**Clean-clone note:** `git clone --recurse-submodules` (or `git submodule update --init`) is now required before `forge build`. Recorded in `DEPLOYMENT.md`.
+**Reverses if:** the project moves to Foundry's dependency manager (`soldeer`) instead of submodules.
+
+---
+
+### D-020 · Remapping needs `../` — BUILD.md's path assumes a different layout — [C]
+
+BUILD.md §10 specifies:
+
+```
+@gluwa/usc-contracts/=node_modules/@gluwa/usc-contracts/
+```
+
+That resolves only if `node_modules` sits **inside** the Foundry project. In this repository `node_modules` is at the **repo root** and the Foundry project is `contracts/`, one level down. Foundry resolves remappings relative to the project root, so the documented path cannot resolve.
+
+**Decision:** `contracts/remappings.txt` uses `../node_modules/@gluwa/usc-contracts/`, plus `allow_paths = ["../node_modules"]` in `foundry.toml` so solc may read outside the project root. Verified by a successful build.
+
+The alternative — a second `npm install` inside `contracts/` — was rejected: it would duplicate the dependency and create two versions that can drift, defeating D-002's pinning.
+**Reverses if:** the repository is restructured so the Foundry project is the root.
+
+---
+
+### D-021 · GATE 1a PASSED — full protocol API verified at compile time — [L]
+
+`contracts/src/Gate1aProbe.sol` is a throwaway that imports both real package paths and **references every API BUILD.md depends on**, so the gate is an interface contract test rather than a bare import check. `forge build` → *Compiler run successful*; artifact carries all six functions and 4 KB of deployed bytecode.
+
+Proven by successful compilation:
+- `NativeQueryVerifierLib.PRECOMPILE` exists and the probe asserts it equals `0x…0FD2`.
+- **`INativeQueryVerifier.calculateTxIndex.selector` compiles** — this is the decisive one. It resolves only against `common/INativeQueryVerifier.sol`; had the remapping picked up the lean copy (D-008), this line would fail. Both `verifyAndEmit` overloads and both `verify` overloads are likewise referenced.
+- Struct shapes `MerkleProof` / `MerkleProofEntry` / `ContinuityProof` construct exactly as BUILD.md §5.1 builds them.
+- Decoder entry points `getTransactionType`, `isValidTransactionType`, `decodeReceiptFields`, `decodeCommonTxFields`, `getLogsByEventSignature` all resolve, and `ReceiptFields` / `LogEntry` have the fields BUILD.md §1.2 claims.
+
+Every `[C]` claim in BUILD.md §1.2 about the verifier and decoder APIs is now additionally confirmed by compilation.
+
+**Still unproven here:** that the decoder produces *correct values on real data*. Gate 1a is compile-time only. The Solidity decode path is validated against real `txBytes` at Gate 4; Phase 0's `[L]` decode evidence came from the TypeScript mirror (D-010), which is not the same code.
+**Reverses if:** upstream changes any of these signatures — the build breaks loudly here, which is the point.
+
+---
+
 ### D-016 · Repository is ESM (`"type": "module"`) — [L]
 
 BUILD.md's Phase 0 snippets use top-level `await`. `npm init -y` defaults to `"type": "commonjs"`, under which `import.meta` is unavailable and those snippets do not run.
