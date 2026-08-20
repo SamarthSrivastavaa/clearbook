@@ -17,5 +17,3 @@ contracts/broadcast/
 # --- build output ---
 dist/
 .next/
-
-*.md
