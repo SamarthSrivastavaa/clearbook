@@ -1,0 +1,27 @@
+# Local development database for the worker (BUILD.md §8.2).
+#
+# Port 5433, not 5432: many machines already run a local PostgreSQL on the
+# default port, and this container must never collide with it.
+#
+#   docker compose up -d db
+#   docker compose down -v      # -v also drops the volume
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: clearbook-db
+    environment:
+      POSTGRES_USER: clearbook
+      POSTGRES_PASSWORD: clearbook
+      POSTGRES_DB: clearbook
+    ports:
+      - "5433:5432"
+    volumes:
+      - clearbook-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clearbook -d clearbook"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  clearbook-pgdata:

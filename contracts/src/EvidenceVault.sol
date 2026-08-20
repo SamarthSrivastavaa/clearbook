@@ -20,6 +20,11 @@ contract EvidenceVault is IEvidenceVault {
     ///         mock; `Deploy.s.sol` asserts production uses 0x…0FD2.
     INativeQueryVerifier public immutable VERIFIER;
 
+    /// @notice Precompile batch limits. Both are protocol constraints, not our
+    ///         choices, and both are verified against the shipped contracts.
+    uint256 public constant MAX_BATCH_SIZE = 10;
+    uint256 public constant MAX_BATCH_RANGE = 1000;
+
     mapping(bytes32 => TransferFact) private _facts;
     mapping(bytes32 => bool) public exists;
 
@@ -30,6 +35,10 @@ contract EvidenceVault is IEvidenceVault {
     error MalformedTransferLog();
     error UnsupportedTxType();
     error UnknownFact();
+    error BatchTooLarge();
+    error BatchRangeExceeded();
+    error BatchLengthMismatch();
+    error EmptyBatch();
 
     constructor(INativeQueryVerifier verifier) {
         VERIFIER = verifier;
@@ -72,6 +81,92 @@ contract EvidenceVault is IEvidenceVault {
         bool ok = VERIFIER.verifyAndEmit(chainKey, blockHeight, encodedTransaction, merkleProof, continuityProof);
         if (!ok) revert ProofRejected();
 
+        // 5-12. Decode the now-verified bytes and store.
+        _decodeAndStore(factId, chainKey, blockHeight, txIndex, logIndex, encodedTransaction);
+    }
+
+    /// @notice Batch path against the precompile's batch overload, sharing one
+    ///         continuity proof across all items.
+    /// @dev Both guards below are protocol constraints, not preferences: the
+    ///      precompile enforces a maximum batch size and a maximum block span, and
+    ///      exceeding either wastes the whole transaction's gas. We check them
+    ///      first so a caller fails cheaply.
+    ///
+    ///      Unlike the single path, dedupe cannot precede verification here: the
+    ///      precompile verifies the batch as one unit, so filtering already-known
+    ///      items would change what is being proven. Known items are therefore
+    ///      re-verified and then skipped at storage time — correct, slightly less
+    ///      efficient, and the reason the single path exists for repeat traffic.
+    function submitTransferFactsBatch(
+        uint64 chainKey,
+        uint64[] calldata heights,
+        bytes[] calldata encodedTransactions,
+        INativeQueryVerifier.MerkleProof[] calldata merkleProofs,
+        INativeQueryVerifier.ContinuityProof calldata sharedContinuityProof,
+        uint32[] calldata logIndexes
+    ) external returns (bytes32[] memory factIds) {
+        // Validation and per-item ingestion are split into private functions to
+        // keep this frame's live-variable count low. With every calldata array
+        // plus loop temporaries in one frame, the IR pipeline runs out of stack
+        // under minimum optimization — which is exactly how `forge coverage
+        // --ir-minimum` compiles. Keeping coverage runnable is worth the split.
+        _validateBatch(heights, encodedTransactions.length, merkleProofs.length, logIndexes.length);
+
+        if (!VERIFIER.verifyAndEmit(chainKey, heights, encodedTransactions, merkleProofs, sharedContinuityProof)) {
+            revert ProofRejected();
+        }
+
+        factIds = new bytes32[](heights.length);
+        for (uint256 i; i < heights.length; ++i) {
+            factIds[i] = _ingestOne(chainKey, heights[i], merkleProofs[i], logIndexes[i], encodedTransactions[i]);
+        }
+    }
+
+    /// @dev Both guards are protocol constraints imposed by the precompile.
+    function _validateBatch(uint64[] calldata heights, uint256 txCount, uint256 proofCount, uint256 logIndexCount)
+        private
+        pure
+    {
+        uint256 n = heights.length;
+        if (n == 0) revert EmptyBatch();
+        if (n > MAX_BATCH_SIZE) revert BatchTooLarge();
+        if (txCount != n || proofCount != n || logIndexCount != n) revert BatchLengthMismatch();
+
+        // Span guard: max(heights) - min(heights) must stay within the range one
+        // shared continuity proof can cover. Order-independent by construction.
+        uint64 minHeight = heights[0];
+        uint64 maxHeight = heights[0];
+        for (uint256 i = 1; i < n; ++i) {
+            if (heights[i] < minHeight) minHeight = heights[i];
+            if (heights[i] > maxHeight) maxHeight = heights[i];
+        }
+        if (maxHeight - minHeight > MAX_BATCH_RANGE) revert BatchRangeExceeded();
+    }
+
+    /// @dev Idempotent per item, exactly as in the single path.
+    function _ingestOne(
+        uint64 chainKey,
+        uint64 blockHeight,
+        INativeQueryVerifier.MerkleProof calldata merkleProof,
+        uint32 logIndex,
+        bytes calldata encodedTransaction
+    ) private returns (bytes32 factId) {
+        uint64 txIndex = VERIFIER.calculateTxIndex(merkleProof);
+        factId = computeFactId(chainKey, blockHeight, txIndex, logIndex);
+        if (exists[factId]) return factId;
+        _decodeAndStore(factId, chainKey, blockHeight, txIndex, logIndex, encodedTransaction);
+    }
+
+    /// @dev Steps 5-12 of BUILD.md §5.1, shared by the single and batch paths.
+    ///      MUST only ever be called on bytes the precompile has already verified.
+    function _decodeAndStore(
+        bytes32 factId,
+        uint64 chainKey,
+        uint64 blockHeight,
+        uint64 txIndex,
+        uint32 logIndex,
+        bytes calldata encodedTransaction
+    ) private {
         // 5. Only transaction types 0-4 are decodable.
         uint8 txType = EvmV1Decoder.getTransactionType(encodedTransaction);
         if (!EvmV1Decoder.isValidTransactionType(txType)) revert UnsupportedTxType();

@@ -14,6 +14,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JsonRpcProvider } from 'ethers';
+import { asSdkProvider } from './lib/provider.js';
 import { chainInfo } from '@gluwa/usc-sdk';
 
 const RESULTS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'results');
@@ -119,7 +120,7 @@ async function main(): Promise<void> {
   const targetChainId = Number(process.env.SOURCE_CHAIN_ID ?? 11155111);
 
   const cc = new JsonRpcProvider(ccUrl);
-  const info = new chainInfo.PrecompileChainInfoProvider(cc);
+  const info = new chainInfo.PrecompileChainInfoProvider(asSdkProvider(cc));
 
   const chain = await resolveChainKey(info, targetChainId);
   console.log(`Resolved chainId ${targetChainId} -> chainKey ${chain.chainKey} (encoding ${chain.chainEncoding})`);

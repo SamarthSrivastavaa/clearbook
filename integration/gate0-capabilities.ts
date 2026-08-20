@@ -15,6 +15,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JsonRpcProvider } from 'ethers';
+import { asSdkProvider } from './lib/provider.js';
 import { chainInfo } from '@gluwa/usc-sdk';
 
 const RESULTS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'results');
@@ -124,7 +125,7 @@ async function main(): Promise<void> {
   console.log(`Creditcoin chainId: ${ccChainId} (${EIP155_NAMES[ccChainId] ?? 'UNKNOWN'})`);
   console.log(`Creditcoin block number: ${ccBlockNumber}`);
 
-  const info = new chainInfo.PrecompileChainInfoProvider(cc);
+  const info = new chainInfo.PrecompileChainInfoProvider(asSdkProvider(cc));
   console.log(`ChainInfo precompile: ${chainInfo.CHAIN_INFO_PRECOMPILE_ADDRESS}`);
 
   // --- Run 1 ---

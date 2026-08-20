@@ -13,7 +13,7 @@ Clearbook's `EvidenceVault` calls the Creditcoin **Block Prover precompile at `0
 - **Log-level replay protection** — `keccak(chainKey, blockHeight, txIndex, logIndex)`, deliberately stricter than the reference implementation's transaction-level key, because one transaction routinely carries many relevant `Transfer` logs (we measured 17 and 30 in real transactions).
 - **Ordinary third-party ERC-20 logs** — Clearbook deploys **nothing** on the source chain.
 
-Full detail will live in `docs/ATTESTCOIN_INTEGRATION.md` *(not yet written — Phase 13)*.
+Full detail, including a candid "protocol limits we hit" section: [`docs/ATTESTCOIN_INTEGRATION.md`](docs/ATTESTCOIN_INTEGRATION.md).
 
 ---
 

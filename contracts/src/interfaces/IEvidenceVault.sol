@@ -55,6 +55,18 @@ interface IEvidenceVault {
         uint32 logIndex
     ) external returns (bytes32 factId);
 
+    /// @notice Batch path sharing one continuity proof across all items.
+    /// @dev Guarded by the precompile's own limits: at most MAX_BATCH_SIZE items,
+    ///      spanning at most MAX_BATCH_RANGE blocks. Idempotent per item.
+    function submitTransferFactsBatch(
+        uint64 chainKey,
+        uint64[] calldata heights,
+        bytes[] calldata encodedTransactions,
+        INativeQueryVerifier.MerkleProof[] calldata merkleProofs,
+        INativeQueryVerifier.ContinuityProof calldata sharedContinuityProof,
+        uint32[] calldata logIndexes
+    ) external returns (bytes32[] memory factIds);
+
     /// @notice Returns a stored fact. Reverts `UnknownFact` if it was never ingested.
     function getFact(bytes32 factId) external view returns (TransferFact memory);
 

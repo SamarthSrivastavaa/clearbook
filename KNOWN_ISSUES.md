@@ -123,6 +123,26 @@ Implemented as `REPAYMENT_BPS = 10_000` (repayment must cover principal in full)
 
 ---
 
+### K-013 · Dual-package hazard: the SDK's CommonJS types and our ESM types disagree
+
+**Class:** DOCUMENTATION/IMPLEMENTATION MISMATCH (upstream packaging). **Status:** routed around; typecheck clean.
+
+`@gluwa/usc-sdk@0.18.0` ships **CommonJS**, so its `.d.ts` resolves ethers' `lib.commonjs` declarations. This project is **ESM**, so our `import 'ethers'` resolves `lib.esm`. Both files declare `#private` on `JsonRpcApiProvider`, and TypeScript treats each `#private` in a declaration file as a distinct nominal brand — so the two `JsonRpcApiProvider` types are mutually unassignable **despite being the same class at runtime**:
+
+```
+error TS2345: Argument of type '...lib.esm/...JsonRpcApiProvider' is not assignable
+to parameter of type '...lib.commonjs/...JsonRpcApiProvider'.
+  Property '#private' ... refers to a different member
+```
+
+This affects the SDK's own documented examples, which pass a `JsonRpcProvider` straight into `PrecompileChainInfoProvider`. Anyone using this SDK from an ESM TypeScript project hits it. Worth reporting upstream alongside K-003/K-004.
+
+**Route-around:** `integration/lib/provider.ts` and `worker/src/provider.ts` each expose one `asSdkProvider()` bridge whose return type is **derived from the SDK's own constructor signature** (`ConstructorParameters<typeof chainInfo.PrecompileChainInfoProvider>[0]`) rather than written out, so it stays correct if the SDK changes what it accepts. The cast is confined to those two functions; if upstream ships ESM types there are exactly two lines to delete.
+
+**Two wrong hypotheses preceded the right one**, and both are recorded because the diagnosis pattern matters: first "duplicate ethers installs" (disproved — `npm ls` showed a single deduped 6.17.0), then "TypeScript 7 changed private-field variance" (disproved — the identical error reproduced on 5.9.3). Only the full error text, which names both resolution paths, revealed the actual cause. The lesson is to read the whole diagnostic before acting on the familiar-looking half of it.
+
+---
+
 ### K-012 · The §19 forbidden-word check flags its own disclaimers
 
 **Class:** DOCUMENTATION/IMPLEMENTATION MISMATCH (in the audit checklist). **Status:** open — matters at Phase 14.

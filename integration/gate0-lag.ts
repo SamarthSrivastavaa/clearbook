@@ -17,6 +17,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JsonRpcProvider } from 'ethers';
+import { asSdkProvider } from './lib/provider.js';
 import { chainInfo } from '@gluwa/usc-sdk';
 
 const RESULTS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'results');
@@ -43,7 +44,7 @@ async function main(): Promise<void> {
   if (!rpcUrl) throw new Error('CREDITCOIN_RPC_URL is not set');
 
   const cc = new JsonRpcProvider(rpcUrl);
-  const info = new chainInfo.PrecompileChainInfoProvider(cc);
+  const info = new chainInfo.PrecompileChainInfoProvider(asSdkProvider(cc));
   const chains = await info.getSupportedChains();
 
   console.log(`Observing ${chains.length} chains, ${SAMPLES} samples, ${INTERVAL_MS / 1000}s apart`);

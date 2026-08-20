@@ -19,6 +19,7 @@ import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JsonRpcProvider } from 'ethers';
+import { asSdkProvider } from './lib/provider.js';
 import { chainInfo, proofProvider, blockProver } from '@gluwa/usc-sdk';
 import { decodeReceiptFields, extractTransfer, getTransactionType, isValidTransactionType } from './lib/decode-receipt.js';
 import { ERC20_TRANSFER_TOPIC, resolveChainKey } from './gate1-evidence.js';
@@ -64,7 +65,7 @@ async function main(): Promise<void> {
   const targetChainId = Number(process.env.SOURCE_CHAIN_ID ?? 11155111);
   const cc = new JsonRpcProvider(ccUrl);
   const src = new JsonRpcProvider(srcUrl);
-  const info = new chainInfo.PrecompileChainInfoProvider(cc);
+  const info = new chainInfo.PrecompileChainInfoProvider(asSdkProvider(cc));
 
   const chain = await resolveChainKey(info, targetChainId);
   const chainKey = chain.chainKey;
@@ -109,7 +110,7 @@ async function main(): Promise<void> {
 
   // ---- GATE 3: verify through the real Creditcoin precompile ----
   console.log(`\n=== GATE 3 — on-chain verification via precompile 0x0FD2 ===`);
-  const prover = new blockProver.PrecompileBlockProver(cc);
+  const prover = new blockProver.PrecompileBlockProver(asSdkProvider(cc));
   console.log(`BlockProver precompile: ${blockProver.BLOCK_PROVER_PRECOMPILE_ADDRESS}`);
 
   const tVerifyStart = Date.now();

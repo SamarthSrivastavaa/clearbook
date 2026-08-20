@@ -474,6 +474,106 @@ Two fixes:
 
 ---
 
+### D-030 · Demo token is canonical Sepolia WETH — the `MockUSD` fallback is NOT needed — [L]
+
+BUILD.md §7 permits deploying `MockUSD.sol` **only** if no suitable pre-existing ERC-20 is available, and warns that if deployed, "the pitch must not claim third-party provenance". That would have cost the project its central architectural claim.
+
+It is not needed. `0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9` on Sepolia, which appeared organically in our own Gate 1 scan of third-party transfers, verified live:
+
+| Property | Value |
+|---|---|
+| `name()` | `Wrapped Ether` |
+| `symbol()` | `WETH` |
+| `decimals()` | 18 |
+| `deposit()` selector `0xd0e30db0` | present in deployed bytecode |
+
+Why this is the right choice:
+1. **We deploy nothing on the source chain.** WETH9 is a canonical third-party contract we do not control and cannot modify — exactly the claim §0.3 Q14 and §13.2 rest on.
+2. **We can obtain it for free.** `deposit()` wraps faucet ETH into WETH, so staging demo transfers needs no token faucet and no minting privileges.
+3. **It emits a standard ERC-20 `Transfer`** with three topics and a 32-byte data field — the shape `EvidenceVault` requires.
+4. It is already in real use on Sepolia, so the demo's staged transactions sit among genuine third-party traffic.
+
+Recorded in `.env` as `SOURCE_TOKEN_ADDRESS`. Explorer: `https://sepolia.etherscan.io/address/0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`.
+
+**`contracts/src/fixtures/MockUSD.sol` will not be built.**
+**Reverses if:** WETH's wrap path becomes unusable, in which case §7's fixture fallback applies and the pitch must be corrected accordingly.
+
+---
+
+### D-031 · `protocolSink` is the standard burn address — [P]
+
+BUILD.md §4.4 specifies the non-bounty half of a slash goes to "`protocolSink` (a burn-like address set at deploy)". Set to `0x000000000000000000000000000000000000dEaD`, the conventional Ethereum burn sink: no known private key, so the value is provably unrecoverable by anyone including us.
+
+This matters for the trust model. Routing the remainder to an address we control would make Clearbook look like it profits from slashing, which invites exactly the "who benefits?" objection the no-admin design exists to pre-empt. `Deploy.s.sol` refuses to deploy with an unset (zero) sink.
+
+---
+
+### D-032 · Deployment guards are unit-tested, not merely written — [L]
+
+BUILD.md Phase 3 requires `Deploy.s.sol` to assert production uses `0x…0FD2`. A guard that only executes during a live broadcast is a guard nobody has ever verified, so the checks live in `DeployLib` — a library — and `test/Deploy.t.sol` exercises them:
+
+- accepts the real precompile on all three Creditcoin chain ids (102030/102031/102032)
+- **rejects a mock verifier** — the testability seam from D-003 must never reach production
+- rejects Ethereum mainnet, Sepolia, and an arbitrary chain id
+- rejects a zero `protocolSink`
+
+`vm.expectRevert` needs the revert one call deeper than the cheatcode, and `internal` library functions inline into their caller, so the tests go through a small external `GuardHarness`. Worth noting because the first version of these tests failed with "call didn't revert at a lower depth than cheatcode call depth" — a passing-looking test that was actually testing nothing would have been the worse outcome.
+
+`run()` additionally reads the deployed contracts back and asserts the vault, sink and verifier wiring, so a successful broadcast is self-verifying.
+
+---
+
+### D-033 · TypeScript pinned to 5.9.3 — but not for the reason I first thought — [L]
+
+Downgraded from 7.0.2 to **5.9.3** while diagnosing K-013, on the hypothesis that TypeScript 7 had changed private-field variance checking. **That hypothesis was wrong** — the identical error reproduced on 5.9.3, and the real cause was the SDK's dual-package hazard.
+
+Keeping 5.9.3 anyway, on a correct rationale rather than the original one: it matches `@gluwa/usc-sdk`'s own `devDependencies` (`typescript ^5.9.2`), so we typecheck against the same major the SDK is authored and built with. TypeScript 7 is a recent rewrite; matching upstream's toolchain is the conservative choice for a project whose main risk is integration mismatch.
+
+**Reverses if:** a dependency needs TS 7 features, or the SDK moves to 7.x.
+
+---
+
+### D-034 · Worker built (Phase 8), Postgres via Docker on port 5433 — [L]
+
+Worker implemented per BUILD.md §8: `discover` · `watch` · `prove` · `precheck` · `submit` · `db` · `log` · `health`, plus `main.ts` as the orchestrator. §8.1 defines `index.ts` as the *event projection* for the UI, so the entry point needed a separate name.
+
+Two environment decisions:
+
+**Postgres runs in Docker on port 5433, not 5432.** This machine already has a `postgresql-x64-17` service running on the default port whose credentials we do not have, and guessing at them is not an option. `docker-compose.yml` brings up a disposable `postgres:17-alpine` with the exact §8.2 schema, on a port that cannot collide with an existing install. `DATABASE_URL` in `.env` points at 5433.
+
+**Docker Desktop must be running.** The CLI is installed but the engine was not up during this phase, so the schema has not yet been applied against a live database. The migration SQL is §8.2 verbatim and `db.ts` is written against it, but **the persistence layer is `[U]` until it runs**. It is not claimed as verified.
+
+The design decision worth recording: the DB's `UNIQUE (chain_key, block_height, tx_index, log_index)` mirrors the on-chain `factId` exactly. That is what makes Gate 8a's restart safety a property rather than a hope — the vault is idempotent, this key is unique, and the cursor is persisted, so a crash at any point replays as a no-op.
+
+`precheck.ts` carries an explicit warning that it is an **economy, not a security control**: it spends no gas to skip bundles that would revert, but the vault re-verifies through `verifyAndEmit` regardless. Deleting it would cost gas, not safety.
+
+---
+
+### D-035 · Batch path built with both protocol guards; stack pressure forced a refactor — [L]
+
+`submitTransferFactsBatch` implemented per BUILD.md §5.1, with the two mandatory guards checked **before** the precompile call so an oversized batch fails cheaply:
+
+- `heights.length <= MAX_BATCH_SIZE` (10) → `BatchTooLarge`
+- `max(heights) - min(heights) <= MAX_BATCH_RANGE` (1000) → `BatchRangeExceeded`
+
+Plus two guards BUILD.md does not name but which the signature makes reachable: `EmptyBatch` (a zero-length batch would make the min/max computation meaningless) and `BatchLengthMismatch` (four parallel arrays that must agree).
+
+**Dedupe cannot precede verification in the batch path**, unlike the single path. The precompile verifies the batch as one unit, so filtering already-known items would change what is being proven. Known items are therefore re-verified and skipped at storage time — correct, marginally less efficient, and the reason the single path remains the right choice for repeat traffic. Documented in the function's own comment so nobody "optimises" it later.
+
+**The refactor is load-bearing, not cosmetic.** The first implementation kept validation and the ingestion loop inline. That compiled fine under the production profile (`via_ir` with full optimization) and **broke `forge coverage`**:
+
+```
+Error: Yul exception: Variable _12 is 1 too deep in the stack
+```
+
+`forge coverage --ir-minimum` compiles with *minimum* optimization, and with six calldata parameters plus loop temporaries in one frame the IR pipeline ran out of stack. Splitting `_validateBatch` and `_ingestOne` into private functions cut the live-variable count and restored coverage.
+
+This is a second-order consequence of D-018: because this project *must* use `via_ir`, the coverage path is a genuinely different compilation profile, and code can pass `forge build` while making `forge coverage` impossible. Worth watching whenever a function with many calldata parameters is added.
+
+**Result:** `EvidenceVault.sol` reaches **100% lines (57/57), 100% branches (15/15), 100% functions (9/9)**; 92 tests pass overall. Coverage of `src/` is unchanged at 100% lines.
+
+---
+
 ### D-016 · Repository is ESM (`"type": "module"`) — [L]
 
 BUILD.md's Phase 0 snippets use top-level `await`. `npm init -y` defaults to `"type": "commonjs"`, under which `import.meta` is unavailable and those snippets do not run.
