@@ -17,3 +17,9 @@ contracts/broadcast/
 # --- build output ---
 dist/
 .next/
+
+# --- internal build specification: not published ---
+# Scoped to this one file on purpose. A blanket `*.md` would also exclude
+# README.md, DECISIONS.md, KNOWN_ISSUES.md, SECURITY.md and docs/*.md, which
+# BUILD.md §16 requires the public repo to contain.
+/BUILD.md
