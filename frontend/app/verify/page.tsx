@@ -169,10 +169,8 @@ export default function VerifyPage() {
     <div className="space-y-10">
       <header className="max-w-3xl">
         <Eyebrow>Judge mode</Eyebrow>
-        <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-tight">
-          Verify any {SOURCE_CHAIN.name} transaction.
-        </h1>
-        <p className="mt-3 text-[14px] leading-relaxed text-ink-muted">
+        <h1 className="display-lg mt-3">Verify any {SOURCE_CHAIN.name} transaction.</h1>
+        <p className="prose-lead mt-4">
           Paste a transaction hash — ours, or one you found yourself a minute ago. Clearbook will
           locate it, resolve the chain key from the ChainInfo precompile, ask whether its block is
           attested, fetch a proof, and have the Block Prover precompile rule on it. Every step is
@@ -202,7 +200,7 @@ export default function VerifyPage() {
                 href={explorer.sourceTx(txHash)}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-[12px] text-ink-muted underline underline-offset-4 hover:text-ink"
+                className="text-[12px] text-muted underline underline-offset-4 hover:text-ink"
               >
                 View on explorer
               </a>
@@ -217,7 +215,7 @@ export default function VerifyPage() {
         </div>
 
         <Section title="Verification path" aside={verified === true ? 'Complete' : undefined}>
-          <ol className="rule-t">
+          <ol className="rail">
             {steps.map((s, i) => (
               <StepRow key={s.key} step={s} index={i + 1} />
             ))}
@@ -266,8 +264,11 @@ export default function VerifyPage() {
 }
 
 function StepRow({ step, index }: { step: Step; index: number }) {
+  // Resolved states get a glyph so the outcome never depends on colour alone.
+  // Pending steps get nothing — the rail node already says "not yet", and a dot
+  // beside an empty node is noise. The column keeps its width either way.
   const mark =
-    step.state === 'done' ? '✓' : step.state === 'failed' ? '✕' : step.state === 'blocked' ? '॥' : '·';
+    step.state === 'done' ? '✓' : step.state === 'failed' ? '✕' : step.state === 'blocked' ? '॥' : '';
 
   const tone =
     step.state === 'done'
@@ -276,14 +277,14 @@ function StepRow({ step, index }: { step: Step; index: number }) {
         ? 'text-breach'
         : step.state === 'blocked'
           ? 'text-pending'
-          : 'text-ink-faint';
+          : 'text-faint';
+
+  const railState =
+    step.state === 'done' ? 'done' : step.state === 'failed' ? 'breach' : step.state === 'running' ? 'active' : undefined;
 
   return (
-    <li className="rule-b flex gap-4 py-3.5">
-      <span
-        className={`mt-0.5 w-4 shrink-0 text-center text-[12px] font-semibold ${tone}`}
-        aria-hidden
-      >
+    <li className="rail-node flex gap-4 pb-6 last:pb-0" data-state={railState}>
+      <span className={`mt-0.5 w-4 shrink-0 text-center text-[12px] font-semibold ${tone}`} aria-hidden>
         {mark}
       </span>
       <span className="ident w-5 shrink-0 pt-px text-[11px]">{index}</span>
@@ -298,7 +299,7 @@ function StepRow({ step, index }: { step: Step; index: number }) {
                 ? 'text-breach'
                 : step.state === 'blocked'
                   ? 'text-pending'
-                  : 'text-ink-muted'
+                  : 'text-muted'
             }`}
           >
             {step.detail}

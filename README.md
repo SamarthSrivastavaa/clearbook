@@ -17,37 +17,44 @@ Full detail, including a candid "protocol limits we hit" section: [`docs/ATTESTC
 
 ---
 
-## Build status
+## Deployed on Creditcoin CC3 testnet
 
-> **Mid-build.** Contracts are written, tested and verified against live infrastructure but **not yet deployed** — that needs a funded Creditcoin testnet account. Everything below states what has actually been demonstrated.
+| Contract | Address |
+|---|---|
+| **`EvidenceVault`** | [`0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af`](https://creditcoin-testnet.blockscout.com/address/0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af) |
+| **`Clearbook`** | [`0xCA02D51722947d7a93EDBe398498667bab368315`](https://creditcoin-testnet.blockscout.com/address/0xCA02D51722947d7a93EDBe398498667bab368315) |
 
-| Phase | Gate | Status |
+**Every gate in the build specification passes.**
+
+| Gate | What it proves | Result |
 |---|---|---|
-| 0 — Protocol verification | Gate 0 · 2 · 3 | **PASS** |
-| 1 — Repository bootstrap | Gate 1a | **PASS** |
-| 2 — Contracts | Gate 2 (build · fmt · lint) | **PASS** |
-| 3 — Tests | Gate 3 (92 tests · 100% line coverage of `src/`) | **PASS** |
-| 7 — Batch path | — | built |
-| 8 — Worker | Gate 8a | built · DB unverified |
-| 9 — Frontend | — | four routes |
-| 11 — Forged-proof rejection | **Gate 7 (part A)** | **PASS — 6/6 rejected** |
-| 5 · 6 · 10 · 12 — Deploy · challenge · e2e · demo | Gates 4 · 5 · 6 | needs deployment |
+| 0 | Chain discovery · attestation live and advancing | **PASS** |
+| 1a | Real package paths compile · full verifier interface resolves | **PASS** |
+| 2 | Contracts build · fmt · lint clean | **PASS** |
+| 3 | 92 tests · 100% line coverage of `src/` | **PASS** |
+| 2/3 | Proof obtained · precompile `verify()` returns true | **PASS** |
+| **4** | **On-chain decode matches the source chain — 60/60 checks** | **PASS** |
+| **5** | **Circular flow breaches; honest loan reverts** | **PASS** |
+| **6** | **Bond slashed, bounty paid, sink credited — all exact** | **PASS** |
+| **7** | **Six forged proofs rejected, on-chain** | **PASS** |
 
-**Deployed addresses:** none yet. They will appear here, in this screenful, once Phase 5 deploys them.
+### The evidence, in short
 
-### What has been demonstrated live
+**A real breach was proven on-chain.** Loan 2 — a genuine circular flow staged on Sepolia — was challenged by a third party and slashed: bond **−1.0 tCTC**, challenger bounty **+0.5**, protocol sink **+0.5**, exposure released. Every figure read from chain before and after. Challenge transaction: [`0x3a22a0ff…`](https://creditcoin-testnet.blockscout.com/tx/0x3a22a0fffd9d78ed6547658406f641fb337fe9e4638ac9e35eaa9c9020e93d47)
 
-**The proof path works on transactions nobody staged for us.** Two arbitrary third-party Sepolia transactions — tokens and contracts we do not control — were proven and verified end to end, 11/11 field checks each. That retires the project's largest technical risk: the proof service serves *ordinary* transactions, so Clearbook can deploy nothing on Ethereum.
+**An honest loan could not be breached.** Loan 1 reverts `DisbursementNotFunding` — condition 11, the check that exists precisely so a genuine loan does not look circular. A mechanism that only ever fires detects nothing.
 
-**And on transactions we did create.** Five staged transfers on canonical WETH, forming the demo's honest and circular scenarios: **5/5 proven and verified, 40/40 cross-checks**.
+**Forged proofs are rejected.** Six mutations of a valid proof — a Merkle sibling, a continuity root, the lower endpoint digest, the block height, an `isLeft` flag, one byte of the transaction — all six reverted on-chain:
 
-**Forged proofs are rejected.** A valid proof was mutated six ways — a Merkle sibling hash, a continuity root, the lower endpoint digest, the block height, an `isLeft` flag, and one byte of the encoded transaction. **All six rejected**, with descriptive reasons. This also settled a contradiction in the protocol documentation: the precompile **reverts** rather than returning false.
+`0x160fb333…` · `0x55f1ca63…` · `0x52924b60…` · `0xc535729c…` · `0x8ac73141…` · `0xf0943102…`
 
-**Attestation is live and bounded.** Both supported chains advance +30 blocks per 6 minutes, in batches of 10 roughly every 2 minutes. Sepolia's lag sits at 36–44 blocks — consistent with attestors attesting *finalized* blocks.
+This also settled a contradiction in the protocol documentation: the precompile **reverts** rather than returning false.
 
-**Latency is measured, not quoted.** A freshly broadcast transaction becomes usable evidence in **~8–10 minutes**, of which **97–99% is the attestation wait**. The precompile's `verify()` itself returns in **0.8 seconds**. Both numbers matter: the second is the one the protocol advertises, the first is the one a user experiences.
+**Nothing was deployed on Ethereum.** All five demo transfers use canonical Sepolia WETH — a contract we do not control. `cast code $TOKEN` returns bytecode; `cast code $TREASURY` returns `0x`.
 
-Raw evidence: [`integration/results/`](integration/results/) and [`demo/staged/`](demo/staged/). Reasoning and evidence classes: [`DECISIONS.md`](DECISIONS.md).
+**Measured, not quoted.** A fresh transaction becomes usable evidence in **~8–10 minutes**, of which 97–99% is the attestation wait; `verify()` itself returns in **0.8s**. Deployment cost **0.0018 tCTC**; each fact submission **0.000113 tCTC**.
+
+Raw evidence: [`integration/results/`](integration/results/) · [`demo/staged/`](demo/staged/). Reasoning: [`DECISIONS.md`](DECISIONS.md).
 
 ---
 

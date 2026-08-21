@@ -1,0 +1,45 @@
+{
+  "gate": "GATE 7 part B — forged proofs submitted to the deployed vault",
+  "pass": true,
+  "at": "2026-08-21T22:36:04.296Z",
+  "vault": "0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af",
+  "subject": "0xd922115fbefd89c7fe43a7ab33768c22d075a829b0fd3de6b53d10d818d6f84d",
+  "mutations": [
+    {
+      "mutation": "merkle-sibling-hash",
+      "ccTxHash": "0x160fb3332eba2c20645a3a4d17393e3b5903d06ac34ffcae5bf209264ab1af10",
+      "rejected": true,
+      "reason": "transaction execution reverted"
+    },
+    {
+      "mutation": "continuity-root",
+      "ccTxHash": "0x55f1ca630dc215fd1cece2ccee74f82776564cf378d609ea065423bf03fc5efd",
+      "rejected": true,
+      "reason": "transaction execution reverted"
+    },
+    {
+      "mutation": "lower-endpoint",
+      "ccTxHash": "0x52924b602830c8ff6c28a7a3bd3df0f88fa1d2d11d6d59a2d172e7a9827b5588",
+      "rejected": true,
+      "reason": "transaction execution reverted"
+    },
+    {
+      "mutation": "block-height",
+      "ccTxHash": "0xc535729c4b9d078207977bed2f2c77d7acd4dda17cb77e5eaecd767770374a54",
+      "rejected": true,
+      "reason": "transaction execution reverted"
+    },
+    {
+      "mutation": "isLeft-flag",
+      "ccTxHash": "0x8ac73141b462c811b183a4b0d15588e1c83fe8be5a63e54c0e6b127a5b73606e",
+      "rejected": true,
+      "reason": "transaction execution reverted"
+    },
+    {
+      "mutation": "tx-byte",
+      "ccTxHash": "0xf0943102eaf4187a4b238609a6a26dbbd90974a09d795b1db3adc1ab49501d6c",
+      "rejected": true,
+      "reason": "transaction execution reverted"
+    }
+  ]
+}

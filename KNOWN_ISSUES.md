@@ -244,3 +244,48 @@ BUILD.md listed "end-to-end latency for a fresh tx" as `[U] Must be measured (Ph
 Full numbers and method in `docs/LATENCY.md`; reasoning in DECISIONS D-044.
 
 Gas remains unmeasured and still requires a deployment.
+
+---
+
+### K-017 · `forge script` cannot execute against Creditcoin
+
+**Class:** DOCUMENTATION/IMPLEMENTATION MISMATCH (tooling vs chain). **Status:** routed around.
+
+`forge script` fails on this chain during both simulation and execution:
+
+```
+EVM error; header validation error: `prevrandao` not set
+```
+
+Creditcoin's block headers omit the post-merge `prevrandao` field that Foundry's local EVM requires under `evm_version = cancun`. `--skip-simulation` does not help, because the failure is in script *execution*, not simulation.
+
+**Route-around:** deployed with `cast send --create`, then asserted on-chain every post-condition `Deploy.s.sol` would have checked — verifier is the real `0x…0FD2`, Clearbook points at the vault, sink is the burn address, economics read back correctly.
+
+`Deploy.s.sol` and its unit tests remain the specification of a correct deployment and still pass in `forge test`; they simply cannot run against this chain. Worth reporting upstream alongside K-003/K-004.
+
+---
+
+### K-018 · Dedupe-before-verify makes forgery testing subtle
+
+**Class:** not a defect — a property worth documenting. **Status:** understood, tested around.
+
+`EvidenceVault` checks `exists[factId]` *before* calling the precompile. That ordering is correct and deliberate (it makes replay nearly free and the worker restart-safe), but it has a consequence for anyone testing forgery on-chain:
+
+**If a forged bundle happens to compute a `factId` that is already stored, the vault returns early and never calls the precompile.** The submission succeeds, no forgery was tested, and a careless test would record it as "accepted".
+
+Gate 7 part B avoids this by submitting mutations at a `logIndex` that yields an unstored `factId`. Any future forgery test must do the same.
+
+---
+
+### K-019 · Evidence discovery in the challenge console is bounded to a block window
+
+**Class:** limitation, deliberate. **Status:** open, bounded, disclosed in the UI.
+
+There is no indexer on Creditcoin CC3 and `EvidenceVault` keeps no enumerable list of facts, so the challenge console discovers citable evidence by reading `TransferFactStored` logs over a fixed lookback (`VAULT_LOOKBACK_BLOCKS`, currently 20,000 blocks — roughly three days at observed block times).
+
+**Consequence:** a fact ingested before that window will not appear in the list. It remains fully citable by pasting its identifier, and `challenge()` is unaffected — the bound limits *discovery convenience*, never what a challenger is permitted to do or what the contract will accept.
+
+**Measured:** 5,000-block span ≈ 0.85 s; 20,000-block span ≈ 4.5 s against the public RPC. Wider spans were not adopted because the cost grows roughly linearly and the screen would stall.
+
+**Fix, if it mattered:** record the vault's deployment block and page backwards from it, or add an enumerable index to the vault. Neither is worth a redeploy for a demo whose evidence is seeded fresh.
+

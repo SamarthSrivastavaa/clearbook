@@ -17,7 +17,7 @@ import { shortAddress, formatBlock } from '@/lib/format';
  */
 
 const ROUTES = [
-  { href: '/', label: 'Book' },
+  { href: '/book', label: 'Book' },
   { href: '/challenge', label: 'Challenge' },
   { href: '/verify', label: 'Verify' },
 ];
@@ -28,18 +28,18 @@ function NetworkState() {
   const right = chainId === creditcoin.id;
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex shrink-0 items-center gap-4">
       <span className="flex items-center gap-2">
         <span
           className={`inline-block h-1.5 w-1.5 ${right ? 'bg-verified' : 'bg-breach'}`}
           aria-hidden
         />
-        <span className="text-[11px] text-ink-muted">
+        <span className="text-[11px] text-muted">
           {right ? 'Creditcoin CC3' : `Wrong network (${chainId})`}
         </span>
       </span>
       {block ? (
-        <span className="ident text-[11px] tnum" title="Creditcoin block height">
+        <span className="ident tnum hidden text-[11px] md:inline" title="Creditcoin block height">
           #{formatBlock(block)}
         </span>
       ) : null}
@@ -71,7 +71,7 @@ function Wallet() {
       type="button"
       onClick={() => injectedConnector && connect({ connector: injectedConnector })}
       disabled={isPending || !injectedConnector}
-      className="text-[11px] uppercase tracking-wider text-ink-muted transition-colors hover:text-ink disabled:opacity-40"
+      className="text-[11px] uppercase tracking-wider text-muted transition-colors hover:text-ink disabled:opacity-40"
     >
       {isPending ? 'Connecting…' : injectedConnector ? 'Connect wallet' : 'No wallet detected'}
     </button>
@@ -80,19 +80,23 @@ function Wallet() {
 
 export function Chrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isLanding = pathname === '/';
 
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-rule bg-paper/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-12 max-w-[1400px] items-center gap-8 px-6">
-          <Link href="/" className="flex items-baseline gap-2.5">
+        <div className="mx-auto flex h-12 max-w-[1400px] items-center gap-4 overflow-x-auto px-6 sm:gap-8">
+          <Link href="/" className="flex shrink-0 items-baseline gap-2.5">
             <span className="text-[15px] font-semibold tracking-tight">Clearbook</span>
             <span className="eyebrow hidden sm:block">Evidence-bound credit</span>
           </Link>
 
-          <nav className="flex items-center gap-1" aria-label="Primary">
+          <nav className="flex shrink-0 items-center gap-1" aria-label="Primary">
             {ROUTES.map((r) => {
-              const active = r.href === '/' ? pathname === '/' : pathname.startsWith(r.href);
+              const active =
+                r.href === '/book'
+                  ? pathname === '/book' || pathname.startsWith('/loan')
+                  : pathname.startsWith(r.href);
               return (
                 <Link
                   key={r.href}
@@ -101,7 +105,7 @@ export function Chrome({ children }: { children: React.ReactNode }) {
                   className={`px-2.5 py-1 text-[13px] transition-colors ${
                     active
                       ? 'text-ink underline decoration-ink underline-offset-[6px]'
-                      : 'text-ink-muted hover:text-ink'
+                      : 'text-muted hover:text-ink'
                   }`}
                 >
                   {r.label}
@@ -110,7 +114,7 @@ export function Chrome({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-5">
+          <div className="ml-auto flex shrink-0 items-center gap-4 sm:gap-5">
             <NetworkState />
             <Wallet />
           </div>
@@ -118,7 +122,7 @@ export function Chrome({ children }: { children: React.ReactNode }) {
 
         {/* Contract identity stays permanently visible: the product's whole claim
             is that these are verifiable, so they are never more than a glance away. */}
-        <div className="border-t border-rule bg-surface-sunken">
+        <div className="border-t border-rule bg-sunken">
           <div className="mx-auto flex h-8 max-w-[1400px] items-center gap-6 overflow-x-auto px-6">
             {isDeployed ? (
               <>
@@ -140,10 +144,10 @@ export function Chrome({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1400px] px-6 py-10">{children}</main>
+      <main className={isLanding ? 'py-10' : 'mx-auto max-w-[1400px] px-6 py-10'}>{children}</main>
 
       <footer className="mt-16 border-t border-rule">
-        <div className="mx-auto max-w-[1400px] px-6 py-6 text-[11px] leading-relaxed text-ink-faint">
+        <div className="mx-auto max-w-[1400px] px-6 py-6 text-[11px] leading-relaxed text-faint">
           Clearbook verifies that a transaction was included in an attested source-chain block and
           that its receipt succeeded. It does not establish intent, control of any address by any
           person or entity, the existence of an off-chain agreement, or any violation of law.

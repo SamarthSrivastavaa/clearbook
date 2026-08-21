@@ -11,7 +11,7 @@ export function NotDeployed() {
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">
         Clearbook is not pointed at a deployment.
       </h1>
-      <p className="mt-4 text-[15px] leading-relaxed text-ink-muted">
+      <p className="mt-4 text-[15px] leading-relaxed text-muted">
         This interface reads protocol state directly from Creditcoin. It does not keep a copy, and
         it will not display a book that does not exist on-chain.
       </p>
@@ -23,7 +23,7 @@ export function NotDeployed() {
           server.
         </Callout>
       </div>
-      <p className="mt-6 text-[13px] leading-relaxed text-ink-faint">
+      <p className="mt-6 text-[13px] leading-relaxed text-faint">
         Contracts are written, tested and ready to deploy; deployment requires a funded Creditcoin
         testnet account. Until then every screen here reports the absence honestly rather than
         showing placeholder data.
@@ -37,7 +37,7 @@ export function RpcError({ message, retry }: { message: string; retry?: () => vo
     <div className="py-16">
       <Callout tone="breach" title="Could not read chain state">
         <p>{message}</p>
-        <p className="mt-2 text-ink-muted">
+        <p className="mt-2 text-muted">
           The contracts are unaffected — this is a connectivity problem between this browser and the
           Creditcoin RPC.
         </p>
@@ -77,7 +77,7 @@ export function LoadingRows({ rows = 4 }: { rows?: number }) {
  */
 export function PreviewBanner() {
   return (
-    <div className="mb-8 border-l-2 border-pending bg-pending-bg px-4 py-3">
+    <div className="mb-8 border-l-2 border-pending bg-pending-soft px-4 py-3">
       <div className="text-[11px] font-semibold uppercase tracking-wider text-pending">
         Preview — illustrative data, not on-chain state
       </div>

@@ -731,9 +731,98 @@ Written up in `docs/LATENCY.md`. Gas remains unmeasured pending deployment.
 
 ---
 
+### D-045 · DEPLOYED. Gates 4, 5, 6 and 7-part-B all PASS — [L]
+
+Discord funding arrived (10,000 tCTC, far more than needed), so `BOND_PER_LOAN` stays at BUILD.md's spec value of **1 tCTC** — the scaling contingency in D-024/D-043 is withdrawn.
+
+| Contract | Address | Deploy gas |
+|---|---|---|
+| `EvidenceVault` | `0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af` | 1,726,788 |
+| `Clearbook` | `0xCA02D51722947d7a93EDBe398498667bab368315` | 1,904,472 |
+
+Wiring asserted on-chain after deployment: vault's `VERIFIER` is the real `0x…0FD2`; Clearbook points at the vault; `PROTOCOL_SINK` is the burn address; economics read back as 10000/5000/10000 bps.
+
+**`forge script` could not be used.** Both simulation and execution fail with `header validation error: 'prevrandao' not set` — Creditcoin's block headers omit the post-merge `prevrandao` field that Foundry's local EVM requires under `evm_version = cancun`. Deployed with `cast send --create` instead, then asserted every post-condition `Deploy.s.sol` would have checked. The script and its unit tests (`DeployTest`) remain valid and are still the specification of what a correct deployment looks like; they simply cannot execute against this chain. Worth reporting upstream.
+
+**GATE 4 — on-chain decode: PASS.** All five proven facts submitted to the deployed vault. **60/60 checks.** Every receipt contained a `TransactionVerified` event emitted by the precompile itself, and the decoded `token`/`from`/`to`/`amount` matched the source chain exactly. This is the gate that proves the **Solidity** decode path works on live data — everything before it used the TypeScript mirror, which is explicitly not production code (D-010).
+
+**GATE 5 — challenge: PASS, both directions.**
+- Scenario B (circular flow) → `challenge()` **succeeded**, loan status `BREACHED`.
+- Scenario A (honest loan) → **reverted `DisbursementNotFunding`**, condition 11.
+
+**GATE 6 — economics: PASS.** Every figure read from chain before and after, and compared:
+
+| | Expected | Measured |
+|---|---|---|
+| Originator bond | −1.0 tCTC | −1.0 |
+| Challenger bounty | +0.5 tCTC | +0.5 (net of gas) |
+| `protocolSink` | +0.5 tCTC | +0.5 |
+| `exposure` | −1.0 tCTC | −1.0 |
+| I1 · balance ≥ bond | holds | holds |
+| I2 · bond ≥ exposure | holds | holds |
+
+**GATE 7 part B — forged proofs on-chain: PASS.** The same six mutations submitted to the deployed vault; **all six reverted**, producing the six failing Creditcoin transaction hashes BUILD.md §16 requires:
+
+| Mutation | Creditcoin transaction |
+|---|---|
+| Merkle sibling hash | `0x160fb333…` |
+| continuity root | `0x55f1ca63…` |
+| lower endpoint digest | `0x52924b60…` |
+| block height | `0xc535729c…` |
+| `isLeft` flag | `0x8ac73141…` |
+| encoded-transaction byte | `0xf0943102…` |
+
+This also upgrades D-041's `[I]` to `[L]`: **`verifyAndEmit` reverts exactly as `verify()` does.** The failure mode is now confirmed on the state-changing overload, not inferred from the view.
+
+A detail worth recording: the mutations were submitted at `logIndex 1` rather than 0. At `logIndex 0` the `factId` would collide with an already-stored fact and the vault's dedupe would return early **without ever calling the precompile** — the forgery would appear to "succeed" while never having been tested. Dedupe-before-verify is correct for efficiency but makes forgery testing subtle.
+
+---
+
+### D-046 · Measured gas — [L]
+
+At the measured CC3 gas price of **0.5 gwei**:
+
+| Operation | Gas | Cost |
+|---|---|---|
+| Deploy `EvidenceVault` | 1,726,788 | 0.00086 tCTC |
+| Deploy `Clearbook` | 1,904,472 | 0.00095 tCTC |
+| `submitTransferFact` | ~226,000 | 0.000113 tCTC |
+| `challenge()` (successful) | ~180,000 | ~0.00009 tCTC |
+
+**On the published formula.** BUILD.md §1.2 quotes `≈ 2.3e-5 + 2.9e-7 × continuityHashCount` CTC, which for a 4-root proof predicts **2.4e-5 CTC**. We measured **1.13e-4 CTC** for `submitTransferFact` — roughly 4.7× higher.
+
+These are not the same quantity, and saying so matters. The formula prices the **precompile call alone**; our figure is the whole transaction: base cost, calldata for a ~7 KB `txBytes`, the precompile call, the full `EvmV1Decoder` receipt decode, six storage writes and an event. The formula is not wrong — it simply measures a component, and the difference is the cost of everything Clearbook does *around* verification.
+
+Measured under `via_ir = true`, which is mandatory here (D-018) and changes code generation, so these figures are only reproducible with that setting.
+
+---
+
 ### D-016 · Repository is ESM (`"type": "module"`) — [L]
 
 BUILD.md's Phase 0 snippets use top-level `await`. `npm init -y` defaults to `"type": "commonjs"`, under which `import.meta` is unavailable and those snippets do not run.
 
 **Decision:** set `"type": "module"` in `package.json`. Scripts use an explicit `main()` plus a direct-invocation guard rather than top-level await, so importing a gate script never triggers its side effects (see KNOWN_ISSUES K-001).
 **Reverses if:** a later dependency requires CommonJS — it would then be isolated rather than converting the repo back.
+
+---
+
+### D-047 · Breach evidence is read from the `CovenantBreached` log, not storage — [L]
+
+A breached loan must be able to show the evidence that convicted it. But the funding fact id is not on the `Loan` struct — `challenge()` takes it as a parameter and emits it in `CovenantBreached`, and nothing writes it to storage.
+
+**Decision:** the loan detail screen reads the `CovenantBreached` log for that loan and renders the cited funding leg as a third evidence node, marked as the leg that breached the covenant. The log query is bounded below by `loan.claimBlock`, which is sound — a challenge cannot precede the claim it challenges — and keeps the range small on a chain with no indexer.
+
+**Considered and rejected:** adding a `fundingFactId` field to `Loan`. It would cost a storage slot per loan to record something already in the log, on a contract that is deployed and verified. Reading the log is free and changes no invariant.
+
+**Reverses if:** the contracts are redeployed for another reason and the slot is cheap to add at that time.
+
+---
+
+### D-048 · The challenge console lists citable evidence from the vault log — [L]
+
+The console originally asked the challenger to type a 32-byte fact identifier, with a picker that appeared only in preview mode. In the live deployment that left an empty field and no way to discover what the vault holds — the single most fragile moment in the demo.
+
+**Decision:** enumerate `TransferFactStored` and list the vault's facts as selectable rows showing sender, recipient, amount and source block. The loan's own disbursement and repayment are listed too, annotated as such — they are citable and will fail the covenant, and learning *why* is the point of the console. Manual entry remains, so the list limits discovery and never limits what a challenger may cite.
+
+**Bound:** discovery is limited to the last `VAULT_LOOKBACK_BLOCKS` (20,000) Creditcoin blocks. Measured: a 5,000-block span returns in ~0.85 s, 20,000 in ~4.5 s. See KNOWN_ISSUES K-019.
+

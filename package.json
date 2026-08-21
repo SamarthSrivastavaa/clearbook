@@ -16,7 +16,8 @@
     "latency": "tsx integration/measure-latency.ts",
     "demo:stage": "tsx demo/stage-source.ts",
     "demo:prove": "tsx demo/prove-staged.ts",
-    "demo:run": "tsx demo/run.ts"
+    "demo:run": "tsx demo/run.ts",
+    "gate4": "tsx integration/gate4-decode.ts"
   },
   "license": "MIT",
   "dependencies": {

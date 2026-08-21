@@ -24,8 +24,11 @@ import {
   useOriginators as useChainOriginators,
   useProtocolParameters as useChainParams,
   useTreasuryOwner as useChainTreasuryOwner,
+  useBreachEvidence as useChainBreachEvidence,
+  useVaultFacts as useChainVaultFacts,
 } from './hooks';
 import type { Loan, Originator, TransferFact } from './protocol';
+import type { VaultFact } from './hooks';
 
 /**
  * The single place that decides whether the UI is reading the chain or a preview
@@ -132,6 +135,38 @@ export function useBoundTreasuryOwner(address: Address | null) {
   const chain = useChainTreasuryOwner(isPreview ? null : address);
   if (isPreview) {
     return { originatorId: address ? fixtureTreasuryOwner(address) : null, isLoading: false };
+  }
+  return chain;
+}
+
+/**
+ * Breach evidence, preview-aware.
+ *
+ * Preview fixtures carry no challenge log, so preview returns null rather than
+ * inventing a funding leg. A screen that showed fabricated breach evidence
+ * would contradict the whole product.
+ */
+export function useBreachEvidence(loanId: bigint | null, fromBlock: bigint | null) {
+  const chain = useChainBreachEvidence(isPreview ? null : loanId, isPreview ? null : fromBlock);
+  if (isPreview) return { breach: null, isLoading: false };
+  return chain;
+}
+
+/**
+ * Citable evidence, preview-aware. In preview the fixtures are the vault.
+ */
+export function useVaultFacts(): { facts: VaultFact[]; isLoading: boolean } {
+  const chain = useChainVaultFacts();
+  if (isPreview) {
+    const facts = Object.entries(FIXTURE_FACT_INDEX).map(([factId, f]) => ({
+      factId: factId as Hex,
+      blockHeight: f.blockHeight,
+      token: f.token,
+      from: f.from,
+      to: f.to,
+      amount: f.amount,
+    }));
+    return { facts, isLoading: false };
   }
   return chain;
 }

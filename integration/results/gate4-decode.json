@@ -1,0 +1,124 @@
+{
+  "gate": "GATE 4 — on-chain decode against the deployed vault",
+  "pass": true,
+  "at": "2026-08-21T22:28:34.567Z",
+  "vault": "0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af",
+  "submitter": "0x06f9f53a1a7cFd399ee3a211a0d23abe1A646E42",
+  "results": [
+    {
+      "scenario": "A",
+      "role": "disbursement",
+      "sourceTxHash": "0xd922115fbefd89c7fe43a7ab33768c22d075a829b0fd3de6b53d10d818d6f84d",
+      "factId": "0x381fd23402601eecc14df7785f595488235490ef367e989bc3746f3c56171ac3",
+      "ccTxHash": "0xe63cb451d6e6df784be1b04942919c5e42c271337dc1fa6e966e0b29b785c168",
+      "ccBlock": 5350901,
+      "gasUsed": "245227",
+      "precompileEmitted": true,
+      "newlyStored": true,
+      "checksPassed": 12,
+      "checksTotal": 12,
+      "decoded": {
+        "chainKey": 1,
+        "blockHeight": 11538664,
+        "txIndex": 87,
+        "logIndex": 0,
+        "token": "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+        "from": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+        "to": "0x293D20928EC6ee153219d37a060Ee7af751B61e0",
+        "amount": "10000000000000000"
+      }
+    },
+    {
+      "scenario": "B",
+      "role": "disbursement",
+      "sourceTxHash": "0x5329c4b5b63a95afbec6d3c85c7c94cf79830bf9cdd529cf2985964e77ee711a",
+      "factId": "0xfd57335cc8a9763687598373f0270d3cb19ccf69d6c10f80763cc622293c1155",
+      "ccTxHash": "0xe2a91d2a09e6e25b7623ef6b3868a5dd7a197c5b620afda7f9d62ed145672d84",
+      "ccBlock": 5350902,
+      "gasUsed": "228115",
+      "precompileEmitted": true,
+      "newlyStored": true,
+      "checksPassed": 12,
+      "checksTotal": 12,
+      "decoded": {
+        "chainKey": 1,
+        "blockHeight": 11538687,
+        "txIndex": 64,
+        "logIndex": 0,
+        "token": "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+        "from": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+        "to": "0x942B23859b19FE06ea8A4552681d1D7a115C7f1d",
+        "amount": "10000000000000000"
+      }
+    },
+    {
+      "scenario": "B",
+      "role": "funding",
+      "sourceTxHash": "0xca43a58891c97dac8d11e5838a6a6616586f1550a08f3316b33fd0bfdbd1b397",
+      "factId": "0x34f0270ddbaa5631125cc21b931b91c200e4093e278f62a11af2e5f582892484",
+      "ccTxHash": "0x710b46fdbf58fd1bea1d0e907d15258c5683f0882e7bda7ba3dd6950c4d12839",
+      "ccBlock": 5350903,
+      "gasUsed": "228186",
+      "precompileEmitted": true,
+      "newlyStored": true,
+      "checksPassed": 12,
+      "checksTotal": 12,
+      "decoded": {
+        "chainKey": 1,
+        "blockHeight": 11538688,
+        "txIndex": 79,
+        "logIndex": 0,
+        "token": "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+        "from": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+        "to": "0x942B23859b19FE06ea8A4552681d1D7a115C7f1d",
+        "amount": "10000000000000000"
+      }
+    },
+    {
+      "scenario": "B",
+      "role": "repayment",
+      "sourceTxHash": "0xcc02d3fe8859dbafa073e4fca8a95c4f2c7dd12173ae40acf62e2d52211ee9b4",
+      "factId": "0x9c0a2b27c16dc70f5f6cac88ad34c9d514f3615b143defbeea0889d2f068df8f",
+      "ccTxHash": "0x4583896e904d0e7db857a18ff022eadb65396415c3c15f458ca4d4f51a9b4629",
+      "ccBlock": 5350904,
+      "gasUsed": "227441",
+      "precompileEmitted": true,
+      "newlyStored": true,
+      "checksPassed": 12,
+      "checksTotal": 12,
+      "decoded": {
+        "chainKey": 1,
+        "blockHeight": 11538689,
+        "txIndex": 75,
+        "logIndex": 0,
+        "token": "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+        "from": "0x942B23859b19FE06ea8A4552681d1D7a115C7f1d",
+        "to": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+        "amount": "10000000000000000"
+      }
+    },
+    {
+      "scenario": "A",
+      "role": "repayment",
+      "sourceTxHash": "0x8edc2d763b47766962aa94f3c7e8f5fcb7f061b6019bca1546b42749ccaa09ee",
+      "factId": "0x1edc26348f2a66d723038dfdeb9613210976430238c0609a0292536a92576b31",
+      "ccTxHash": "0xfacdc87950e4ba5882cc9e14c132cf52b4613b8b00fd812bf1f16e1b956cb85e",
+      "ccBlock": 5350905,
+      "gasUsed": "224518",
+      "precompileEmitted": true,
+      "newlyStored": true,
+      "checksPassed": 12,
+      "checksTotal": 12,
+      "decoded": {
+        "chainKey": 1,
+        "blockHeight": 11538692,
+        "txIndex": 58,
+        "logIndex": 0,
+        "token": "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+        "from": "0x293D20928EC6ee153219d37a060Ee7af751B61e0",
+        "to": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+        "amount": "10000000000000000"
+      }
+    }
+  ]
+}

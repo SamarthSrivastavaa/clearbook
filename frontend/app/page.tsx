@@ -1,279 +1,380 @@
-'use client';
-
 import Link from 'next/link';
-import { useMemo } from 'react';
-import { ScenarioGuide } from '@/components/ScenarioGuide';
-import { LoadingRows, NotDeployed, PreviewBanner, RpcError } from '@/components/States';
-import { Eyebrow, Empty, Ident, Status } from '@/components/ui';
-import { DEMO_MODE, SOURCE_CHAIN, explorer } from '@/lib/config';
-import { blocksToApproxDuration, formatBlock, formatCtc, formatTokenAmount, shortAddress } from '@/lib/format';
-import { tokenMeta } from '@/lib/token';
-import { dataSource, isPreview, useBookLoans, useBookOriginators, useCurrentBlock, useParams } from '@/lib/data';
-import {
-  LoanStatus,
-  STATUS_META,
-  blocksLeftInWindow,
-  isChallengeable,
-  type Loan,
-  type Originator,
-} from '@/lib/protocol';
+
+import { LiveSignal } from '@/components/LiveSignal';
+import { ProvenanceCaption, ProvenanceChain } from '@/components/ProvenanceChain';
+import { Eyebrow } from '@/components/ui';
+import { PRECOMPILES, SOURCE_CHAIN, contracts, explorer } from '@/lib/config';
+import { shortAddress } from '@/lib/format';
 
 /**
- * The Book.
+ * The landing page.
  *
- * A ledger, not a dashboard. The question this screen answers in under a second
- * is "what needs my attention?", so anything challengeable or breached is lifted
- * to the top and everything else keeps ledger order.
+ * It has one job: make a stranger understand, in about fifteen seconds, what
+ * Clearbook does that nothing else does — and then show them a real instance of
+ * it rather than describing one.
+ *
+ * No feature grid, no testimonials, no invented statistics. The only numbers on
+ * this page are read from the chain or taken from a breach that actually
+ * executed.
  */
-export default function BookPage() {
-  const { loans, isLoading, error } = useBookLoans();
-  const { originators } = useBookOriginators();
-  const { params } = useParams();
-  const currentBlock = useCurrentBlock();
-
-  const originatorById = useMemo(
-    () => new Map(originators.map((o) => [o.id.toString(), o])),
-    [originators],
-  );
-
-  const { attention, rest } = useMemo(() => {
-    if (!currentBlock) return { attention: [] as Loan[], rest: loans };
-    const needs: Loan[] = [];
-    const others: Loan[] = [];
-    for (const loan of loans) {
-      const o = originatorById.get(loan.originatorId.toString());
-      const urgent =
-        loan.status === LoanStatus.BREACHED ||
-        loan.status === LoanStatus.DELINQUENT ||
-        (o ? isChallengeable(loan, o, currentBlock) : false);
-      (urgent ? needs : others).push(loan);
-    }
-    return { attention: needs, rest: others };
-  }, [loans, originatorById, currentBlock]);
-
-  if (dataSource === 'none') return <NotDeployed />;
-  if (error) return <RpcError message={error.message} />;
-
-  const primary = originators[0] ?? null;
-
+export default function LandingPage() {
   return (
-    <div className="space-y-12">
-      {isPreview ? <PreviewBanner /> : null}
+    <div className="-mt-10">
+      <Hero />
 
-      <header>
-        <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <div>
-            <Eyebrow>Portfolio</Eyebrow>
-            <h1 className="mt-2 text-[28px] font-semibold leading-none tracking-tight">
-              {primary ? primary.name : 'The Book'}
-            </h1>
-          </div>
-          <p className="max-w-md text-[13px] leading-relaxed text-ink-muted">
-            Every claim below cites a source-chain transfer whose inclusion was verified by the
-            Creditcoin Block Prover precompile. Nothing here is self-reported.
-          </p>
-        </div>
-
-        {DEMO_MODE && !isPreview ? (
-          <div className="mt-6 border-l-2 border-pending bg-pending-bg px-4 py-2.5 text-[12px] text-ink">
-            <span className="font-semibold uppercase tracking-wider text-pending">
-              Staged test data ·{' '}
-            </span>
-            The {SOURCE_CHAIN.name} transactions backing this book were created by us for
-            demonstration. They are real on-chain transfers, not fabricated records, and they
-            describe no real borrower.
-          </div>
-        ) : null}
-      </header>
-
-      {primary && params ? <PositionStrip originator={primary} bondPerLoan={params.bondPerLoan} /> : null}
-
-      {isPreview ? <ScenarioGuide /> : null}
-
-      {isLoading ? (
-        <LoadingRows />
-      ) : loans.length === 0 ? (
-        <Empty title="No loans registered">
-          The contracts are deployed but no originator has registered a loan yet. A loan appears
-          here once its disbursement evidence has been verified on-chain.
-        </Empty>
-      ) : (
-        <div className="space-y-10">
-          {attention.length > 0 && currentBlock ? (
-            <LoanTable
-              title="Requires attention"
-              subtitle="Open challenge windows, delinquencies, and proven breaches"
-              loans={attention}
-              originatorById={originatorById}
-              currentBlock={currentBlock}
-            />
-          ) : null}
-
-          {rest.length > 0 ? (
-            <LoanTable
-              title={attention.length > 0 ? 'Remainder of the book' : 'Loans'}
-              loans={rest}
-              originatorById={originatorById}
-              currentBlock={currentBlock ?? 0n}
-            />
-          ) : null}
-        </div>
-      )}
+      <div className="mx-auto max-w-[1400px] px-6">
+        <LiveSignal />
+        <Mechanism />
+        <Covenant />
+        <Foundation />
+        <Limits />
+        <Close />
+      </div>
     </div>
   );
 }
 
-/** The originator's position, as a definition strip. Not cards. */
-function PositionStrip({ originator, bondPerLoan }: { originator: Originator; bondPerLoan: bigint }) {
-  const free = originator.bond - originator.exposure;
-  const openLoans = bondPerLoan > 0n ? originator.exposure / bondPerLoan : 0n;
+function Hero() {
+  return (
+    <section className="border-b border-rule bg-deep">
+      <div className="mx-auto grid max-w-[1400px] gap-16 px-6 py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] lg:py-28">
+        <div className="flex max-w-2xl flex-col">
+          <Eyebrow className="text-onDeepMuted">Evidence-bound credit · Creditcoin</Eyebrow>
 
-  const items: Array<{ label: string; value: React.ReactNode; hint?: string }> = [
-    { label: 'Bond posted', value: `${formatCtc(originator.bond)} tCTC` },
+          <h1 className="display-xl mt-6 text-onDeep">
+            A loan book that
+            <br />
+            can be proven wrong.
+          </h1>
+
+          <p className="mt-7 max-w-xl text-[17px] leading-relaxed text-onDeepMuted">
+            Private credit reporting is self-attested. Nobody outside the fund can check whether a
+            &ldquo;repayment&rdquo; was real third-party money or the fund cycling its own.
+          </p>
+
+          <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-onDeep">
+            Clearbook binds every claim to a cryptographically verified transfer on another chain,
+            and lets <span className="text-onDeep underline decoration-[#3a382f] underline-offset-4">anyone</span>{' '}
+            prove a covenant breach in a single transaction — and be paid for it.
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+            <Link
+              href="/book"
+              className="inline-flex h-11 items-center border border-onDeep bg-onDeep px-6 text-[14px] font-medium text-deep transition-colors hover:bg-white"
+            >
+              Open the credit book
+            </Link>
+            <Link
+              href="/verify"
+              className="text-[14px] text-onDeepMuted underline decoration-[#3a382f] underline-offset-[6px] transition-colors hover:text-onDeep"
+            >
+              Verify a transaction yourself
+            </Link>
+          </div>
+
+          <div className="mt-14 flex flex-wrap gap-x-10 gap-y-3 border-t border-[#2e2c25] pt-6 lg:mt-auto">
+            <Fact k="Deployed" v="Creditcoin CC3 testnet" />
+            <Fact k="Source chain" v={SOURCE_CHAIN.name} />
+            <Fact k="Deployed on Ethereum" v="nothing" />
+          </div>
+        </div>
+
+        <div className="lg:pt-2">
+          <Eyebrow className="mb-6 text-onDeepMuted">One breach, end to end</Eyebrow>
+          <ProvenanceChain />
+          <ProvenanceCaption />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Fact({ k, v }: { k: string; v: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.14em] text-onDeepMuted">{k}</div>
+      <div className="mt-1 text-[13px] text-onDeep">{v}</div>
+    </div>
+  );
+}
+
+/** The three registers — the distinction the whole product rests on. */
+function Mechanism() {
+  const registers = [
     {
-      label: 'Exposure',
-      value: `${formatCtc(originator.exposure)} tCTC`,
-      hint: `${openLoans} open loan${openLoans === 1n ? '' : 's'}`,
+      n: '01',
+      label: 'Source-chain fact',
+      claim: 'What the cryptography establishes.',
+      body: 'A transaction was included in an attested block, its receipt succeeded, and that one of its logs was an ERC-20 transfer of a given amount between two addresses. The Creditcoin Block Prover precompile decides this — not us, and not a server.',
     },
-    { label: 'Free bond', value: `${formatCtc(free)} tCTC` },
     {
-      label: 'Covenant',
-      value: 'CIRCULAR_REPAYMENT',
-      hint: originator.covenants & 0x01 ? 'opted in, immutable' : 'not opted in',
+      n: '02',
+      label: 'Clearbook interpretation',
+      claim: 'What this application decides on top of it.',
+      body: 'That an address was bound to an originator by signature, that this transfer is the disbursement of a particular loan, and whether it satisfies the covenant the originator published and bonded against.',
     },
     {
-      label: 'Circular window',
-      value: `${formatBlock(originator.circularWindow)} blocks`,
-      hint: 'source chain',
-    },
-    {
-      label: 'Challenge window',
-      value: `${formatBlock(originator.challengeWindow)} blocks`,
-      hint: blocksToApproxDuration(BigInt(originator.challengeWindow)),
+      n: '03',
+      label: 'Not claimed',
+      claim: 'What is never asserted.',
+      body: 'That an address belongs to any person or company. That an off-chain agreement exists. That anyone intended anything. That any law was broken. That the book is complete.',
     },
   ];
 
   return (
-    <div className="rule-t rule-b grid grid-cols-2 divide-x divide-rule sm:grid-cols-3 lg:grid-cols-6">
-      {items.map((item) => (
-        <div key={item.label} className="px-4 py-4 first:pl-0">
-          <Eyebrow>{item.label}</Eyebrow>
-          <div className="tnum mt-1.5 text-[15px] font-medium">{item.value}</div>
-          {item.hint ? (
-            <div className="mt-0.5 text-[11px] text-ink-faint">{item.hint}</div>
-          ) : null}
+    <section className="py-20">
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        <div>
+          <Eyebrow>The distinction</Eyebrow>
+          <h2 className="display-lg mt-4">
+            Three registers,
+            <br />
+            never blurred.
+          </h2>
+          <p className="prose-lead mt-5 max-w-sm">
+            Most systems collapse evidence, inference and claim into one confident sentence.
+            Clearbook keeps them apart everywhere — in the contracts, in the interface, and in what
+            it refuses to say.
+          </p>
         </div>
-      ))}
-    </div>
+
+        <dl className="rule-t">
+          {registers.map((r) => (
+            <div key={r.n} className="rule-b grid gap-4 py-7 sm:grid-cols-[3rem_minmax(0,14rem)_minmax(0,1fr)]">
+              <div className="ident text-[11px] text-faint">{r.n}</div>
+              <dt>
+                <div className="text-[15px] font-medium">{r.label}</div>
+                <div className="mt-1 text-[13px] text-muted">{r.claim}</div>
+              </dt>
+              <dd className="text-[13px] leading-relaxed text-muted">{r.body}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
   );
 }
 
-function LoanTable({
-  title,
-  subtitle,
-  loans,
-  originatorById,
-  currentBlock,
-}: {
-  title: string;
-  subtitle?: string;
-  loans: Loan[];
-  originatorById: Map<string, Originator>;
-  currentBlock: bigint;
-}) {
+/** Declared rule versus observed evidence — the covenant made legible. */
+function Covenant() {
   return (
-    <section>
-      <div className="rule-b flex items-baseline justify-between gap-4 pb-2">
-        <Eyebrow>{title}</Eyebrow>
-        {subtitle ? (
-          <span className="text-[11px] text-ink-faint">{subtitle}</span>
-        ) : null}
+    <section className="rule-t py-20">
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        <div>
+          <Eyebrow>The covenant</Eyebrow>
+          <h2 className="display-lg mt-4">
+            A rule the fund
+            <br />
+            published itself.
+          </h2>
+          <p className="prose-lead mt-5 max-w-sm">
+            Not a rule we imposed. An originator opts into <code className="font-mono text-[14px] text-ink">CIRCULAR_REPAYMENT</code> at
+            registration, publishes its window on-chain, and posts a bond against it. A rule you can
+            change after publishing is not a covenant, so it is immutable thereafter.
+          </p>
+        </div>
+
+        <div className="grid gap-px bg-rule sm:grid-cols-2">
+          <div className="bg-paper p-7">
+            <Eyebrow>Declared</Eyebrow>
+            <p className="mt-3 text-[14px] leading-relaxed">
+              No repayment may come from an address the originator&rsquo;s own treasury funded for at
+              least the repayment amount, in the same token, within{' '}
+              <span className="tnum font-medium">5,000</span> source-chain blocks.
+            </p>
+            <p className="mt-3 text-[13px] leading-relaxed text-muted">
+              In plain terms: the money coming back should not be the fund&rsquo;s own money going out
+              and returning.
+            </p>
+          </div>
+
+          <div className="bg-paper p-7">
+            <Eyebrow>Observed</Eyebrow>
+            <p className="mt-3 text-[14px] leading-relaxed">
+              The treasury sent the payer <span className="tnum font-medium">0.01 WETH</span> at block{' '}
+              <span className="tnum font-medium">11,538,688</span>. The payer returned{' '}
+              <span className="tnum font-medium">0.01 WETH</span> to the treasury at block{' '}
+              <span className="tnum font-medium">11,538,689</span>.
+            </p>
+            <p className="mt-3 text-[13px] leading-relaxed text-muted">
+              One block apart, well inside the declared window. Both transfers independently verified.
+            </p>
+          </div>
+
+          <div className="bg-paper p-7 sm:col-span-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-4">
+              <div>
+                <Eyebrow>Result</Eyebrow>
+                <div className="mt-3 flex items-baseline gap-3">
+                  <span className="status text-breach">Covenant breached</span>
+                </div>
+              </div>
+              <p className="max-w-xl text-[12px] leading-relaxed text-faint">
+                A breach establishes that two verified transfers occurred in a specific relationship,
+                and therefore that the originator&rsquo;s own published rule was not met. It does not
+                establish intent, control of either address, the existence of an off-chain loan, or
+                any violation of law.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
+    </section>
+  );
+}
 
-      <table className="w-full border-collapse text-left">
-        <thead>
-          <tr className="rule-b">
-            {['Loan', 'Borrower', 'Principal', 'Token', 'Status', 'Window'].map((h, i) => (
-              <th
-                key={h}
-                scope="col"
-                className={`py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint ${
-                  i >= 2 ? 'text-right' : ''
-                }`}
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {loans.map((loan) => {
-            const originator = originatorById.get(loan.originatorId.toString());
-            const meta = STATUS_META[loan.status];
-            const challengeable = originator ? isChallengeable(loan, originator, currentBlock) : false;
-            const left = originator ? blocksLeftInWindow(loan, originator, currentBlock) : 0n;
+function Foundation() {
+  const items: Array<{ k: string; v: React.ReactNode; note: string }> = [
+    {
+      k: 'Block Prover precompile',
+      v: (
+        <a href={explorer.ccAddress(PRECOMPILES.blockProver)} target="_blank" rel="noreferrer noopener" className="ident ident-link">
+          {shortAddress(PRECOMPILES.blockProver)}
+        </a>
+      ),
+      note: 'Called directly. No indexer, no relayer, no oracle.',
+    },
+    {
+      k: 'Chain keys',
+      v: <span className="text-[13px]">resolved at runtime</span>,
+      note: 'Never hardcoded. Read from the ChainInfo precompile on every run.',
+    },
+    {
+      k: 'Replay key',
+      v: <span className="ident">chainKey · block · txIndex · logIndex</span>,
+      note: 'Log-level, stricter than the reference implementation. One transaction can carry many relevant transfers.',
+    },
+    {
+      k: 'Receipt status',
+      v: <span className="text-[13px]">asserted by us</span>,
+      note: 'The precompile proves inclusion, not success. A reverted transfer moved no value.',
+    },
+    {
+      k: 'Forged proofs',
+      v: <span className="text-[13px] text-verified">6 of 6 rejected</span>,
+      note: 'A valid proof mutated six ways; every mutation reverted on-chain.',
+    },
+    {
+      k: 'Evidence latency',
+      v: <span className="tnum text-[13px]">~8–10 min</span>,
+      note: 'Measured, not quoted. Attestors attest finalized blocks; that wait is the security property.',
+    },
+  ];
 
-            return (
-              <tr
-                key={loan.id.toString()}
-                className="rule-b group transition-colors hover:bg-surface-sunken"
+  return (
+    <section className="rule-t py-20">
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        <div>
+          <Eyebrow>Technical foundation</Eyebrow>
+          <h2 className="display-lg mt-4">
+            Nothing here is
+            <br />
+            a server&rsquo;s word.
+          </h2>
+          <p className="prose-lead mt-5 max-w-sm">
+            Replace the precompile with an indexer and the challenge becomes &ldquo;trust our
+            backend&rdquo; — which is the thing being eliminated. Money is slashed on these facts, so
+            a server&rsquo;s assertion is not an acceptable basis.
+          </p>
+          {contracts.clearbook ? (
+            <div className="mt-7">
+              <Eyebrow className="mb-2">Deployed</Eyebrow>
+              <a
+                href={explorer.ccAddress(contracts.clearbook)}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="ident ident-link"
               >
-                <td className="py-3.5">
-                  <Link
-                    href={`/loan/${loan.id}`}
-                    className="font-mono text-[13px] font-medium underline decoration-transparent underline-offset-4 transition-colors group-hover:decoration-ink"
-                  >
-                    L-{loan.id.toString().padStart(3, '0')}
-                  </Link>
-                </td>
-                <td className="py-3.5">
-                  <a
-                    href={explorer.sourceAddress(loan.borrower)}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="ident ident-link"
-                    title={loan.borrower}
-                  >
-                    {shortAddress(loan.borrower)}
-                  </a>
-                </td>
-                <td className="tnum py-3.5 text-right font-mono text-[13px]">
-                  {formatTokenAmount(loan.principal, tokenMeta(loan.token).decimals)}
-                </td>
-                <td className="py-3.5 text-right">
-                  <a
-                    href={explorer.sourceToken(loan.token)}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="ident ident-link"
-                    title={loan.token}
-                  >
-                    {tokenMeta(loan.token).symbol ?? shortAddress(loan.token)}
-                  </a>
-                </td>
-                <td className="py-3.5 text-right">
-                  <div className="flex justify-end">
-                    <Status tone={meta.tone}>{meta.label}</Status>
-                  </div>
-                </td>
-                <td className="tnum py-3.5 text-right text-[12px] text-ink-muted">
-                  {loan.status === LoanStatus.REPAYMENT_CLAIMED ? (
-                    challengeable ? (
-                      <span title={`${left} Creditcoin blocks remain`}>
-                        {blocksToApproxDuration(left)} left
-                      </span>
-                    ) : (
-                      <span className="text-ink-faint">closed</span>
-                    )
-                  ) : (
-                    <span className="text-ink-faint">—</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                {contracts.clearbook}
+              </a>
+            </div>
+          ) : null}
+        </div>
+
+        <dl className="rule-t">
+          {items.map((i) => (
+            <div
+              key={i.k}
+              className="rule-b grid items-baseline gap-3 py-5 sm:grid-cols-[minmax(0,13rem)_minmax(0,12rem)_minmax(0,1fr)]"
+            >
+              <dt className="text-[13px] font-medium">{i.k}</dt>
+              <dd>{i.v}</dd>
+              <dd className="text-[12px] leading-relaxed text-faint">{i.note}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+function Limits() {
+  const limits = [
+    ['The covenant is bounded, not universal', 'An originator that funds a payer from an address it never binds does not breach it. Detection is depth-1 by construction — which is why the rule is framed as a covenant the originator chose, not as fraud detection.'],
+    ['Absence is unprovable', 'Merkle inclusion proofs cannot show that a transaction did not occur. Clearbook never certifies a book as clean; it makes specific claims refutable.'],
+    ['An address is not an entity', 'A bound treasury is an address that produced a signature. Nothing more.'],
+    ['Ethereum only', 'Sepolia and Ethereum Mainnet are the source chains the attestor set supports today.'],
+  ];
+
+  return (
+    <section className="rule-t py-20">
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        <div>
+          <Eyebrow>Honest limits</Eyebrow>
+          <h2 className="display-lg mt-4">What this
+            <br />
+            cannot do.</h2>
+          <p className="prose-lead mt-5 max-w-sm">
+            Stated here rather than buried, because a system that claims less and proves it is worth
+            more than one that claims everything.
+          </p>
+        </div>
+
+        <dl className="rule-t">
+          {limits.map(([k, v]) => (
+            <div key={k} className="rule-b grid gap-3 py-5 sm:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+              <dt className="text-[13px] font-medium">{k}</dt>
+              <dd className="text-[13px] leading-relaxed text-muted">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+function Close() {
+  return (
+    <section className="rule-t py-20">
+      <div className="flex flex-wrap items-end justify-between gap-10">
+        <div className="max-w-xl">
+          <h2 className="display-lg">
+            Read the book.
+            <br />
+            Try to break it.
+          </h2>
+          <p className="prose-lead mt-5">
+            One claim on it is breachable and one is not. The interface will tell you which of the
+            eleven conditions holds before you ever open a wallet.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-x-8 gap-y-4">
+          <Link
+            href="/book"
+            className="inline-flex h-11 items-center border border-ink bg-ink px-6 text-[14px] font-medium text-paper transition-colors hover:bg-black"
+          >
+            Open the credit book
+          </Link>
+          <Link
+            href="/challenge"
+            className="inline-flex h-11 items-center border border-rule-strong px-6 text-[14px] font-medium transition-colors hover:border-ink"
+          >
+            Challenge console
+          </Link>
+        </div>
+      </div>
     </section>
   );
 }

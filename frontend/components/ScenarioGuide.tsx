@@ -17,7 +17,7 @@ export function ScenarioGuide() {
     <section className="rule-t rule-b py-5">
       <div className="flex items-baseline justify-between gap-4">
         <Eyebrow>Staged scenarios</Eyebrow>
-        <span className="text-[11px] text-ink-faint">
+        <span className="text-[11px] text-faint">
           Expected outcomes, declared in advance
         </span>
       </div>
@@ -35,8 +35,8 @@ export function ScenarioGuide() {
               </Link>
               <span className="text-[13px] text-ink">{s.title}</span>
             </div>
-            <div className="mt-1.5 text-[12px] font-medium text-ink-muted">{s.outcome}</div>
-            <p className="mt-1 text-[12px] leading-relaxed text-ink-faint">{s.detail}</p>
+            <div className="mt-1.5 text-[12px] font-medium text-muted">{s.outcome}</div>
+            <p className="mt-1 text-[12px] leading-relaxed text-faint">{s.detail}</p>
           </li>
         ))}
       </ol>

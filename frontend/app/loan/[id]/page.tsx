@@ -13,6 +13,7 @@ import {
   isPreview,
   useCurrentBlock,
   useFactById,
+  useBreachEvidence,
   useLoanById,
   useOriginatorById,
   useParams,
@@ -52,6 +53,14 @@ export default function LoanPage() {
 
   const { fact: disbursement } = useFactById(loan?.disbursementFactId ?? null);
   const { fact: repayment } = useFactById(hasFact(loan?.repaymentFactId) ? loan!.repaymentFactId : null);
+
+  // A breached loan must show the evidence that convicted it. The funding fact
+  // lives only in the CovenantBreached log, so it is read separately.
+  const { breach } = useBreachEvidence(
+    loan?.status === LoanStatus.BREACHED ? loanId : null,
+    loan?.claimBlock ?? null,
+  );
+  const { fact: funding } = useFactById(breach?.fundingFactId ?? null);
 
   if (dataSource === 'none') return <NotDeployed />;
   if (isLoading) return <LoadingRows rows={6} />;
@@ -100,6 +109,21 @@ export default function LoanPage() {
         `separate question, decided by challenge.`,
     });
   }
+  if (breach && funding) {
+    items.push({
+      factId: breach.fundingFactId,
+      fact: funding,
+      role: 'funding',
+      emphasis: true,
+      tokenDecimals,
+      tokenSymbol,
+      interpretation:
+        `This is the transfer the challenger cited. Clearbook treats it as a funding leg because it left a treasury ` +
+        `bound to this originator, arrived at the address that later paid, in the same token, for at least the ` +
+        `repayment amount, and fell inside the window the originator published. Its existence is what breached the ` +
+        `covenant.`,
+    });
+  }
 
   return (
     <div className="space-y-12">
@@ -107,18 +131,18 @@ export default function LoanPage() {
 
       {/* --- WHAT IS THIS, AND WHAT IS ITS STATUS --- */}
       <header>
-        <Link href="/" className="text-[12px] text-ink-muted underline-offset-4 hover:underline">
-          ← Book
+        <Link href="/book" className="text-[12px] text-muted underline-offset-4 hover:underline">
+          ← Credit book
         </Link>
 
         <div className="mt-4 flex flex-wrap items-start justify-between gap-6">
           <div>
             <Eyebrow>Loan record</Eyebrow>
-            <h1 className="mt-2 font-mono text-[28px] font-semibold leading-none tracking-tight">
+            <h1 className="mt-2 font-mono text-[34px] font-semibold leading-none tracking-tight">
               L-{loan.id.toString().padStart(3, '0')}
             </h1>
             {originator ? (
-              <p className="mt-2 text-[13px] text-ink-muted">
+              <p className="mt-2 text-[13px] text-muted">
                 Originated by <span className="text-ink">{originator.name}</span>
               </p>
             ) : null}
@@ -126,7 +150,7 @@ export default function LoanPage() {
 
           <div className="text-right">
             <Status tone={meta.tone}>{meta.label}</Status>
-            <p className="mt-2 max-w-xs text-[12px] leading-relaxed text-ink-muted">
+            <p className="mt-2 max-w-xs text-[12px] leading-relaxed text-muted">
               {meta.description}
             </p>
           </div>
@@ -174,6 +198,7 @@ export default function LoanPage() {
           challengeable={challengeable}
           windowLeft={windowLeft}
           bondPerLoan={params?.bondPerLoan ?? null}
+          breach={breach}
         />
       ) : null}
 
@@ -193,7 +218,7 @@ export default function LoanPage() {
 
       {/* --- WHAT THIS DOES NOT ESTABLISH --- */}
       <Section title="Not claimed">
-        <p className="mb-4 max-w-2xl text-[13px] leading-relaxed text-ink-muted">
+        <p className="mb-4 max-w-2xl text-[13px] leading-relaxed text-muted">
           The evidence above establishes what it establishes and nothing further. Specifically, it
           does not establish:
         </p>
@@ -252,7 +277,7 @@ export default function LoanPage() {
         </Disclosure>
 
         <Disclosure summary="How a fact is identified">
-          <p className="max-w-2xl text-[13px] leading-relaxed text-ink-muted">
+          <p className="max-w-2xl text-[13px] leading-relaxed text-muted">
             A fact&rsquo;s identity is{' '}
             <code className="font-mono text-[12px] text-ink">
               keccak256(abi.encode(chainKey, blockHeight, txIndex, logIndex))
@@ -293,81 +318,118 @@ function CovenantPanel({
   challengeable,
   windowLeft,
   bondPerLoan,
+  breach,
 }: {
   loan: import('@/lib/protocol').Loan;
   circularWindow: number;
   challengeable: boolean;
   windowLeft: bigint | null;
   bondPerLoan: bigint | null;
+  breach: import('@/lib/hooks').BreachEvidence | null;
 }) {
   const breached = loan.status === LoanStatus.BREACHED;
 
   return (
     <Section title="Covenant · CIRCULAR_REPAYMENT" aside="Published at registration · immutable">
-      <div className="grid gap-8 lg:grid-cols-[1fr_1fr_auto]">
-        <div>
-          <Eyebrow>Expected</Eyebrow>
-          <p className="mt-2.5 text-[13px] leading-relaxed text-ink">
-            A repayment must not come from an address that the originator&rsquo;s own treasury funded
-            for at least the repayment amount, in the same token, within{' '}
+      <div className="grid gap-px bg-rule lg:grid-cols-2">
+        <div className="bg-paper py-6 pr-6 lg:pl-0">
+          <Eyebrow>Declared</Eyebrow>
+          <p className="mt-3 max-w-md text-[14px] leading-relaxed">
+            No repayment may come from an address this originator&rsquo;s own treasury funded for at
+            least the repayment amount, in the same token, within{' '}
             <span className="tnum font-medium">{formatBlock(circularWindow)}</span> source-chain
-            blocks before the repayment.
+            blocks.
           </p>
-          <p className="mt-2 text-[12px] leading-relaxed text-ink-faint">
-            In short: the money coming back should not be the originator&rsquo;s own money going out
-            and returning.
+          <p className="mt-3 max-w-md text-[13px] leading-relaxed text-muted">
+            Published at registration and immutable thereafter. A rule you can change after
+            publishing is not a covenant.
           </p>
         </div>
 
-        <div>
+        <div className="bg-paper p-6">
           <Eyebrow>Observed</Eyebrow>
           {breached ? (
-            <p className="mt-2.5 text-[13px] leading-relaxed text-ink">
-              A funding leg was proven on-chain: the bound treasury sent the payer at least the
-              repayment amount, in the same token, inside the window. The covenant was not met.
+            <p className="mt-3 max-w-md text-[14px] leading-relaxed">
+              A funding leg was proven: the bound treasury sent the payer at least the repayment
+              amount, in the same token, inside the window.
             </p>
           ) : hasFact(loan.repaymentFactId) ? (
-            <p className="mt-2.5 text-[13px] leading-relaxed text-ink">
+            <p className="mt-3 max-w-md text-[14px] leading-relaxed">
               A repayment has been claimed and its evidence verified. No funding leg has been cited.
-              The covenant holds unless someone proves otherwise before the window closes.
             </p>
           ) : (
-            <p className="mt-2.5 text-[13px] leading-relaxed text-ink">
-              No repayment has been claimed, so the covenant has nothing to evaluate yet.
+            <p className="mt-3 max-w-md text-[14px] leading-relaxed">
+              No repayment has been claimed, so there is nothing to evaluate yet.
             </p>
           )}
+          <p className="mt-3 max-w-md text-[13px] leading-relaxed text-muted">
+            {breached
+              ? 'The covenant was not met.'
+              : hasFact(loan.repaymentFactId)
+                ? 'The covenant holds unless someone proves otherwise before the window closes.'
+                : 'The covenant activates when a repayment is claimed.'}
+          </p>
         </div>
 
-        <div className="lg:w-56">
-          <Eyebrow>Covenant status</Eyebrow>
-          <div className="mt-2.5">
-            {breached ? (
-              <Status tone="breach">Breached</Status>
-            ) : hasFact(loan.repaymentFactId) ? (
-              <Status tone="pending">Not disproven</Status>
-            ) : (
-              <Status tone="inert">Not evaluated</Status>
-            )}
-          </div>
-          {challengeable && windowLeft !== null ? (
-            <div className="mt-4 space-y-2">
-              <p className="text-[12px] leading-relaxed text-ink-muted">
-                Challenge window closes in{' '}
-                <span className="tnum text-ink">{blocksToApproxDuration(windowLeft)}</span>.
-              </p>
-              <Link
-                href={`/challenge?loan=${loan.id}`}
-                className="inline-flex h-9 items-center border border-ink bg-ink px-4 text-[13px] font-medium text-paper transition-colors hover:bg-black"
-              >
-                Open challenge console
-              </Link>
+        <div className="bg-paper py-6 pr-6 lg:col-span-2 lg:pl-0">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <Eyebrow>Result</Eyebrow>
+              <div className="mt-3">
+                {breached ? (
+                  <Status tone="breach">Covenant breached</Status>
+                ) : hasFact(loan.repaymentFactId) ? (
+                  <Status tone="pending">Not disproven</Status>
+                ) : (
+                  <Status tone="inert">Not evaluated</Status>
+                )}
+              </div>
+              {breached && bondPerLoan ? (
+                <p className="tnum mt-3 text-[13px] text-muted">
+                  Bond slashed: {formatCtc(bondPerLoan)} tCTC
+                </p>
+              ) : null}
+              {breached && breach ? (
+                <p className="mt-1.5 text-[12px] text-faint">
+                  Proven by{' '}
+                  <a
+                    href={explorer.ccAddress(breach.challenger)}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="ident ident-link"
+                    title={breach.challenger}
+                  >
+                    {shortAddress(breach.challenger)}
+                  </a>{' '}
+                  in{' '}
+                  <a
+                    href={explorer.ccTx(breach.txHash)}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="ident ident-link"
+                  >
+                    one transaction
+                  </a>
+                  .
+                </p>
+              ) : null}
             </div>
-          ) : null}
-          {breached && bondPerLoan ? (
-            <p className="tnum mt-4 text-[12px] text-ink-muted">
-              Bond slashed: {formatCtc(bondPerLoan)} tCTC
-            </p>
-          ) : null}
+
+            {challengeable && windowLeft !== null ? (
+              <div className="text-right">
+                <p className="mb-3 text-[12px] leading-relaxed text-muted">
+                  Challenge window closes in{' '}
+                  <span className="tnum text-ink">{blocksToApproxDuration(windowLeft)}</span>
+                </p>
+                <Link
+                  href={`/challenge?loan=${loan.id}`}
+                  className="inline-flex h-10 items-center border border-ink bg-ink px-5 text-[13px] font-medium text-paper transition-colors hover:bg-black"
+                >
+                  Open challenge console
+                </Link>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 

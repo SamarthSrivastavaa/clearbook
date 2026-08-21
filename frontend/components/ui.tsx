@@ -20,10 +20,10 @@ const TONE_CLASS: Record<Tone, string> = {
 };
 
 const TONE_BG: Record<Tone, string> = {
-  verified: 'bg-verified-bg',
-  breach: 'bg-breach-bg',
-  pending: 'bg-pending-bg',
-  inert: 'bg-inert-bg',
+  verified: 'bg-verified-soft',
+  breach: 'bg-breach-soft',
+  pending: 'bg-pending-soft',
+  inert: 'bg-inert-soft',
 };
 
 /** A status is a rule and a word. Never a pill, never a dot. */
@@ -51,7 +51,7 @@ export function Section({
     <section className={className}>
       <div className="rule-b flex items-baseline justify-between gap-4 pb-2">
         <Eyebrow>{title}</Eyebrow>
-        {aside ? <div className="text-[11px] text-ink-faint">{aside}</div> : null}
+        {aside ? <div className="text-[11px] text-faint">{aside}</div> : null}
       </div>
       <div className="pt-4">{children}</div>
     </section>
@@ -130,7 +130,7 @@ export function Ident({
         type="button"
         onClick={copy}
         aria-label={`Copy ${label ?? 'value'} in full`}
-        className="text-[10px] uppercase tracking-wider text-ink-faint transition-colors hover:text-ink"
+        className="text-[10px] uppercase tracking-wider text-faint transition-colors hover:text-ink"
       >
         {copied ? 'copied' : 'copy'}
       </button>
@@ -161,7 +161,7 @@ export function Button({
     default:
       'bg-surface text-ink border-rule-strong hover:border-ink',
     quiet:
-      'bg-transparent text-ink-muted border-transparent hover:text-ink px-2',
+      'bg-transparent text-muted border-transparent hover:text-ink px-2',
   };
   return (
     <button
@@ -200,7 +200,7 @@ export function Input({
         spellCheck={false}
         autoComplete="off"
         aria-invalid={invalid}
-        className={`h-10 w-full border bg-surface px-3 text-[13px] text-ink placeholder:text-ink-faint ${
+        className={`h-10 w-full border bg-surface px-3 text-[13px] text-ink placeholder:text-faint ${
           mono ? 'font-mono' : ''
         } ${invalid ? 'border-breach' : 'border-rule-strong'}`}
       />
@@ -242,9 +242,9 @@ export function Disclosure({
 }) {
   return (
     <details className="group rule-t">
-      <summary className="flex cursor-pointer list-none items-center justify-between py-3 text-[12px] text-ink-muted transition-colors hover:text-ink">
+      <summary className="flex cursor-pointer list-none items-center justify-between py-3 text-[12px] text-muted transition-colors hover:text-ink">
         <span className="flex items-center gap-2">
-          <span className="inline-block w-3 text-ink-faint transition-transform group-open:rotate-90">
+          <span className="inline-block w-3 text-faint transition-transform group-open:rotate-90">
             ›
           </span>
           {summary}
@@ -261,7 +261,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
     <div className="rule-t py-16 text-center">
       <div className="text-sm text-ink">{title}</div>
       {children ? (
-        <div className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-ink-muted">
+        <div className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-muted">
           {children}
         </div>
       ) : null}
@@ -273,7 +273,7 @@ export function Working({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-3">
       <span className="animate-working h-3 w-px bg-ink" aria-hidden />
-      <span className="text-[13px] text-ink-muted">{label}</span>
+      <span className="text-[13px] text-muted">{label}</span>
     </div>
   );
 }

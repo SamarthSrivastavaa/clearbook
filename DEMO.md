@@ -1,6 +1,6 @@
 # DEMO.md
 
-> **Status: source-chain evidence staged and proven; deployment pending.** All five Sepolia transactions exist and are verified (5/5, 40/40 cross-checks). What is still missing is the Creditcoin deployment, without which the facts cannot be submitted and the challenge cannot run. Nothing here has been rehearsed end to end yet.
+> **Status: fully staged and executed on-chain.** Contracts deployed, all five facts stored in the vault, a real breach proven and slashed, and both negative controls confirmed. The scenarios below have run for real — the transaction hashes are in `README.md` and `integration/results/`.
 
 ---
 
@@ -20,7 +20,7 @@ Four loans, **all staged by us**, all labelled as staged on screen and in the fi
 |---|---|---|---|
 | A | **Legitimate** | `treasury → borrower` (block 11538664); later `borrower → treasury` (block 11538692) | `challenge()` reverts `DisbursementNotFunding` (condition 11). **The honest control — it must be demonstrated.** |
 | B | **Prohibited circular flow** | `treasury → payer` (11538687); a **second, distinct** `treasury → payer` (11538688); `payer → treasury` (11538689) | `challenge()` succeeds: `BREACHED`, bond slashed, bounty paid |
-| C | **Invalid challenge** | cite an unrelated transfer as the funding leg | reverts `FundingNotFromBoundTreasury` (condition 6), shown as a pre-flight red X |
+| C | **Invalid challenge** | cite an unrelated transfer as the funding leg | reverts `NotTheSamePayer` (condition 5), shown as a pre-flight red X |
 
 **All five source-chain transactions are staged and proven** — 5/5 verified by the precompile, 40/40 cross-checks. Run `npm run demo:run` for the live checklist with explorer links.
 
@@ -28,7 +28,9 @@ Four loans, **all staged by us**, all labelled as staged on screen and in the fi
 >
 > **1 · `NoBreach` does not exist.** §5.3 assigns a distinct error to each of the eleven conditions, which makes `NoBreach` unreachable, so it is not declared (DECISIONS D-023). Every failed challenge names the condition that failed.
 >
-> **2 · Scenario A fails at condition 11, not condition 6.** As staged, the borrower is never separately funded in WETH, so the only `treasury → borrower` transfer in existence is the disbursement itself — which condition 11 excludes. The revert is `DisbursementNotFunding` (DECISIONS D-042).
+> **2 · Neither negative control fails at condition 6.** Verified on-chain: loan A citing its own disbursement reverts **`DisbursementNotFunding`** (condition 11); citing an unrelated transfer reverts **`NotTheSamePayer`** (condition 5), because condition 5 is evaluated first.
+>
+> **Scenario A fails at condition 11, not condition 6.** As staged, the borrower is never separately funded in WETH, so the only `treasury → borrower` transfer in existence is the disbursement itself — which condition 11 excludes. The revert is `DisbursementNotFunding` (DECISIONS D-042).
 >
 > This is the better demonstration. Condition 11 exists precisely to stop an originator citing its own disbursement as the funding leg, and scenario A shows the mechanism refusing exactly that. Narrate the condition, not the error name — A and C fail for genuinely different reasons even where the wording is similar.
 

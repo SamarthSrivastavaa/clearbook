@@ -7,7 +7,7 @@ import type { Hex } from 'viem';
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
 import { LoadingRows, NotDeployed, PreviewBanner } from '@/components/States';
-import { Button, Callout, Empty, Eyebrow, Ident, Input, Section, Status, Working } from '@/components/ui';
+import { Button, Eyebrow, Ident, Input, Status, Working } from '@/components/ui';
 import { clearbookAbi } from '@/lib/abi';
 import { contracts, explorer, isDeployed } from '@/lib/config';
 import {
@@ -19,8 +19,8 @@ import {
   useCurrentBlock,
   useFactById,
   useParams,
+  useVaultFacts,
 } from '@/lib/data';
-import { FIXTURE_FACTS, factIdOf } from '@/lib/fixtures';
 import { decodeRevert } from '@/lib/errors';
 import { formatCtc, formatTokenAmount, shortAddress } from '@/lib/format';
 import { applyTreasuryBinding, dryRun, type ConditionResult } from '@/lib/predicate';
@@ -30,10 +30,14 @@ import { tokenMeta } from '@/lib/token';
 /**
  * The challenge console.
  *
- * The design intent: nobody should ever open a wallet not knowing what will
- * happen. Every one of the eleven conditions the contract will evaluate is
- * evaluated here first, from the same chain state, and shown pass or fail. The
- * wallet is the last step, not the first.
+ * Structured as an investigation, not a form: select the claim, cite the
+ * evidence, watch the covenant evaluate, then submit. The rail carries the
+ * sequence because each stage genuinely depends on the one before it.
+ *
+ * The design commitment: nobody opens a wallet not knowing what will happen.
+ * All eleven conditions the contract will evaluate are evaluated here first,
+ * from the same chain state, and shown pass or fail. The wallet is the last
+ * step, never the first.
  */
 export default function ChallengePage() {
   return (
@@ -43,7 +47,7 @@ export default function ChallengePage() {
   );
 }
 
-type Phase = 'idle' | 'submitting' | 'pending' | 'confirmed' | 'failed';
+type Phase = 'idle' | 'pending' | 'confirmed' | 'failed';
 
 function ChallengeConsole() {
   const search = useSearchParams();
@@ -83,17 +87,10 @@ function ChallengeConsole() {
     return applyTreasuryBinding(base, fundingOwner, loan.originatorId, funding?.from ?? null);
   }, [loan, originator, params, currentBlock, fundingFactId, repayment, funding, fundingOwner]);
 
-  // --- submission lifecycle ---
   const { writeContract, data: txHash, error: writeError, reset } = useWriteContract();
   const { isLoading: waiting, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
-  const phase: Phase = writeError
-    ? 'failed'
-    : isSuccess
-      ? 'confirmed'
-      : txHash
-        ? 'pending'
-        : 'idle';
+  const phase: Phase = writeError ? 'failed' : isSuccess ? 'confirmed' : txHash ? 'pending' : 'idle';
 
   const submit = () => {
     if (!loan || !fundingFactId || !contracts.clearbook) return;
@@ -114,53 +111,65 @@ function ChallengeConsole() {
       originators.some((o) => o.id === l.originatorId && isChallengeable(l, o, currentBlock)),
   );
 
+  // Rail state per stage, so progress is visible at a glance.
+  const stageState = (n: number): 'done' | 'active' | undefined => {
+    if (n === 1) return loan ? 'done' : 'active';
+    if (n === 2) return !loan ? undefined : fundingFactId ? 'done' : 'active';
+    if (n === 3) return !result ? undefined : result.wouldSucceed ? 'done' : 'active';
+    if (n === 4) return phase === 'confirmed' ? 'done' : result?.wouldSucceed ? 'active' : undefined;
+    return undefined;
+  };
+
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
       {isPreview ? <PreviewBanner /> : null}
 
       <header className="max-w-3xl">
         <Eyebrow>Challenge console</Eyebrow>
-        <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-tight">
-          Prove a covenant breach.
-        </h1>
-        <p className="mt-3 text-[14px] leading-relaxed text-ink-muted">
-          Anyone may challenge. There is no allowlist, no challenger bond, and no dispute period. The
-          contract evaluates eleven conditions over verified evidence and either slashes the
+        <h1 className="display-lg mt-3">Prove a covenant breach.</h1>
+        <p className="prose-lead mt-4">
+          Anyone may challenge. No allowlist, no challenger bond, no dispute period. The contract
+          evaluates eleven conditions over verified evidence and either slashes the
           originator&rsquo;s bond or reverts. An invalid challenge costs you gas and nothing else.
         </p>
       </header>
 
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
-        {/* ---------------- selection ---------------- */}
-        <div className="space-y-8">
-          <Section title="1 · Claim">
-            {challengeable.length === 0 ? (
-              <p className="text-[13px] leading-relaxed text-ink-muted">
-                No loan currently has an open challenge window. A loan becomes challengeable when its
-                originator claims a repayment, and stays so until the window closes.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {challengeable.map((l) => (
-                  <LoanChoice
-                    key={l.id.toString()}
-                    loan={l}
-                    selected={l.id.toString() === selectedId}
-                    onSelect={() => {
-                      setSelectedId(l.id.toString());
-                      reset();
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </Section>
-
-          <Section title="2 · Funding evidence">
-            <p className="mb-4 text-[13px] leading-relaxed text-ink-muted">
-              Cite the verified transfer you believe funded the payer. It must already exist in the
-              vault — evidence is ingested before it can be cited.
+      <ol className="rail max-w-4xl">
+        {/* ---------------- 1 · the claim ---------------- */}
+        <li className="rail-node pb-12" data-state={stageState(1)}>
+          <Stage n="01" title="Select the claim" />
+          {challengeable.length === 0 ? (
+            <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-muted">
+              No claim currently has an open challenge window. A claim becomes challengeable when its
+              originator claims a repayment, and stays so until the window closes.
             </p>
+          ) : (
+            <div className="mt-4 grid max-w-2xl gap-2 sm:grid-cols-2">
+              {challengeable.map((l) => (
+                <LoanChoice
+                  key={l.id.toString()}
+                  loan={l}
+                  selected={l.id.toString() === selectedId}
+                  onSelect={() => {
+                    setSelectedId(l.id.toString());
+                    setFundingInput('');
+                    reset();
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </li>
+
+        {/* ---------------- 2 · the alleged funding ---------------- */}
+        <li className="rail-node pb-12" data-state={stageState(2)}>
+          <Stage n="02" title="Cite the funding evidence" />
+          <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-muted">
+            Identify the verified transfer you believe funded the payer. It must already exist in the
+            vault — evidence is ingested before it can be cited, by anyone, permissionlessly.
+          </p>
+
+          <div className="mt-4 max-w-xl">
             <Input
               label="Funding fact identifier"
               value={fundingInput}
@@ -182,33 +191,66 @@ function ChallengeConsole() {
               </p>
             ) : null}
 
-            {isPreview ? <PreviewFactPicker onPick={setFundingInput} /> : null}
-          </Section>
-        </div>
+            {funding ? (
+              <div className="record mt-4 px-4 py-3">
+                <Eyebrow>Cited transfer</Eyebrow>
+                <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px]">
+                  <span className="ident">{shortAddress(funding.from)}</span>
+                  <span className="text-faint" aria-hidden>
+                    →
+                  </span>
+                  <span className="ident">{shortAddress(funding.to)}</span>
+                  <span className="tnum font-mono font-medium">
+                    {formatTokenAmount(funding.amount, tokenMeta(funding.token).decimals)}{' '}
+                    {tokenMeta(funding.token).symbol ?? ''}
+                  </span>
+                  <span className="text-[12px] text-faint">block {funding.blockHeight.toString()}</span>
+                </div>
+              </div>
+            ) : null}
 
-        {/* ---------------- evaluation ---------------- */}
-        <div className="space-y-8">
-          <Section
-            title="3 · Covenant evaluation"
-            aside={result ? `${result.conditions.filter((c) => c.status === 'pass').length} of 11 satisfied` : undefined}
-          >
+            <FactPicker
+              loan={loan}
+              selected={fundingFactId}
+              onPick={(v) => {
+                setFundingInput(v);
+                reset();
+              }}
+            />
+          </div>
+        </li>
+
+        {/* ---------------- 3 · the covenant ---------------- */}
+        <li className="rail-node pb-12" data-state={stageState(3)}>
+          <Stage
+            n="03"
+            title="Evaluate the covenant"
+            aside={
+              result
+                ? `${result.conditions.filter((c) => c.status === 'pass').length} of 11 satisfied`
+                : undefined
+            }
+          />
+          <div className="mt-4 max-w-3xl">
             {!loan ? (
-              <Empty title="Select a claim">
-                Choose a loan with an open challenge window to evaluate it.
-              </Empty>
+              <Hint>Select a claim above to evaluate it.</Hint>
             ) : !fundingFactId ? (
-              <Empty title="Cite funding evidence">
-                Paste the identifier of the verified transfer you believe funded the payer.
-              </Empty>
+              <Hint>Cite a funding fact to evaluate the eleven conditions.</Hint>
             ) : !result ? (
               <Working label="Reading chain state…" />
             ) : (
               <ConditionList conditions={result.conditions} />
             )}
-          </Section>
+          </div>
+        </li>
 
-          {result && loan ? (
-            <Section title="4 · Outcome">
+        {/* ---------------- 4 · submission and outcome ---------------- */}
+        <li className="rail-node" data-state={stageState(4)}>
+          <Stage n="04" title="Submit and settle" />
+          <div className="mt-4 max-w-3xl">
+            {!result ? (
+              <Hint>The outcome appears once the covenant has been evaluated.</Hint>
+            ) : (
               <Outcome
                 result={result}
                 phase={phase}
@@ -220,14 +262,30 @@ function ChallengeConsole() {
                 onSubmit={submit}
                 bondPerLoan={params?.bondPerLoan ?? null}
                 bountyBps={params?.bountyBps ?? 0}
-                loanId={loan.id}
+                loanId={loan!.id}
               />
-            </Section>
-          ) : null}
-        </div>
-      </div>
+            )}
+          </div>
+        </li>
+      </ol>
     </div>
   );
+}
+
+function Stage({ n, title, aside }: { n: string; title: string; aside?: string }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-4">
+      <div className="flex items-baseline gap-4">
+        <span className="ident text-[11px] text-faint">{n}</span>
+        <h2 className="display-md">{title}</h2>
+      </div>
+      {aside ? <span className="text-[12px] text-muted">{aside}</span> : null}
+    </div>
+  );
+}
+
+function Hint({ children }: { children: React.ReactNode }) {
+  return <p className="text-[13px] leading-relaxed text-faint">{children}</p>;
 }
 
 function LoanChoice({
@@ -245,14 +303,14 @@ function LoanChoice({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`flex w-full items-baseline justify-between border px-4 py-3 text-left transition-colors ${
+      className={`flex w-full items-baseline justify-between border px-4 py-3.5 text-left transition-colors ${
         selected ? 'border-ink bg-surface' : 'border-rule bg-surface hover:border-rule-strong'
       }`}
     >
-      <span className="font-mono text-[13px] font-medium">
+      <span className="font-mono text-[14px] font-medium">
         L-{loan.id.toString().padStart(3, '0')}
       </span>
-      <span className="tnum text-[12px] text-ink-muted">
+      <span className="tnum text-[12px] text-muted">
         {formatTokenAmount(loan.principal, decimals)} {symbol ?? ''}
       </span>
     </button>
@@ -260,27 +318,80 @@ function LoanChoice({
 }
 
 /** Preview only: the fixture facts, so the console can be exercised offline. */
-function PreviewFactPicker({ onPick }: { onPick: (v: string) => void }) {
-  const options = [
-    { label: 'Treasury → payer (loan B funding leg)', fact: FIXTURE_FACTS.bFunding },
-    { label: 'Faucet → borrower (loan A, unbound source)', fact: FIXTURE_FACTS.aFaucet },
-    { label: 'Treasury → borrower (loan A disbursement)', fact: FIXTURE_FACTS.aDisburse },
-  ];
+/**
+ * The evidence available to cite.
+ *
+ * Without this a challenger faces an empty field and a 32-byte hex format, with
+ * no way to discover what the vault holds. The list is read from the vault's own
+ * log, so it shows exactly what is citable — including this loan's own legs,
+ * which are citable but will fail the covenant, because learning why is the
+ * point of the console.
+ */
+function FactPicker({
+  loan,
+  selected,
+  onPick,
+}: {
+  loan: Loan | null;
+  selected: Hex | null;
+  onPick: (v: string) => void;
+}) {
+  const { facts, isLoading } = useVaultFacts();
+
+  if (isLoading) {
+    return (
+      <p className="mt-5 text-[12px] text-faint">Reading citable evidence from the vault…</p>
+    );
+  }
+  if (facts.length === 0) return null;
+
+  const ordered = [...facts].sort((a, b) => Number(a.blockHeight - b.blockHeight));
+
   return (
-    <div className="mt-5">
-      <Eyebrow className="mb-2">Preview fixtures</Eyebrow>
-      <div className="space-y-1.5">
-        {options.map((o) => (
-          <button
-            key={o.label}
-            type="button"
-            onClick={() => onPick(factIdOf(o.fact))}
-            className="block w-full text-left text-[12px] text-ink-muted underline decoration-rule-strong underline-offset-4 transition-colors hover:text-ink"
-          >
-            {o.label}
-          </button>
-        ))}
+    <div className="mt-6">
+      <div className="rule-b flex items-baseline justify-between gap-4 pb-2">
+        <Eyebrow>Evidence in the vault</Eyebrow>
+        <span className="text-[11px] text-faint">{ordered.length} verified facts</span>
       </div>
+
+      <ul>
+        {ordered.map((f) => {
+          const isSelected = !!selected && selected.toLowerCase() === f.factId.toLowerCase();
+          const own =
+            loan && loan.disbursementFactId.toLowerCase() === f.factId.toLowerCase()
+              ? "this loan's disbursement"
+              : loan && loan.repaymentFactId.toLowerCase() === f.factId.toLowerCase()
+                ? "this loan's repayment"
+                : null;
+          const { decimals, symbol } = tokenMeta(f.token);
+
+          return (
+            <li key={f.factId}>
+              <button
+                type="button"
+                onClick={() => onPick(f.factId)}
+                aria-pressed={isSelected}
+                className={`flex w-full flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-rule py-2.5 text-left transition-colors hover:bg-sunken ${
+                  isSelected ? 'border-l-2 border-l-accent pl-3' : ''
+                }`}
+              >
+                <span className="ident text-[12px]">{shortAddress(f.from)}</span>
+                <span className="text-faint" aria-hidden>
+                  →
+                </span>
+                <span className="ident text-[12px]">{shortAddress(f.to)}</span>
+                <span className="tnum font-mono text-[12px] font-medium">
+                  {formatTokenAmount(f.amount, decimals)} {symbol ?? ''}
+                </span>
+                {own ? <span className="text-[11px] text-faint">· {own}</span> : null}
+                <span className="tnum ml-auto text-[11px] text-faint">
+                  source block {f.blockHeight.toString()}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -292,11 +403,7 @@ function ConditionList({ conditions }: { conditions: ConditionResult[] }) {
         <li key={c.n} className="rule-b flex gap-4 py-3">
           <span
             className={`mt-0.5 w-4 shrink-0 text-center text-[12px] font-semibold ${
-              c.status === 'pass'
-                ? 'text-verified'
-                : c.status === 'fail'
-                  ? 'text-breach'
-                  : 'text-ink-faint'
+              c.status === 'pass' ? 'text-verified' : c.status === 'fail' ? 'text-breach' : 'text-faint'
             }`}
             aria-hidden
           >
@@ -304,8 +411,8 @@ function ConditionList({ conditions }: { conditions: ConditionResult[] }) {
           </span>
           <span className="ident w-5 shrink-0 pt-px text-[11px]">{c.n}</span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[13px] leading-snug text-ink">{c.title}</span>
-            <code className="mt-1 block font-mono text-[11px] leading-relaxed text-ink-faint">
+            <span className="block text-[13px] leading-snug">{c.title}</span>
+            <code className="mt-1 block font-mono text-[11px] leading-relaxed text-faint">
               {c.formal}
             </code>
             {c.status === 'fail' ? (
@@ -349,23 +456,17 @@ function Outcome({
   bountyBps: number;
   loanId: bigint;
 }) {
-  // --- terminal: confirmed on-chain ---
   if (phase === 'confirmed' && txHash) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 animate-rail-in">
         <div>
           <Status tone="breach">Covenant breach verified</Status>
-          <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink">
-            The evidence satisfied all eleven conditions. The originator&rsquo;s bond for this loan
-            was slashed and your bounty was paid in the same transaction.
+          <p className="mt-3 max-w-2xl text-[14px] leading-relaxed">
+            The evidence satisfied all eleven conditions. The originator&rsquo;s bond for this claim
+            was slashed and your bounty paid, in the same transaction.
           </p>
         </div>
-        <Ledger
-          bondPerLoan={bondPerLoan}
-          bountyBps={bountyBps}
-          projected={false}
-          loanId={loanId}
-        />
+        <Ledger bondPerLoan={bondPerLoan} bountyBps={bountyBps} projected={false} loanId={loanId} />
         <div>
           <Eyebrow className="mb-1.5">Creditcoin transaction</Eyebrow>
           <Ident value={txHash} href={explorer.ccTx(txHash)} label="Challenge transaction" />
@@ -374,50 +475,45 @@ function Outcome({
     );
   }
 
-  // --- terminal: the chain refused ---
   if (phase === 'failed' && writeError) {
     const decoded = decodeRevert(writeError);
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 animate-rail-in">
         <Status tone={decoded.userRejected ? 'inert' : 'breach'}>
           {decoded.userRejected ? 'Not submitted' : 'Challenge rejected'}
         </Status>
         <div className="record px-5 py-4">
           <Eyebrow>{decoded.userRejected ? 'Reason' : 'On-chain error'}</Eyebrow>
-          <div className="mt-2 font-mono text-[13px] text-ink">{decoded.name}</div>
-          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-muted">
+          <div className="mt-2 font-mono text-[14px]">{decoded.name}</div>
+          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">
             {decoded.explanation}
           </p>
           {decoded.condition ? (
-            <p className="mt-2 text-[12px] text-ink-faint">
+            <p className="mt-2 text-[12px] text-faint">
               This is condition {decoded.condition} of the covenant predicate.
             </p>
           ) : null}
         </div>
-        <p className="text-[12px] text-ink-muted">
+        <p className="text-[12px] text-muted">
           No state changed. A rejected challenge costs only gas.
         </p>
       </div>
     );
   }
 
-  // --- in flight ---
   if (phase === 'pending' || waiting) {
     return (
       <div className="space-y-3">
-        <Working label="Challenge submitted — waiting for Creditcoin confirmation" />
-        {txHash ? (
-          <Ident value={txHash} href={explorer.ccTx(txHash)} label="Challenge transaction" />
-        ) : null}
-        <p className="text-[12px] text-ink-muted">
-          One Creditcoin transaction. The contract re-evaluates every condition on-chain; this
-          preview does not decide the outcome.
+        <Working label="Submitted — waiting for Creditcoin confirmation" />
+        {txHash ? <Ident value={txHash} href={explorer.ccTx(txHash)} label="Challenge transaction" /> : null}
+        <p className="max-w-xl text-[12px] leading-relaxed text-muted">
+          One Creditcoin transaction. The contract re-evaluates every condition on-chain; the
+          evaluation above does not decide the outcome.
         </p>
       </div>
     );
   }
 
-  // --- pre-flight ---
   const failure = result.firstFailure;
 
   return (
@@ -426,9 +522,9 @@ function Outcome({
         <>
           <div>
             <Status tone="verified">All eleven conditions satisfied</Status>
-            <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink">
-              Submitting this challenge would prove a breach of <code>CIRCULAR_REPAYMENT</code>. The
-              contract will re-evaluate every condition on-chain before paying anything.
+            <p className="mt-3 max-w-2xl text-[14px] leading-relaxed">
+              Submitting would prove a breach of <code className="font-mono">CIRCULAR_REPAYMENT</code>.
+              The contract re-evaluates every condition on-chain before paying anything.
             </p>
           </div>
           <Ledger bondPerLoan={bondPerLoan} bountyBps={bountyBps} projected loanId={loanId} />
@@ -437,11 +533,11 @@ function Outcome({
         <div>
           <Status tone="breach">Would revert at condition {failure.n}</Status>
           <div className="record mt-4 px-5 py-4">
-            <p className="text-[13px] leading-relaxed text-ink">{failure.title}</p>
+            <p className="text-[14px] leading-relaxed">{failure.title}</p>
             {failure.observed ? (
               <p className="mt-2 text-[12px] text-breach">Observed: {failure.observed}.</p>
             ) : null}
-            <p className="mt-2 text-[12px] text-ink-muted">
+            <p className="mt-2 text-[12px] text-muted">
               The contract would revert <code className="font-mono">{failure.errorName}</code>. The
               wallet is not opened, so this costs nothing.
             </p>
@@ -456,18 +552,18 @@ function Outcome({
           Submit challenge
         </Button>
         {!isDeployed ? (
-          <span className="text-[12px] text-ink-muted">
+          <span className="text-[12px] text-muted">
             Submission requires a deployment. Nothing here is simulated.
           </span>
         ) : !isConnected ? (
-          <span className="text-[12px] text-ink-muted">Connect a wallet to submit.</span>
+          <span className="text-[12px] text-muted">Connect a wallet to submit.</span>
         ) : null}
       </div>
     </div>
   );
 }
 
-/** The economic consequence, as a ledger. Institutional, not celebratory. */
+/** The economic consequence, as a ledger. Institutional, never celebratory. */
 function Ledger({
   bondPerLoan,
   bountyBps,
@@ -491,17 +587,17 @@ function Ledger({
   ];
 
   return (
-    <div>
+    <div className="max-w-md">
       <Eyebrow className="mb-2">
         {projected ? 'Projected economic consequence' : 'Economic consequence'}
       </Eyebrow>
       <dl className="rule-t">
         {rows.map((r) => (
           <div key={r.label} className="rule-b flex items-baseline justify-between py-2.5">
-            <dt className="text-[13px] text-ink-muted">{r.label}</dt>
+            <dt className="text-[13px] text-muted">{r.label}</dt>
             <dd
-              className={`tnum font-mono text-[13px] ${
-                r.tone === 'breach' ? 'text-breach' : r.tone === 'verified' ? 'text-verified' : 'text-ink-muted'
+              className={`tnum font-mono text-[14px] ${
+                r.tone === 'breach' ? 'text-breach' : r.tone === 'verified' ? 'text-verified' : 'text-muted'
               }`}
             >
               {r.value}
@@ -509,16 +605,16 @@ function Ledger({
           </div>
         ))}
         <div className="rule-b flex items-baseline justify-between py-2.5">
-          <dt className="text-[13px] text-ink-muted">Loan status</dt>
+          <dt className="text-[13px] text-muted">Claim status</dt>
           <dd className="text-[13px]">
-            <Link href={`/loan/${loanId}`} className="underline underline-offset-4">
+            <Link href={`/loan/${loanId}`} className="link">
               {LoanStatus[LoanStatus.BREACHED]}
             </Link>
           </dd>
         </div>
       </dl>
       {projected ? (
-        <p className="mt-2 text-[11px] text-ink-faint">
+        <p className="mt-2 text-[11px] text-faint">
           Computed from the contract&rsquo;s own parameters. Not a result — the chain decides.
         </p>
       ) : null}

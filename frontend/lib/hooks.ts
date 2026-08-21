@@ -2,7 +2,8 @@
 
 import { useMemo } from 'react';
 import type { Address, Hex } from 'viem';
-import { useReadContract, useReadContracts } from 'wagmi';
+import { useReadContract, useReadContracts, usePublicClient } from 'wagmi';
+import { useQuery } from '@tanstack/react-query';
 
 import { clearbookAbi, evidenceVaultAbi } from './abi';
 import { contracts, isDeployed } from './config';
@@ -224,4 +225,112 @@ export function useTreasuryOwner(address: Address | null) {
   } as any);
 
   return { originatorId: typeof data === 'bigint' ? data : null, isLoading };
+}
+
+/**
+ * The evidence that proved a breach.
+ *
+ * The funding fact id is not stored on the Loan struct — it exists only in the
+ * CovenantBreached event — so a breached loan cannot show the evidence that
+ * convicted it without reading the log. The event shape is taken from the ABI
+ * rather than retyped, so the topic hash cannot drift from the contract.
+ *
+ * `claimBlock` is a sound lower bound: a challenge cannot precede the claim it
+ * challenges, which keeps the log range small on a chain with no indexer.
+ */
+const covenantBreachedEvent = (clearbookAbi as any).find(
+  (e: any) => e.type === 'event' && e.name === 'CovenantBreached',
+);
+
+export interface BreachEvidence {
+  fundingFactId: Hex;
+  challenger: Address;
+  txHash: Hex;
+  block: bigint;
+}
+
+export function useBreachEvidence(loanId: bigint | null, fromBlock: bigint | null) {
+  const client = usePublicClient();
+  const enabled =
+    isDeployed && !!client && !!contracts.clearbook && loanId !== null && fromBlock !== null;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['covenant-breached', loanId?.toString(), fromBlock?.toString()],
+    enabled,
+    staleTime: Infinity,
+    queryFn: async (): Promise<BreachEvidence | null> => {
+      const logs = await client!.getLogs({
+        address: contracts.clearbook!,
+        event: covenantBreachedEvent,
+        args: { loanId: loanId! },
+        fromBlock: fromBlock!,
+        toBlock: 'latest',
+      } as any);
+      const last: any = logs[logs.length - 1];
+      if (!last) return null;
+      return {
+        fundingFactId: last.args.fundingFactId as Hex,
+        challenger: last.args.challenger as Address,
+        txHash: last.transactionHash as Hex,
+        block: last.blockNumber as bigint,
+      };
+    },
+  });
+
+  return { breach: data ?? null, isLoading: enabled && isLoading };
+}
+
+/**
+ * Every fact currently citable from the vault.
+ *
+ * There is no indexer on this chain and the vault keeps no enumerable list, so
+ * discovery goes through the TransferFactStored log. The lookback is bounded
+ * because an unbounded getLogs is slow here (a 20k-block span costs a few
+ * seconds); anything older can still be cited by pasting its identifier, so the
+ * bound limits discovery, never what a challenger is allowed to do.
+ */
+const transferFactStoredEvent = (evidenceVaultAbi as any).find(
+  (e: any) => e.type === 'event' && e.name === 'TransferFactStored',
+);
+
+export const VAULT_LOOKBACK_BLOCKS = 20_000n;
+
+export interface VaultFact {
+  factId: Hex;
+  blockHeight: bigint;
+  token: Address;
+  from: Address;
+  to: Address;
+  amount: bigint;
+}
+
+export function useVaultFacts() {
+  const client = usePublicClient();
+  const enabled = isDeployed && !!client && !!contracts.evidenceVault;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['vault-facts'],
+    enabled,
+    staleTime: 30_000,
+    queryFn: async (): Promise<VaultFact[]> => {
+      const latest = await client!.getBlockNumber();
+      const from = latest > VAULT_LOOKBACK_BLOCKS ? latest - VAULT_LOOKBACK_BLOCKS : 0n;
+      const logs = await client!.getLogs({
+        address: contracts.evidenceVault!,
+        event: transferFactStoredEvent,
+        fromBlock: from,
+        toBlock: 'latest',
+      } as any);
+      return logs.map((l: any) => ({
+        factId: l.args.factId as Hex,
+        blockHeight: l.args.blockHeight as bigint,
+        token: l.args.token as Address,
+        from: l.args.from as Address,
+        to: l.args.to as Address,
+        amount: l.args.amount as bigint,
+      }));
+    },
+  });
+
+  return { facts: data ?? [], isLoading: enabled && isLoading };
 }
