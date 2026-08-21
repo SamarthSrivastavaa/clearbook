@@ -1,0 +1,46 @@
+{
+  "note": "End-to-end latency for freshly broadcast Sepolia transactions, measured rather than quoted. Verification uses the read-only verify() view, so no Creditcoin tokens were spent.",
+  "summary": {
+    "samples": 2,
+    "broadcastToVerified": {
+      "p50": 578259,
+      "p90": 578259,
+      "max": 578259
+    },
+    "includedToAttested": {
+      "p50": 564790,
+      "p90": 564790,
+      "max": 564790
+    },
+    "verifyCall": {
+      "p50": 817,
+      "p90": 817
+    }
+  },
+  "samples": [
+    {
+      "txHash": "0xc5778af6131725f18e53437d13a8dab9f89903478daf2b224282c5441e2a51ba",
+      "blockNumber": 11538731,
+      "chainKey": 1,
+      "broadcastToIncluded": 8500,
+      "includedToAttested": 564790,
+      "proofFetch": 3081,
+      "verify": 817,
+      "totalToVerified": 578259,
+      "attestationLagBlocks": 44,
+      "measuredAt": "2026-08-21T21:56:33.957Z"
+    },
+    {
+      "txHash": "0x9b36d23de71edd0983c58c8f89f5643e807d74d8cb186ebb610b4c2e78157143",
+      "blockNumber": 11538776,
+      "chainKey": 1,
+      "broadcastToIncluded": 3778,
+      "includedToAttested": 481894,
+      "proofFetch": 818,
+      "verify": 727,
+      "totalToVerified": 488652,
+      "attestationLagBlocks": 40,
+      "measuredAt": "2026-08-21T22:04:42.612Z"
+    }
+  ]
+}

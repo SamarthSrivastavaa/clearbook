@@ -1,6 +1,6 @@
 # DEMO.md
 
-> **Status: Phase 1 scaffold.** The demo cannot be staged until contracts exist (Phase 2/3), are deployed (Phase 5/6), and demo transactions are seeded (Phase 12). This file records the plan and the presenter checklist now so the demo is designed rather than improvised. Nothing here has been rehearsed yet.
+> **Status: source-chain evidence staged and proven; deployment pending.** All five Sepolia transactions exist and are verified (5/5, 40/40 cross-checks). What is still missing is the Creditcoin deployment, without which the facts cannot be submitted and the challenge cannot run. Nothing here has been rehearsed end to end yet.
 
 ---
 
@@ -18,16 +18,19 @@ Four loans, **all staged by us**, all labelled as staged on screen and in the fi
 
 | # | Scenario | Source-chain transactions | Expected outcome |
 |---|---|---|---|
-| A | **Legitimate** | `treasury → borrowerA`; later `borrowerA → treasury`, where `borrowerA` was funded from an unrelated faucet address | `challenge()` reverts `FundingNotFromBoundTreasury` (condition 6). **The honest control — it must be demonstrated.** |
-| B | **Prohibited circular flow** | `treasury → borrowerB`; `treasury → payerB`; `payerB → treasury` within `W` | `challenge()` succeeds: `BREACHED`, bond slashed, bounty paid |
+| A | **Legitimate** | `treasury → borrower` (block 11538664); later `borrower → treasury` (block 11538692) | `challenge()` reverts `DisbursementNotFunding` (condition 11). **The honest control — it must be demonstrated.** |
+| B | **Prohibited circular flow** | `treasury → payer` (11538687); a **second, distinct** `treasury → payer` (11538688); `payer → treasury` (11538689) | `challenge()` succeeds: `BREACHED`, bond slashed, bounty paid |
 | C | **Invalid challenge** | cite an unrelated transfer as the funding leg | reverts `FundingNotFromBoundTreasury` (condition 6), shown as a pre-flight red X |
 
-> **Correction against BUILD.md §13.1.** That table says scenario A reverts `NoBreach`. It does not: `NoBreach` does not exist as an error. §5.3 assigns a distinct error to each of the eleven conditions, and `NoBreach` would be unreachable, so it is not declared (DECISIONS D-023). Scenario A fails at **condition 6**, because the faucet that funded `borrowerA` is not a bound treasury.
+**All five source-chain transactions are staged and proven** — 5/5 verified by the precompile, 40/40 cross-checks. Run `npm run demo:run` for the live checklist with explorer links.
+
+> **Corrections against BUILD.md §13.1**, both discovered by building the thing.
 >
-> This is a better beat than the original: the contract names the precise reason the honest loan cannot be breached, rather than just refusing.
+> **1 · `NoBreach` does not exist.** §5.3 assigns a distinct error to each of the eleven conditions, which makes `NoBreach` unreachable, so it is not declared (DECISIONS D-023). Every failed challenge names the condition that failed.
 >
-> Note that A and C therefore revert with the **same** error. They remain different scenarios — A cites a genuine unrelated funding source, C cites an unrelated transfer — but do **not** narrate the error name as the thing that distinguishes them.
-| D | **Delinquent** | disbursement only, `maturityBlock` passed | anyone calls `markDelinquent()` |
+> **2 · Scenario A fails at condition 11, not condition 6.** As staged, the borrower is never separately funded in WETH, so the only `treasury → borrower` transfer in existence is the disbursement itself — which condition 11 excludes. The revert is `DisbursementNotFunding` (DECISIONS D-042).
+>
+> This is the better demonstration. Condition 11 exists precisely to stop an originator citing its own disbursement as the funding leg, and scenario A shows the mechanism refusing exactly that. Narrate the condition, not the error name — A and C fail for genuinely different reasons even where the wording is similar.
 
 Scenario A is the one that proves the mechanism *discriminates*. A detector that always fires detects nothing.
 
@@ -41,7 +44,7 @@ Scenario A is the one that proves the mechanism *discriminates*. A detector that
 | **0:15–0:40** | The Book: four loans, bond posted, covenant `CIRCULAR_REPAYMENT` and window `W` shown as on-chain immutable parameters. Terminal: `cast code $TOKEN` → bytecode; `cast code $TREASURY` → `0x`. *"We deployed nothing on Ethereum."* |
 | **0:40–1:10** | Loan A evidence chain, three tiers. Click a fact → source-chain explorer. Click verification → the Creditcoin transaction containing `TransactionVerified` from `0x0FD2`. *"The precompile proved inclusion. Our contract asserted the receipt succeeded — the precompile does not do that — decoded the transfer, and refused to store it twice."* |
 | **1:10–1:50** | **The challenge, performed by the judge.** `/challenge`, loan B, dry-run: eleven conditions green. Submit from the judge's own wallet. One Creditcoin transaction, ~15 s: `CovenantBreached`, bond slashed, bounty paid to *their* address. |
-| **1:50–2:15** | **Both negative controls, back to back.** Loan A: same button, reverts `FundingNotFromBoundTreasury` — *"condition six. The address that funded this borrower was never bound by the originator, so this is not a breach — and we did not have to be trusted for that."* Then a forged proof: one mutated Merkle sibling, rejected on-chain. Show the failed transaction hash. |
+| **1:50–2:15** | **Both negative controls, back to back.** Loan A: same button, reverts `DisbursementNotFunding` — *"condition eleven. The only transfer from this treasury to this borrower is the disbursement itself, and citing that would make every honest loan look circular. So this is not a breach — and we did not have to be trusted for that."* Then a forged proof: one mutated Merkle sibling, rejected on-chain. Show the failed transaction hash. |
 | **2:15–2:40** | Kill the worker. Submit the same bundle from a plain script as any third party would. Identical result. *"The worker is orchestration. Delete it and nothing about the outcome changes."* |
 | **2:40–3:00** | Measured gas against the published formula; measured attestation latency P50/P90; then the limits — Ethereum only, readability only, Writability unreleased, absence unprovable, depth-1 covenant. *"This does not prove fraud. It proves a rule the fund published was not met."* Close on the contract address. |
 
@@ -67,12 +70,13 @@ The words *fraud*, *proven fraud*, *money laundering* and *criminal* must appear
 
 ## Pre-demo checklist
 
-- [ ] `make demo-reset && make demo-seed` completed **≥ 2 h** before
+- [ ] `npm run demo:stage` and `npm run demo:prove` completed **≥ 2 h** before
+- [ ] `npm run demo:run` shows all facts verified and every live check OK
 - [ ] all facts `CONFIRMED` in the vault
 - [ ] judge wallet funded with CC3 testnet CTC
 - [ ] originator bond posted and `exposure` correct
-- [ ] loan B breach dry-run green
-- [ ] loan A dry-run red with `NoBreach`
+- [ ] loan B breach dry-run green — all eleven conditions
+- [ ] loan A dry-run red at condition 11 (`DisbursementNotFunding`)
 - [ ] forged-proof script ready with a pre-generated mutation
 - [ ] explorer tabs pre-opened
 - [ ] `docs/LATENCY.md` numbers current
@@ -86,6 +90,6 @@ The words *fraud*, *proven fraud*, *money laundering* and *criminal* must appear
 | Proof generation delayed | all demo facts are pre-warmed; `/verify` judge mode is optional and skipped |
 | Prover unavailable | facts are already in the vault; the challenge is a pure Creditcoin call and is unaffected |
 | Source-chain RPC slow | only explorer links are affected; the app reads from the vault |
-| Wallet fails | pre-funded backup wallet in a second profile; `demo/run.ts` prints both addresses |
+| Wallet fails | pre-funded backup wallet in a second profile; `npm run demo:run` prints the live state |
 | CC3 RPC degraded | fall back to the recorded run; **state on camera** that the segment is a recording and link the transaction hashes |
 | Everything fails | the recorded 3-minute video is the submission artifact; the live session is a bonus |

@@ -163,19 +163,22 @@ Not yet measured on-chain. What is known:
 
 Per-submission gas against the real precompile will be recorded here after Gate 4. It must be measured under `via_ir = true`, since that setting changes code generation.
 
-### Measured latency — [L], partial
+### Measured latency — [L]
 
 | Metric | Measured |
 |---|---|
-| Attestation cadence | batches of **10 blocks, roughly every 2 minutes** |
-| Sepolia attestation lag | **36–41 blocks (~7–8 min)**, stable, not growing |
-| Attestation advance over 6 min | **+30 blocks** on both supported chains |
-| `getProof` | 881 ms (cached) |
-| `verify()` at `0x0FD2` | 1091–1168 ms |
+| **Freshly broadcast tx → usable evidence** | **~8–10 min** (p50 9.6 min) |
+| of which, attestation wait | 482–565s — **97–99% of the total** |
+| `verify()` at `0x0FD2` | **0.8s** |
+| proof fetch | 0.8–3.1s |
+| Attestation cadence | batches of 10 blocks, ~every 2 min |
+| Sepolia attestation lag | 36–44 blocks, stable |
 
-The lag is consistent with the documented claim that attestors attest **finalized** blocks — Ethereum finality is ~64 blocks / ~12.8 min `[P]` + `[L]`.
+The published "~15 seconds" refers to on-chain verification only, and our measurement beats it — `verify()` returns in 0.8s. But the honest end-to-end figure is ~8–10 minutes, and quoting the 15-second number alone would mislead. Both belong in any claim.
 
-End-to-end latency for a *freshly broadcast* transaction is still `[U]`; it needs `measure-latency.ts` and a funded wallet.
+Attestation dominating is correct, not a defect: attestors attest *finalized* blocks, and the measured 40–44 block lag sits comfortably inside Ethereum's ~64-block finality. A faster attestation would mean attesting blocks that could still reorg.
+
+Full method and consequences: [`docs/LATENCY.md`](LATENCY.md).
 
 ---
 

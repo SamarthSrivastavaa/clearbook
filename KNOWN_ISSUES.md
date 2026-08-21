@@ -211,12 +211,36 @@ Running it across the Phase 0 tree produced 29 matches across 8 files — **ever
 
 ---
 
-### K-008 · "A transaction we sent" is not yet demonstrated
+### K-008 · "A transaction we sent" — RESOLVED
 
-**Class:** BLOCKED — requires an external funding action. **Status:** open.
+**Class:** was BLOCKED (external funding). **Status:** resolved 2026-08-22.
 
-BUILD.md's Gate 2 wording is *"`getProof` returns `success: true` for a transaction **we sent**"*. Phase 0 proved something adjacent and arguably stronger — two **arbitrary third-party** transactions proved and verified end-to-end (DECISIONS D-009), which is what actually retires the §14 pivot risk.
+BUILD.md's Gate 2 wording is *"`getProof` returns `success: true` for a transaction **we sent**"*. Phase 0 originally proved two *third-party* transactions, which retired the §14 pivot risk but was not the literal requirement.
 
-But it is **not** the literal gate wording, and Phase 12's deterministic demo scenarios require transactions we control. Closing this needs a funded throwaway Sepolia wallet — an external action only a human can take.
+Now closed. Sepolia funding arrived, and we staged and proved our own transfer:
 
-Until it is closed, we do not claim to have proved a transaction of our own.
+| | |
+|---|---|
+| Transaction | `0xd922115fbefd89c7fe43a7ab33768c22d075a829b0fd3de6b53d10d818d6f84d` |
+| Block / txIndex | 11538664 / 87 |
+| Transfer | treasury → borrower, 0.01 WETH |
+| `verify()` at `0x0FD2` | **true** (914 ms) |
+| Cross-checks vs source RPC | **11/11 PASS** |
+
+Evidence: `integration/results/gate2-gate3-0xd922115f.json`.
+
+The token is canonical Sepolia WETH — a contract we do not control — so this closes the gate **without** weakening the "we deploy nothing on the source chain" claim. We are an ordinary user of an ordinary token.
+
+Four further transactions were staged the same way for demo scenarios A and B (see `demo/staged/source-transactions.json`), including a genuine circular flow.
+
+---
+
+### K-016 · End-to-end latency — RESOLVED
+
+**Class:** was UNVERIFIED (BUILD.md §1.2). **Status:** resolved 2026-08-22.
+
+BUILD.md listed "end-to-end latency for a fresh tx" as `[U] Must be measured (Phase 0, measure-latency.ts)`. Now measured: **~8–10 minutes broadcast → usable evidence**, of which **97–99% is attestation**. `verify()` at the precompile is **0.8s**.
+
+Full numbers and method in `docs/LATENCY.md`; reasoning in DECISIONS D-044.
+
+Gas remains unmeasured and still requires a deployment.

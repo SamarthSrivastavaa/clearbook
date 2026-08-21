@@ -12,7 +12,11 @@
     "lint": "solhint \"contracts/src/**/*.sol\" --config contracts/.solhint.json && solhint \"contracts/test/**/*.sol\" --config contracts/test/.solhint.json",
     "check:predicate": "tsx frontend/scripts/check-predicate.ts",
     "check:verify": "tsx frontend/scripts/check-verify.ts",
-    "gate7": "tsx integration/gate7-forged.ts"
+    "gate7": "tsx integration/gate7-forged.ts",
+    "latency": "tsx integration/measure-latency.ts",
+    "demo:stage": "tsx demo/stage-source.ts",
+    "demo:prove": "tsx demo/prove-staged.ts",
+    "demo:run": "tsx demo/run.ts"
   },
   "license": "MIT",
   "dependencies": {

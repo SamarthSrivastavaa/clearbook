@@ -19,36 +19,35 @@ Full detail, including a candid "protocol limits we hit" section: [`docs/ATTESTC
 
 ## Build status
 
-> **This project is mid-build.** Phases 0 and 1 are complete and verified against live CC3 testnet. Contracts are not yet written or deployed. Everything below is marked with what has actually been demonstrated.
+> **Mid-build.** Contracts are written, tested and verified against live infrastructure but **not yet deployed** — that needs a funded Creditcoin testnet account. Everything below states what has actually been demonstrated.
 
 | Phase | Gate | Status |
 |---|---|---|
-| 0 — Protocol verification | Gate 0 (capability discovery) | **PASS** |
-| 0 — Protocol verification | Gate 2 (proof) · Gate 3 (verify) | **PASS** |
-| 1 — Repository bootstrap | Gate 1a (real package paths compile) | **PASS** |
-| 2 — Contracts | Gate 2 (build/fmt/lint clean) | not started |
-| 3 — Unit tests | Gate 3 (tests + ≥90% coverage) | not started |
-| 5 — Evidence pipeline | Gate 4 (on-chain decode matches explorer) | not started |
-| 6/7 — Challenge · economics | Gate 5 · Gate 6 | not started |
-| 11 — Security hardening | Gate 7 (six forged proofs rejected) | not started |
+| 0 — Protocol verification | Gate 0 · 2 · 3 | **PASS** |
+| 1 — Repository bootstrap | Gate 1a | **PASS** |
+| 2 — Contracts | Gate 2 (build · fmt · lint) | **PASS** |
+| 3 — Tests | Gate 3 (92 tests · 100% line coverage of `src/`) | **PASS** |
+| 7 — Batch path | — | built |
+| 8 — Worker | Gate 8a | built · DB unverified |
+| 9 — Frontend | — | four routes |
+| 11 — Forged-proof rejection | **Gate 7 (part A)** | **PASS — 6/6 rejected** |
+| 5 · 6 · 10 · 12 — Deploy · challenge · e2e · demo | Gates 4 · 5 · 6 | needs deployment |
 
-**Deployed addresses:** none yet. `EVIDENCE_VAULT_ADDRESS` and `CLEARBOOK_ADDRESS` will appear here, in this screenful, once Phase 5/6 deploys them.
+**Deployed addresses:** none yet. They will appear here, in this screenful, once Phase 5 deploys them.
 
-### What Phase 0 actually demonstrated
+### What has been demonstrated live
 
-Against live CC3 testnet (`chainId 102031`), two **arbitrary third-party** Sepolia transactions — tokens and contracts we do not control, transactions we did not send — were proven and verified end to end:
+**The proof path works on transactions nobody staged for us.** Two arbitrary third-party Sepolia transactions — tokens and contracts we do not control — were proven and verified end to end, 11/11 field checks each. That retires the project's largest technical risk: the proof service serves *ordinary* transactions, so Clearbook can deploy nothing on Ethereum.
 
-| | Transaction A | Transaction B |
-|---|---|---|
-| txHash | `0xc5e1086751fed6419e37c0e223e911cd4c31ace0e20713ad91ac1e5fa44d84f1` | `0xad4d54d5cc86475462ec59d340ec5e91dcc354d834fca986ea7c2b0922c2657d` |
-| block / txIndex | 11529467 / 4 | 11529477 / 1 |
-| logs in receipt | 17 | 30 |
-| `verify()` at `0x0FD2` | **true** | **true** |
-| fields matched vs source-chain RPC | **11/11** | **11/11** |
+**And on transactions we did create.** Five staged transfers on canonical WETH, forming the demo's honest and circular scenarios: **5/5 proven and verified, 40/40 cross-checks**.
 
-This matters because it retires the project's single biggest technical risk: the proof service serves **ordinary transactions**, not only ones from registered contracts. That is what lets Clearbook deploy nothing on Ethereum.
+**Forged proofs are rejected.** A valid proof was mutated six ways — a Merkle sibling hash, a continuity root, the lower endpoint digest, the block height, an `isLeft` flag, and one byte of the encoded transaction. **All six rejected**, with descriptive reasons. This also settled a contradiction in the protocol documentation: the precompile **reverts** rather than returning false.
 
-Raw evidence: [`integration/results/`](integration/results/). Reasoning and evidence classes: [`DECISIONS.md`](DECISIONS.md).
+**Attestation is live and bounded.** Both supported chains advance +30 blocks per 6 minutes, in batches of 10 roughly every 2 minutes. Sepolia's lag sits at 36–44 blocks — consistent with attestors attesting *finalized* blocks.
+
+**Latency is measured, not quoted.** A freshly broadcast transaction becomes usable evidence in **~8–10 minutes**, of which **97–99% is the attestation wait**. The precompile's `verify()` itself returns in **0.8 seconds**. Both numbers matter: the second is the one the protocol advertises, the first is the one a user experiences.
+
+Raw evidence: [`integration/results/`](integration/results/) and [`demo/staged/`](demo/staged/). Reasoning and evidence classes: [`DECISIONS.md`](DECISIONS.md).
 
 ---
 
@@ -103,8 +102,9 @@ npm run gate0                 # capability discovery (~70s: includes a 60s re-po
 npm run gate0:lag             # attestation lag observation (~6 min)
 npm run gate1                 # discover a real third-party ERC-20 Transfer
 npm run gate2                 # prove it, verify it at 0x0FD2, decode, cross-check
+npm run gate7                 # mutate a valid proof six ways; all must be rejected
 
-cd contracts && forge build   # Gate 1a
+cd contracts && forge build && forge test   # 92 tests
 ```
 
 No API keys and no funded wallet are needed for any of the above — every endpoint is public and every call is read-only.
@@ -133,6 +133,9 @@ Full list, including what is still unverified and what is currently blocked: [`K
 | [`TESTING.md`](TESTING.md) | Test strategy, coverage policy, how to run each gate |
 | [`DEPLOYMENT.md`](DEPLOYMENT.md) | Network config, compiler settings, deployment and verification |
 | [`DEMO.md`](DEMO.md) | Demo scenarios and presenter checklist |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Component map, evidence lifecycle, state machine, trust boundary |
+| [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | T1–T26 with the test that proves each mitigation |
+| [`docs/LATENCY.md`](docs/LATENCY.md) | Measured end-to-end latency, method, and what it means |
 
 **Evidence classes** used throughout: **[P]** primary doc · **[C]** source-code verified · **[L]** live verified · **[I]** inference · **[U]** unverified · **[B]** blocked. Nothing is marked `[L]` that has not actually been executed.
 

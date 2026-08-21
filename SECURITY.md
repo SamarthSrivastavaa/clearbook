@@ -1,6 +1,8 @@
 # SECURITY.md
 
-Status: **Phase 0.** No contract is deployed and no contract code exists yet. This file records the trust model and the invariants that Phase 2+ code must satisfy, plus what Phase 0 actually established. It will grow as the threat model in BUILD.md §6 is implemented and tested.
+Status: **contracts written and tested, not yet deployed.** 92 tests pass against a mock verifier, and the protocol path is verified live against CC3 testnet. What is *not* yet established is the on-chain consumption of verified facts, which needs a funded deployment. Every claim below carries the evidence class that supports it.
+
+The full threat table with per-threat tests is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 Nothing here is aspirational: claims are marked with the evidence class that supports them —
 **[P]** primary doc · **[C]** source-code verified · **[L]** live verified · **[I]** inference · **[U]** unverified · **[B]** blocked.
@@ -19,30 +21,33 @@ TRUSTED    : Ethereum consensus (finality), Creditcoin consensus,
 
 **The worker is an orchestrator.** It acquires proof bundles and submits transactions. It has no privileged role, no signing authority over state, and no ability to make the vault believe anything. A corrupted bundle fails `verifyAndEmit` and reverts. If the worker disappears, anyone else can submit the identical bundle.
 
-**The proof builder is untrusted.** It supplies proof *material*; the precompile is what makes that material meaningful. A malicious proof builder can deny service; it cannot forge a fact. `[I]` — the "cannot forge" half becomes `[L]` only when Gate 7's six forgery mutations are all rejected.
+**The proof builder is untrusted.** It supplies proof *material*; the precompile is what makes that material meaningful. A malicious proof builder can deny service; it cannot forge a fact — `[L]`, and no longer an assumption: six deliberate mutations of a valid proof were each rejected by the precompile (D-041).
 
 ---
 
-## 2. What Phase 0 established
+## 2. What has actually been established
 
 | Claim | Class | Evidence |
 |---|---|---|
-| The ChainInfo precompile `0x…0fd3` reports supported chains and live attestation state | **[L]** | `results/gate0-*.json` |
-| Chain keys are discoverable at runtime; nothing needs hardcoding | **[L]** | `resolveChainKey()` used by every script |
-| Attestation is live and advancing on both supported chains | **[L]** | +30 blocks / 6 min, both chains — `results/gate0-lag-*.json` |
-| Attestation lag vs source head is bounded and stable (Sepolia 36–41 blocks) | **[L]** | 7-sample observation |
-| The proof builder serves proofs for ordinary third-party transactions | **[L]** | Two unrelated Sepolia txs — DECISIONS D-009 |
-| The Block Prover precompile `0x0FD2` verifies a real proof (`verify()` → `true`) | **[L]** | `results/gate2-gate3-*.json` |
-| `calculateTxIndex()` agrees with the source chain's own `transactionIndex` | **[L]** | 4 and 1, both matched |
-| A verified receipt decodes to the correct token/from/to/amount | **[L]** | 11/11 cross-checks vs source RPC, twice |
-| ERC-20 `Transfer` topic0 constant is correct | **[L]** | `cast keccak` — DECISIONS D-011 |
-| Transaction-local `logIndex` ≠ block-global `logIndex` in real data | **[L]** | DECISIONS D-012 |
-| The precompile's **failure** behaviour (revert vs `false`) | **[U]** | Not exercised — Gate 7 |
-| Forged proofs are rejected | **[U]** | Not exercised — Gate 7 |
+| Chain keys are discoverable at runtime; nothing needs hardcoding | **[L]** | `resolveChainKey()` used by every script · `results/gate0-*.json` |
+| Attestation is live and advancing on both supported chains | **[L]** | +30 blocks / 6 min · `results/gate0-lag-*.json` |
+| Attestation lag is bounded and stable (Sepolia 36–41 blocks) | **[L]** | 7-sample observation |
+| The proof builder serves ordinary third-party transactions | **[L]** | Two unrelated Sepolia txs — D-009 |
+| The precompile verifies a real proof | **[L]** | `verify()` → true, repeatedly |
+| `calculateTxIndex()` agrees with the source chain | **[L]** | matched on every transaction proven |
+| A verified receipt decodes to the correct token/from/to/amount | **[L]** | 11/11 cross-checks, twice — D-009 |
+| **Transactions we sent are provable and verifiable** | **[L]** | 5/5 staged, 40/40 cross-checks — K-008 |
+| **Forged proofs are rejected** | **[L]** | 6/6 mutations rejected — D-041 |
+| **The precompile REVERTS on a bad proof** | **[L]** | 6/6, with reason strings — D-041, K-007 |
+| ERC-20 `Transfer` topic0 constant | **[L]** | re-derived with `cast keccak` |
+| Transaction-local `logIndex` ≠ block-global `logIndex` | **[L]** | D-012 |
+| `verifyAndEmit`'s failure mode | **[I]** | inferred from `verify()`; unconfirmed until Gate 7 part B |
+| On-chain decode of live data by `EvidenceVault` | **[U]** | needs deployment — Gate 4 |
+| Live challenge, slashing, bounty payment | **[U]** | needs deployment — Gates 5 and 6 |
 
-**The success path is proven; the failure path is not.** No security claim in this document rests on the failure path until Gate 7 passes.
+**The failure path is now proven, not assumed.** The earlier caveat here — that only the success path had been exercised — no longer applies: six deliberate proof mutations were each rejected by the precompile, which settles both that forgery fails and *how* it fails.
 
----
+What remains unproven is the on-chain *consumption* of verified facts: `EvidenceVault` storing them and `Clearbook` acting on them. Both need a funded deployment.
 
 ## 3. Provenance discipline (BUILD.md §3.1)
 
@@ -92,7 +97,7 @@ This is not hypothetical. The two transactions proved in Phase 0 carried **17 an
 
 ---
 
-## 6. Global invariants (to be asserted in fuzz tests, Phase 3)
+## 6. Global invariants
 
 | | Invariant |
 |---|---|
@@ -103,7 +108,9 @@ This is not hypothetical. The two transactions proved in Phase 0 carried **17 an
 | `I5` | no stored fact came from a `receiptStatus != 1` transaction |
 | `I6` | `exposure == bondPerLoan × count(status ∈ {REGISTERED, REPAYMENT_CLAIMED, DELINQUENT})` |
 
-Status: **not yet implemented** — no contracts exist. Phase 3 gate.
+**Status: implemented and passing** in `contracts/test/Invariants.t.sol`, under a fuzzing handler across 64 runs × 4096 calls.
+
+One caveat worth stating loudly: an invariant suite can pass because nothing interesting ever happened. The first version of this suite passed all six while the fuzzer never reached `challenge()` — so `I1` and `I2` held over state in which no slashing occurred. `test_handler_reaches_a_breach` now asserts the handler can drive the protocol to an actual slash. If it fails, treat every invariant result as unproven.
 
 ---
 
@@ -132,8 +139,14 @@ The step order in BUILD.md §5.1 is security-critical and must not be rearranged
 
 ---
 
-## 9. Not yet addressed
+## 9. What remains unproven
 
-Everything in BUILD.md §6 (T1–T26) is **unimplemented and untested** — there is no contract to attack yet. The threat table becomes live in Phase 3 (unit/security tests) and Phase 11 (hardening against the live deployment).
+Stated plainly, because a security document that lists only successes is marketing.
 
-Deliberately accepted for v1, per BUILD.md: **challenge front-running** (T16 — commit–reveal is the production fix), and **reorg after attestation** (T25 — inherited from the attestor set).
+- **`verifyAndEmit`'s failure mode is inferred.** Gate 7 exercised the read-only `verify()` overload. The state-changing overload is expected to behave identically, but that is unconfirmed until the mutations are submitted on-chain (Gate 7 part B).
+- **No contract has executed on a real chain.** The 92 tests run on a local EVM against a mock verifier. The official decoder is genuinely exercised, but every input is synthetic.
+- **On-chain decode of live data is untested** — Gate 4.
+- **Live slashing and bounty payment are untested** — Gates 5 and 6.
+- **The frontend's wallet path is untested.** No wallet has been connected; `challenge()` has never been submitted from the UI.
+
+Deliberately accepted for v1, per BUILD.md: **challenge front-running** (T16 — commit–reveal is the production fix, and it costs a block of latency on the most important demo beat) and **reorg after attestation** (T25 — inherited from the attestor set, and we say so rather than claiming more).

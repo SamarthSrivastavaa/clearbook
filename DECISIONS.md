@@ -662,6 +662,75 @@ A real verifying proof was mutated six ways and every mutation was rejected by t
 
 ---
 
+### D-042 · Demo evidence staged and proven on Sepolia — K-008 closed — [L]
+
+Sepolia funding arrived (Creditcoin did not — see D-043), which was enough to close the last open Phase 0 item and pre-warm the entire demo evidence set.
+
+**Five transactions we created**, all ERC-20 `Transfer` events on canonical Sepolia WETH:
+
+| Scenario | Role | Block | Transaction |
+|---|---|---|---|
+| A | disbursement | 11538664 | `0xd922115f…` |
+| A | repayment | 11538692 | `0x8edc2d76…` |
+| B | disbursement | 11538687 | `0x5329c4b5…` |
+| B | **funding leg** | 11538688 | `0xca43a588…` |
+| B | repayment | 11538689 | `0xcc02d3fe…` |
+
+**5/5 proven and verified. 40/40 cross-checks passed.** Each was proven by the Attestcoin proof builder, verified by the precompile's `verify()`, decoded from the *proven* bytes, and cross-checked field by field against the source chain independently. Evidence: `demo/staged/proven-facts.json`.
+
+This closes **K-008** without weakening anything: the token is a contract we do not control and cannot modify, so "we deploy nothing on the source chain" survives intact. We are an ordinary user of an ordinary token.
+
+**Why scenario A is shaped as it is.** BUILD.md §13.1 describes A's borrower as funded by an unrelated faucet. We achieved the same property more economically: the borrower is *never separately funded in WETH at all*, so the only `treasury → borrower` transfer in existence is the disbursement itself — which condition 11 excludes. A challenge against A therefore reverts `DisbursementNotFunding` rather than `FundingNotFromBoundTreasury`. Both demonstrate the same thing (an honest loan is unbreachable) and both are honest failures; `DEMO.md` should name the actual error rather than the one §13.1 predicted.
+
+**Staging is deliberately separate from proving.** `demo/stage-source.ts` broadcasts and records; `demo/prove-staged.ts` proves and verifies. Attestation lags ~8 minutes, and BUILD.md §13's structural advantage depends on all source-chain work being in the past tense before any demo begins.
+
+**Note this required no Creditcoin tokens.** Proof fetching and `verify()` are both read-only. Only *submitting* these as facts to `EvidenceVault` needs tCTC.
+
+---
+
+### D-043 · Creditcoin funding is blocked; every faucet route is closed — [B]
+
+**Status: BLOCKED, and it is now the only thing gating the remaining gates.**
+
+Attempts:
+- **thirdweb web faucet** — was the recommended no-Discord route; now behind a paid plan ("Faucet is not available on Free plan").
+- **Discord `token-faucet`** — the official route, and the more generous one. Blocked at Discord account verification: the phone number is already registered to another Discord account.
+
+Consequence: `EvidenceVault` and `Clearbook` cannot be deployed, so **Gate 4** (on-chain decode), **Gate 5** (live challenge), **Gate 6** (economics) and **Gate 7 part B** (six failing Creditcoin transaction hashes) all remain open.
+
+The cost is genuinely small — deployment is **~0.0015 tCTC** at the measured 0.5 gwei — so a single 0.01 claim would cover deployment plus a scaled bond. The likeliest unblock is logging into the Discord account that already owns that phone number.
+
+**Contingency if funding never arrives:** the submission would carry contracts, 92 tests, live proof/verification evidence including forged-proof rejection, and a frontend — but no deployed addresses. BUILD.md §1.1 lists "deployed on a testnet" as *mandatory*, so this is not a limitation we can document our way out of.
+
+---
+
+### D-044 · End-to-end latency measured — resolves the last §1.2 `[U]` — [L]
+
+BUILD.md §1.2 listed "end-to-end latency for a fresh tx" as **UNVERIFIED — must be measured**. Measured with `integration/measure-latency.ts`, which broadcasts a real Sepolia transfer and times every stage through to the precompile ruling on it.
+
+| Stage | Sample 1 | Sample 2 |
+|---|---|---|
+| broadcast → included | 8.5s | 3.8s |
+| **included → attested** | **564.8s** | **481.9s** |
+| proof fetch | 3.1s | 0.8s |
+| `verify()` | 0.8s | 0.7s |
+| **total** | **578.3s** | **488.7s** |
+
+**A fresh transaction becomes usable evidence in roughly 8–10 minutes, and attestation is 97–99% of that.** Everything else totals under four seconds.
+
+Two conclusions worth stating precisely:
+
+1. **The published "~15 seconds" is about on-chain verification only.** Our `verify()` is faster still at 0.8s. But quoting it as the user-facing latency would mislead, so both numbers go in any claim we make.
+2. **Attestation dominating is the security property working, not a defect.** Attestors attest *finalized* blocks; the measured 40–44 block lag sits inside Ethereum's ~64-block finality. Faster attestation would mean attesting blocks that could still reorg.
+
+**BUILD.md §14's Gate 8 contingency does not trigger** — it anticipated P90 above 20 minutes, and measured P90 is 9.6. The worker's 45-minute `PROOF_WAIT_TIMEOUT_MS` has ~4.7× headroom over the measured worst case.
+
+Two samples is a small n. The percentiles are reported for completeness rather than statistical weight; the shape of the result — attestation dominating everything else by two orders of magnitude — is not in doubt.
+
+Written up in `docs/LATENCY.md`. Gas remains unmeasured pending deployment.
+
+---
+
 ### D-016 · Repository is ESM (`"type": "module"`) — [L]
 
 BUILD.md's Phase 0 snippets use top-level `await`. `npm init -y` defaults to `"type": "commonjs"`, under which `import.meta` is unavailable and those snippets do not run.
