@@ -1,0 +1,69 @@
+{
+  "gate": "GATE 7 — forged proof rejection (part A: read-only verify)",
+  "pass": true,
+  "at": "2026-08-21T15:06:23.079Z",
+  "subject": {
+    "txHash": "0xaaed6c4cf38032287a473942a4f8f09b8236a8b9087e0d6a335117f4083aefd2",
+    "blockHeight": 11531737,
+    "chainKey": 1
+  },
+  "control": {
+    "verified": true
+  },
+  "precompileFailureMode": {
+    "reverted": 6,
+    "returnedFalse": 0,
+    "conclusion": "reverts"
+  },
+  "mutations": [
+    {
+      "id": 1,
+      "name": "merkle-sibling-hash",
+      "description": "Flip one bit in the first Merkle sibling hash",
+      "outcome": "rejected-reverted",
+      "rejected": true,
+      "detail": "execution reverted: \"Merkle proof validation failed\" (action=\"call\", data=\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": 2,
+      "name": "continuity-root",
+      "description": "Flip one bit in the first continuity root",
+      "outcome": "rejected-reverted",
+      "rejected": true,
+      "detail": "execution reverted: \"Merkle root mismatch\" (action=\"call\", data=\"0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": 3,
+      "name": "lower-endpoint-digest",
+      "description": "Flip one bit in the continuity lower endpoint digest",
+      "outcome": "rejected-reverted",
+      "rejected": true,
+      "detail": "execution reverted: \"Continuity proof does not match attestation or checkpoint\" (action=\"call\", data=\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000"
+    },
+    {
+      "id": 4,
+      "name": "block-height",
+      "description": "Claim the transaction was in the next block",
+      "outcome": "rejected-reverted",
+      "rejected": true,
+      "detail": "execution reverted: \"Continuity proof does not match attestation or checkpoint\" (action=\"call\", data=\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000"
+    },
+    {
+      "id": 5,
+      "name": "merkle-isLeft-flag",
+      "description": "Invert the first Merkle sibling’s isLeft flag",
+      "outcome": "rejected-reverted",
+      "rejected": true,
+      "detail": "execution reverted: \"Merkle proof validation failed\" (action=\"call\", data=\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": 6,
+      "name": "encoded-transaction-byte",
+      "description": "Flip one bit in the encoded transaction",
+      "outcome": "rejected-reverted",
+      "rejected": true,
+      "detail": "execution reverted: \"Merkle proof validation failed\" (action=\"call\", data=\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "partB": "skipped — no deployment"
+}

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo } from 'react';
+import { ScenarioGuide } from '@/components/ScenarioGuide';
 import { LoadingRows, NotDeployed, PreviewBanner, RpcError } from '@/components/States';
 import { Eyebrow, Empty, Ident, Status } from '@/components/ui';
 import { DEMO_MODE, SOURCE_CHAIN, explorer } from '@/lib/config';
@@ -86,6 +87,8 @@ export default function BookPage() {
       </header>
 
       {primary && params ? <PositionStrip originator={primary} bondPerLoan={params.bondPerLoan} /> : null}
+
+      {isPreview ? <ScenarioGuide /> : null}
 
       {isLoading ? (
         <LoadingRows />

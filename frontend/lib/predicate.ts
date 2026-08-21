@@ -47,6 +47,15 @@ export interface DryRunResult {
   firstFailure: ConditionResult | null;
   /** Expected payout if the challenge succeeds. */
   projectedBounty: bigint | null;
+  /** Kept so refinements (see applyTreasuryBinding) can recompute the payout. */
+  bondPerLoan: bigint;
+  bountyBps: number;
+}
+
+/** Single definition of the payout, so it can never drift between call sites. */
+function projectBounty(wouldSucceed: boolean, bondPerLoan: bigint, bountyBps: number): bigint | null {
+  if (!wouldSucceed) return null;
+  return (bondPerLoan * BigInt(bountyBps)) / 10000n;
 }
 
 const short = (h: string) => `${h.slice(0, 10)}…${h.slice(-6)}`;
@@ -201,10 +210,15 @@ export function dryRun(input: DryRunInput, bondPerLoan: bigint, bountyBps: numbe
 
   const firstFailure = conditions.find((c) => c.status === 'fail') ?? null;
   const wouldSucceed = conditions.every((c) => c.status === 'pass');
-  const slash = bondPerLoan;
-  const projectedBounty = wouldSucceed ? (slash * BigInt(bountyBps)) / 10000n : null;
 
-  return { conditions, wouldSucceed, firstFailure, projectedBounty };
+  return {
+    conditions,
+    wouldSucceed,
+    firstFailure,
+    projectedBounty: projectBounty(wouldSucceed, bondPerLoan, bountyBps),
+    bondPerLoan,
+    bountyBps,
+  };
 }
 
 /**
@@ -234,5 +248,14 @@ export function applyTreasuryBinding(
 
   const firstFailure = conditions.find((c) => c.status === 'fail') ?? null;
   const wouldSucceed = conditions.every((c) => c.status === 'pass');
-  return { ...result, conditions, firstFailure, wouldSucceed };
+
+  // The payout MUST be recomputed here. Condition 6 is unknown until this point,
+  // so the projection made by dryRun() is stale by construction.
+  return {
+    ...result,
+    conditions,
+    firstFailure,
+    wouldSucceed,
+    projectedBounty: projectBounty(wouldSucceed, result.bondPerLoan, result.bountyBps),
+  };
 }

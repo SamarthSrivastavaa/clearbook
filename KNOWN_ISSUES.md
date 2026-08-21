@@ -91,13 +91,17 @@ BUILD.md §1.2 is emphatic that chain keys must be resolved at runtime and **nev
 
 ---
 
-### K-007 · Precompile failure behaviour unverified
+### K-007 · Precompile failure behaviour — RESOLVED: it reverts
 
-**Class:** UNVERIFIED. **Status:** open — assigned to Phase 11 / Gate 7.
+**Class:** was UNVERIFIED. **Status:** resolved 2026-08-21 by live execution.
 
-Whether `verifyAndEmit` **reverts** or **returns false** on a bad proof is still unknown; Phase 0 exercised only the success path (DECISIONS D-015). BUILD.md §19 requires the answer be recorded before submission.
+BUILD.md §1.3 recorded a contradiction: the SDK documentation says the precompile *reverts* on failed verification, while the reference `USCBase` does `require(verified, ...)` on a returned bool.
 
-**No security consequence today:** `EvidenceVault` will `require()` the returned bool, so both behaviours terminate the transaction. Fail-closed either way.
+`integration/gate7-forged.ts` settles it. Six mutations of a real proof, all put to the read-only `verify()`: **6/6 reverted**, with descriptive reason strings (`Merkle proof validation failed`, `Merkle root mismatch`, `Continuity proof does not match attestation or checkpoint`). See DECISIONS D-041.
+
+**Residual, and it is small:** this exercised `verify()`, not the state-changing `verifyAndEmit()` that `EvidenceVault` calls. Identical behaviour is expected but is inference until Gate 7 part B runs against a deployed vault.
+
+**No code change needed.** `EvidenceVault` keeps its `require`-on-bool, and `test_verifier_revert_also_fails_closed` already proves the vault stores nothing under either behaviour.
 
 ---
 
@@ -160,6 +164,36 @@ Read literally that is self-defeating. A grep over this repository returns six m
 **Risk:** a Phase 14 auditor running the checklist mechanically could "fix" this by deleting the disclaimers — which would remove precisely the language that makes the project truthful, achieving the opposite of the rule's intent.
 
 **Planned handling:** the audit check should be "no *unqualified* claim of fraud/criminality", verified by reading the six matches, not by grep count. Recorded here so the finding survives to Phase 14.
+
+---
+
+### K-014 · Build artifacts were committed and remain tracked
+
+**Class:** BUG (ours, minor). **Status:** gitignored; still tracked.
+
+`frontend/dev.log` and `frontend/tsconfig.tsbuildinfo` were committed before `.gitignore` covered them. Adding ignore rules does not untrack an already-tracked file, so both keep appearing as modified on every run and will keep producing noise diffs.
+
+**Fix (not applied — it stages a deletion, and the human controls the index):**
+
+```
+git rm --cached frontend/dev.log frontend/tsconfig.tsbuildinfo
+```
+
+The files stay on disk; only the tracking stops. `frontend/.gitignore` now covers `dev.log`, `dev.err.log`, `*.tmp.json` and `*.tsbuildinfo`.
+
+---
+
+### K-015 · The frontend's interactive states are not covered by browser tests
+
+**Class:** UNVERIFIED. **Status:** open, mitigated by logic tests.
+
+The dry-run checklist, the submission lifecycle, and the wallet flows were verified by typecheck, by production build, and by two logic scripts — not by driving a real browser with a connected wallet. No wallet has ever been connected to this app, and `challenge()` has never been submitted from it.
+
+What **is** verified rather than assumed:
+- `npm run check:predicate` asserts the eleven-condition mirror against every BUILD.md §13.1 scenario, including the two that must fail.
+- `npm run check:verify` runs judge mode's exact viem ABI tuples against a real third-party Sepolia transaction; `verify()` at `0x0FD2` returned true.
+
+What remains untested: `useWriteContract` → wallet → `useWaitForTransactionReceipt` → decoded-revert rendering. That path needs a funded wallet and a deployment, and it is the single most important thing to rehearse before recording the demo.
 
 ---
 

@@ -574,6 +574,94 @@ This is a second-order consequence of D-018: because this project *must* use `vi
 
 ---
 
+### D-036 · Frontend stack and design language — [L]
+
+Next.js 16 (app router) + wagmi 3 / viem 2 + Tailwind 4, per BUILD.md §12. Scaffolded by hand with pinned versions rather than `create-next-app`, so nothing arrives that we did not choose.
+
+**Only an injected wallet connector.** WalletConnect would add a large dependency and a relay hop; the demo runs in a desktop browser with an extension, and fewer moving parts is worth more than more wallet options.
+
+**The design language is a ledger, not a dashboard.** Concretely: hairline rules instead of cards, near-zero radii, IBM Plex Sans/Mono instead of the framework default, and a warm paper/ink palette rather than the cold slate every template lands on. Status is rendered as a rule and a word, never a pill. Colour is reserved strictly for protocol meaning — `verified`, `breach`, `pending`, `inert` — and is never decorative. Tabular lining numerals everywhere, because every figure in this product exists to be compared with another figure.
+
+The chrome is a thin instrument bar rather than a sidebar. A sidebar reads as an admin template; a status bar keeps the chain, the block height and both contract addresses permanently in view, which is the product's whole claim.
+
+**Reverses if:** BUILD.md's frontend requirements change, or a second wallet becomes necessary for judging.
+
+---
+
+### D-037 · Preview fixtures, and the disclosure rules around them — [I]
+
+The contracts are written and tested but not deployed, so three of the four screens could not be designed or reviewed against an empty chain. BUILD.md §13 permits demo fixtures; the brief requires they be explicit, labelled, deterministic, and clear about origin.
+
+`NEXT_PUBLIC_PREVIEW=true` renders `lib/fixtures.ts`. What is real in it: canonical Sepolia WETH, the actual throwaway wallet addresses generated for this project, and fact identifiers computed with the same `keccak256(abi.encode(...))` the vault uses, so they are internally consistent. What is not real: the transfers. No proof was submitted, no bond posted, no loan exists.
+
+Three rules enforced in code:
+1. An undismissable banner on every screen using fixtures says exactly that.
+2. **Submission is disabled, never simulated.** The challenge button is inert without a deployment, and the UI says so rather than faking a success state.
+3. The economic consequence is labelled **projected** and computed from the contract's own parameters — arithmetic, not a result.
+
+`lib/data.ts` is the single seam between chain and fixture, so pages never branch on preview themselves and there is exactly one place where illustrative data can enter.
+
+**Reverses if:** the demo is seeded (BUILD.md §13.1), at which point preview mode is switched off permanently and the scenarios become genuine staged transactions.
+
+---
+
+### D-038 · The proof builder needs a server-side proxy — [L]
+
+The Attestcoin proof builder sends no CORS headers, so a browser cannot call it directly. Judge mode would have failed at demo time with an opaque network error.
+
+`app/api/prover/route.ts` forwards exactly two read-only endpoints, mirroring the SDK's own `ApiClient` paths: `/api/v1/attested-height/{chainKey}` and `/api/v1/proof-by-tx/{chainKey}/{txHash}`. It holds no secrets, signs nothing, and adds no trust — the proof it returns is meaningless until the precompile verifies it. It also gives us a real timeout and a distinguishable `prover_unreachable` / `prover_timeout` failure, which the UI reports honestly instead of spinning.
+
+The SDK itself is deliberately **not** a frontend dependency: the two REST paths are stable and known from reading its source, and adding a CommonJS SDK to an ESM app would reintroduce the K-013 dual-package hazard.
+
+---
+
+### D-039 · Unknown token decimals show a raw integer, never a guess — [P]
+
+Decimals cannot be read from a `Transfer` log. Assuming 18 would print a confidently wrong number for any token that is not 18.
+
+`lib/token.ts` holds a registry of tokens we have actually verified on-chain (currently only WETH). A known token renders as `2.5 WETH`; an unknown one renders the raw integer. In a product whose entire claim is that its figures are verified, a raw integer is honest and a wrongly-scaled decimal is not.
+
+Caught during visual review: the loan table was printing `2500000000000000000`. The registry fixed it in both places at once.
+
+---
+
+### D-040 · The client-side dry run is a preview, never an authority — [L]
+
+`lib/predicate.ts` mirrors the eleven conditions so a challenger sees pass/fail **before** a wallet opens. The contract re-evaluates all eleven on-chain regardless; if the two ever disagree, the chain is right and the mirror is a bug.
+
+`frontend/scripts/check-predicate.ts` asserts the mirror against the BUILD.md §13.1 scenarios and **found a real defect**: `applyTreasuryBinding` recomputed `wouldSucceed` but left `projectedBounty` stale, so the console would have announced "all eleven conditions satisfied" and then shown no economic consequence. Condition 6 is unknown until that function runs, so the earlier projection is stale by construction. Fixed with a single `projectBounty` definition both call sites share.
+
+`frontend/scripts/check-verify.ts` covers the other risk: judge mode calls the precompile through hand-written viem ABI tuples, which fail opaquely if shaped wrong. It runs the identical code against the third-party transaction from Phase 0 — `verify()` returned **true**, block 11529467, 7 Merkle siblings, 34 continuity roots. Both run from the repo root via `npm run check:predicate` and `npm run check:verify`.
+
+---
+
+### D-041 · GATE 7 (part A) PASSED — forged proofs rejected, and K-007 resolved: the precompile REVERTS — [L]
+
+Run: `npx tsx integration/gate7-forged.ts` → `integration/results/gate7-forged-0xaaed6c4c.json`
+
+A real verifying proof was mutated six ways and every mutation was rejected by the Block Prover precompile. The control — the unmutated bundle — verified first, so the rejections are meaningful rather than an artifact of a broken bundle.
+
+| # | Mutation | Outcome | Precompile message |
+|---|---|---|---|
+| 1 | one Merkle sibling hash | REJECTED | `Merkle proof validation failed` |
+| 2 | one continuity root | REJECTED | `Merkle root mismatch` |
+| 3 | lower endpoint digest | REJECTED | `Continuity proof does not match attestation or checkpoint` |
+| 4 | block height + 1 | REJECTED | `Continuity proof does not match attestation or checkpoint` |
+| 5 | a Merkle `isLeft` flag | REJECTED | `Merkle proof validation failed` |
+| 6 | one byte of `encodedTransaction` | REJECTED | `Merkle proof validation failed` |
+
+**This resolves the documented mismatch in BUILD.md §1.3 and supersedes D-015.** The SDK documentation says the precompile *reverts* on failed verification; the reference `USCBase` instead does `require(verified, ...)` on a returned bool, implying it returns false. Observed live: **it reverts, 6 times out of 6, with a descriptive reason string.** The documentation is right; the reference implementation's bool check is defensive against a path these failure modes do not take.
+
+**Scope of the claim, stated precisely.** This exercised the read-only `verify()` overload, because that needs no wallet and no deployment. `verifyAndEmit()` is the state-changing overload `EvidenceVault` actually calls, and it is *expected* to behave identically — but that is inference until part B runs against a deployed vault. The distinction is recorded rather than glossed.
+
+**Implication for `EvidenceVault`.** Since the precompile reverts, our `if (!ok) revert ProofRejected();` will not fire for these mutation classes — the transaction dies inside the precompile call carrying the precompile's own message. The check stays: it costs nothing, and it is the only thing standing between us and a future firmware change that returns false instead. Fail-closed under both behaviours, which is exactly what `test_verifier_revert_also_fails_closed` asserts.
+
+**Consequence for the UI:** a rejected proof surfaces the precompile's reason string rather than a Clearbook custom error. `decodeRevert` already handles that path via `reverted.reason`.
+
+**Still outstanding for part B:** BUILD.md §16 requires six *failing Creditcoin transaction hashes* in the README. Those need a funded deployment; the security assertion itself is done.
+
+---
+
 ### D-016 · Repository is ESM (`"type": "module"`) — [L]
 
 BUILD.md's Phase 0 snippets use top-level `await`. `npm init -y` defaults to `"type": "commonjs"`, under which `import.meta` is unavailable and those snippets do not run.

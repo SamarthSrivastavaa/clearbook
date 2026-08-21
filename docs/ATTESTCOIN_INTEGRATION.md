@@ -132,11 +132,26 @@ The span check is order-independent — it computes true min and max rather than
 
 One honest asymmetry: **dedupe cannot precede verification in the batch path.** The precompile verifies the batch as a unit, so filtering already-known items would change what is being proven. Known items are re-verified and skipped at storage time. The single path remains the efficient choice for repeat traffic.
 
-### Fail-closed under both possible precompile failure modes — [C]
+### Forged proofs are rejected, and the failure mode is now known — [L]
 
-The SDK's documentation says the precompile *reverts* on failed verification; the reference `USCBase` does `require(verified, ...)` on a returned bool. **These cannot both be the whole story, and we have not yet observed the failure path** — Phase 0 only ever exercised success. This remains `[U]` pending Gate 7.
+BUILD.md §1.3 recorded a contradiction we could not resolve from documentation: the SDK says the precompile *reverts* on failed verification, while the reference `USCBase` does `require(verified, ...)` on a returned bool.
 
-It carries no security consequence today because `EvidenceVault` is tested against **both** behaviours: `MockVerifier` can return `false` or revert, and `test_verifier_revert_also_fails_closed` asserts nothing is stored either way. Whichever way the protocol actually behaves, the vault fails closed.
+Settled by experiment. `integration/gate7-forged.ts` takes a real verifying proof and mutates it six ways. A control run confirms the unmutated bundle verifies first, so the rejections below are meaningful rather than an artifact of a broken bundle.
+
+| # | Mutation | Result | Precompile message |
+|---|---|---|---|
+| 1 | one Merkle sibling hash | REJECTED | `Merkle proof validation failed` |
+| 2 | one continuity root | REJECTED | `Merkle root mismatch` |
+| 3 | lower endpoint digest | REJECTED | `Continuity proof does not match attestation or checkpoint` |
+| 4 | block height + 1 | REJECTED | `Continuity proof does not match attestation or checkpoint` |
+| 5 | a Merkle `isLeft` flag | REJECTED | `Merkle proof validation failed` |
+| 6 | one byte of `encodedTransaction` | REJECTED | `Merkle proof validation failed` |
+
+**It reverts — 6 out of 6.** The documentation is right and the reference implementation's bool check is defensive against a path these failure modes do not take.
+
+**Precisely scoped:** this exercised the read-only `verify()` overload, which needs no wallet. `verifyAndEmit()` is what `EvidenceVault` calls and is expected to behave identically, but that remains inference until the same mutations are submitted on-chain against a deployed vault — which is also what produces the six failing Creditcoin transaction hashes BUILD.md §16 asks for.
+
+`EvidenceVault` keeps its `require`-on-bool regardless. It costs nothing and is the only thing standing between us and a future change that returns false instead. `test_verifier_revert_also_fails_closed` asserts the vault stores nothing under **either** behaviour, so the design was never dependent on the answer.
 
 ### Measured gas — [U] pending deployment
 

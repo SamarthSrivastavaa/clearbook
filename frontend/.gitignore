@@ -3,3 +3,7 @@ node_modules/
 out/
 next-env.d.ts
 .env.local
+dev.log
+dev.err.log
+*.tmp.json
+*.tsbuildinfo
