@@ -4,6 +4,8 @@
 
 A private-credit loan book is a self-reported spreadsheet. Nobody can check whether a "repayment" was real third-party money or the fund cycling its own. Clearbook makes a published loan book **refutable**: an originator posts a bond, publishes a covenant, and registers loans whose disbursement and repayment claims must each cite a cryptographically verified source-chain `Transfer`. Anyone may then prove a covenant breach in a single permissionless transaction — and get paid for it.
 
+**Live: [clearbook-sable.vercel.app](https://clearbook-sable.vercel.app)** — reads Creditcoin CC3 directly in the browser. No backend, no database, no server holding state; every figure on the page is a chain read.
+
 ## Attestcoin integration, in short
 
 Clearbook's `EvidenceVault` calls the Creditcoin **Block Prover precompile at `0x…0FD2`** (`verifyAndEmit`) to prove that a specific Ethereum transaction was included in an attested block, then decodes the returned receipt with the official `EvmV1Decoder`. On top of the reference integration it adds:
@@ -33,16 +35,17 @@ Full detail, including a candid "protocol limits we hit" section: [`docs/ATTESTC
 | 2 | Contracts build · fmt · lint clean | **PASS** |
 | 3 | 92 tests · 100% line coverage of `src/` | **PASS** |
 | 2/3 | Proof obtained · precompile `verify()` returns true | **PASS** |
-| **4** | **On-chain decode matches the source chain — 60/60 checks** | **PASS** |
+| **4** | **On-chain decode matches the source chain — 120/120 checks over 10 facts** | **PASS** |
 | **5** | **Circular flow breaches; honest loan reverts** | **PASS** |
 | **6** | **Bond slashed, bounty paid, sink credited — all exact** | **PASS** |
 | **7** | **Six forged proofs rejected, on-chain** | **PASS** |
+| **8a** | **Worker killed mid-flight recovers; no fact lost, no duplicate submission** | **PASS** |
 
 ### The evidence, in short
 
 **A real breach was proven on-chain.** Loan 2 — a genuine circular flow staged on Sepolia — was challenged by a third party and slashed: bond **−1.0 tCTC**, challenger bounty **+0.5**, protocol sink **+0.5**, exposure released. Every figure read from chain before and after. Challenge transaction: [`0x3a22a0ff…`](https://creditcoin-testnet.blockscout.com/tx/0x3a22a0fffd9d78ed6547658406f641fb337fe9e4638ac9e35eaa9c9020e93d47)
 
-**An honest loan could not be breached.** Loan 1 reverts `DisbursementNotFunding` — condition 11, the check that exists precisely so a genuine loan does not look circular. A mechanism that only ever fires detects nothing.
+**An honest loan cannot be breached.** The honest control reverts `DisbursementNotFunding` — condition 11, the check that exists precisely so a genuine loan does not look circular. A mechanism that only ever fires detects nothing. `npm run demo:seed` re-asserts this on every run against the currently open loan; older loans revert `WindowClosed` once their challenge window has passed, which is the window check firing first, not the covenant.
 
 **Forged proofs are rejected.** Six mutations of a valid proof — a Merkle sibling, a continuity root, the lower endpoint digest, the block height, an `isLeft` flag, one byte of the transaction — all six reverted on-chain:
 
@@ -50,7 +53,7 @@ Full detail, including a candid "protocol limits we hit" section: [`docs/ATTESTC
 
 This also settled a contradiction in the protocol documentation: the precompile **reverts** rather than returning false.
 
-**Nothing was deployed on Ethereum.** All five demo transfers use canonical Sepolia WETH — a contract we do not control. `cast code $TOKEN` returns bytecode; `cast code $TREASURY` returns `0x`.
+**Nothing was deployed on Ethereum.** All ten demo transfers use canonical Sepolia WETH — a contract we do not control. `cast code $TOKEN` returns bytecode; `cast code $TREASURY` returns `0x`.
 
 **Measured, not quoted.** A fresh transaction becomes usable evidence in **~8–10 minutes**, of which 97–99% is the attestation wait; `verify()` itself returns in **0.8s**. Deployment cost **0.0018 tCTC**; each fact submission **0.000113 tCTC**.
 
