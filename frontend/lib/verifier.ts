@@ -1,6 +1,6 @@
 import { createPublicClient, http, type Hex } from 'viem';
 
-import { PRECOMPILES, SOURCE_CHAIN, creditcoin } from './config';
+import { PRECOMPILES, SOURCE_CHAIN, SOURCE_CHAINS, creditcoin, sourceChain } from './config';
 
 /**
  * Direct reads against the Block Prover precompile and the source chain.
@@ -99,6 +99,32 @@ export const sourceClient = createPublicClient({
   ),
 });
 
+/**
+ * A read-only client per source chain.
+ *
+ * Locating a pasted transaction means reading the chain it is actually on, so a
+ * single Sepolia client is not enough once mainnet evidence is in scope. Only
+ * chains the precompile attests are offered — this map names endpoints, it does
+ * not decide support.
+ */
+const SOURCE_CLIENTS: Record<number, ReturnType<typeof createPublicClient>> = {
+  1: sourceClient,
+  3: createPublicClient({
+    transport: http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL ?? 'https://eth.drpc.org'),
+  }),
+};
+
+export function sourceClientFor(chainKey: number) {
+  const c = SOURCE_CLIENTS[chainKey];
+  if (!c) throw new Error(`No source-chain endpoint configured for chain key ${chainKey}.`);
+  return c;
+}
+
+/** The chains a reader may verify against, in the order they should be offered. */
+export const VERIFIABLE_CHAINS = Object.values(SOURCE_CHAINS).filter(
+  (c) => SOURCE_CLIENTS[c.chainKey] !== undefined,
+);
+
 export interface ProofBundle {
   chainKey: number;
   headerNumber: number;
@@ -110,18 +136,24 @@ export interface ProofBundle {
   cached: boolean;
 }
 
-/** Resolves the chain key for the configured source chain. Never hardcoded. */
-export async function resolveSourceChainKey(): Promise<number> {
+/**
+ * Resolves a chain key from the precompile. Never hardcoded.
+ *
+ * The caller names the chain it wants by EVM chain id; the precompile decides
+ * whether it is attested and under what key. A chain absent from its list is an
+ * error, not a fallback.
+ */
+export async function resolveSourceChainKey(chainId: number = SOURCE_CHAIN.chainId): Promise<number> {
   const chains = (await ccClient.readContract({
     address: PRECOMPILES.chainInfo,
     abi: chainInfoAbi,
     functionName: 'get_supported_chains',
   })) as ReadonlyArray<{ chainKey: bigint; chainId: bigint }>;
 
-  const match = chains.find((c) => Number(c.chainId) === SOURCE_CHAIN.chainId);
+  const match = chains.find((c) => Number(c.chainId) === chainId);
   if (!match) {
     throw new Error(
-      `Chain ${SOURCE_CHAIN.chainId} is not supported by the ChainInfo precompile. ` +
+      `Chain ${chainId} is not supported by the ChainInfo precompile. ` +
         `Supported chain ids: ${chains.map((c) => Number(c.chainId)).join(', ')}`,
     );
   }

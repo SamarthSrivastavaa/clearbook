@@ -135,7 +135,7 @@ export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
  */
 export const DEMO_ARTIFACTS = {
   /** Originator B attempting a fact already committed by A. Reverted. */
-  duplicateCommitmentTx: '0xc13ced3455f0104e23f599047e86fd7a98b56c7b87ba6f63ec4b90361627b175',
+  duplicateCommitmentTx: '0xe68c7de8dba9367535a5741e6f618c1c564e7fe7e32cae7a69074334bc22d222',
   secondOriginatorId: 2n,
   secondOriginatorName: 'Northgate Structured Credit',
   /** B's owner. The simulation must run AS this account: registerLoan checks

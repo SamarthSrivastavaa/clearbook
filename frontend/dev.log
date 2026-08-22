@@ -66,3 +66,29 @@
 ✓ Compiled in 178ms
  GET /verify 200 in 25ms (next.js: 6ms, application-code: 19ms)
  GET /registry 200 in 49ms (next.js: 6ms, application-code: 43ms)
+ GET / 200 in 1643ms (next.js: 864ms, application-code: 778ms)
+ GET / 200 in 287ms (next.js: 36ms, application-code: 251ms)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+✓ Compiled in 843ms
+ GET /registry 200 in 81ms (next.js: 17ms, application-code: 64ms)
+ GET / 200 in 169ms (next.js: 19ms, application-code: 150ms)
+✓ Compiled in 538ms
+ GET /registry 200 in 151ms (next.js: 19ms, application-code: 131ms)
+ GET / 200 in 94ms (next.js: 15ms, application-code: 78ms)
+✓ Compiled in 254ms
+ GET /registry 200 in 169ms (next.js: 20ms, application-code: 149ms)
+ GET / 200 in 112ms (next.js: 19ms, application-code: 93ms)
+ GET /verify 200 in 297ms (next.js: 140ms, application-code: 158ms)
+✓ Compiled in 82ms
+ GET /verify 200 in 170ms (next.js: 33ms, application-code: 137ms)
+ GET / 200 in 105ms (next.js: 15ms, application-code: 90ms)
+ GET /verify 200 in 55ms (next.js: 16ms, application-code: 39ms)
+ GET / 200 in 162ms (next.js: 29ms, application-code: 133ms)
+⚠ Fast Refresh had to perform a full reload when ./lib/config.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./lib/config.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+✓ Compiled in 198ms
+ GET /verify 200 in 669ms (next.js: 34ms, application-code: 635ms)
+ GET /verify 200 in 586ms (next.js: 217ms, application-code: 370ms)
+ GET / 200 in 593ms (next.js: 29ms, application-code: 564ms)
+ GET / 200 in 571ms (next.js: 242ms, application-code: 329ms)
+ GET /icon?27ef45320965fd4c 200 in 170ms (next.js: 16ms, application-code: 155ms)

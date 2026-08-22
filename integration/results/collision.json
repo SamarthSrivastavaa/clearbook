@@ -1,6 +1,6 @@
 {
   "phase": "P3 — duplicate commitment rejected",
-  "at": "2026-08-22T17:06:47.139Z",
+  "at": "2026-08-22T19:39:04.416Z",
   "clearbook": "0xCA02D51722947d7a93EDBe398498667bab368315",
   "establishes": "A verified TransferFact can back at most one credit claim, across all originators.",
   "doesNotEstablish": "Collateral identity. The same underlying obligation represented by a different transaction is not detected.",
@@ -25,7 +25,7 @@
   },
   "rejection": {
     "error": "FactAlreadyUsed",
-    "transaction": "0xc13ced3455f0104e23f599047e86fd7a98b56c7b87ba6f63ec4b90361627b175",
+    "transaction": "0xe68c7de8dba9367535a5741e6f618c1c564e7fe7e32cae7a69074334bc22d222",
     "receiptStatus": 0
   },
   "checks": {

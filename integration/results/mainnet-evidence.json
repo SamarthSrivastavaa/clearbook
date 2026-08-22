@@ -1,12 +1,12 @@
 {
   "phase": "P0 — real Ethereum mainnet evidence",
-  "at": "2026-08-22T16:53:03.435Z",
+  "at": "2026-08-22T19:38:32.947Z",
   "sourceChain": {
     "name": "Ethereum Mainnet",
     "chainId": 1,
     "chainKey": 3
   },
-  "attestedHeightAtRun": 25811960,
+  "attestedHeightAtRun": 25812790,
   "subject": {
     "txHash": "0x29582881f3f5e726c609257792053bdcf130849478df2f333037fa6d54189c02",
     "blockNumber": 25811720,
@@ -28,7 +28,7 @@
   },
   "vault": "0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af",
   "factId": "0xfdde6ec93ac15cf44e46ff1f9d1c8e5d21aa079af6bae6816d68292d5b3e7cff",
-  "creditcoinTx": "0xd1166a090deec004982eaa6586a6dbbfa551b49abd072e4462f49f3e9eaeee10",
+  "creditcoinTx": "0x016fb64c622dac0a7325e9126f0707360f62f6e5576af30c392756a27b049227",
   "checks": {
     "failures": 0
   },

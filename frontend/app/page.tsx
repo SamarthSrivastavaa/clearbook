@@ -32,6 +32,7 @@ export default function LandingPage() {
       <LedgerBand />
 
       <div className="mx-auto max-w-[1400px] px-6">
+        <SharedEvidence />
         <Covenant />
       </div>
 
@@ -66,9 +67,12 @@ function Hero() {
           </p>
 
           <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-onDeep">
-            Clearbook binds every claim to a cryptographically verified transfer on another chain,
-            and lets <span className="text-onDeep underline decoration-[#3a382f] underline-offset-4">anyone</span>{' '}
-            prove a covenant breach in a single transaction — and be paid for it.
+            Clearbook is a shared registry of cryptographically verified transfers. Every claim must
+            cite one,{' '}
+            <span className="text-onDeep underline decoration-[#3a382f] underline-offset-4">
+              no two claims can cite the same one
+            </span>
+            , and anyone can prove a covenant breach in a single transaction — and be paid for it.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
@@ -164,6 +168,59 @@ function Mechanism() {
             </div>
           ))}
         </dl>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The shared registry, and the one property that makes sharing worth anything.
+ *
+ * A fund keeping its own evidence gains nothing from verification it already
+ * trusts. The value appears only when the namespace is shared: a fact spent by
+ * one originator is then visibly unavailable to every other.
+ */
+function SharedEvidence() {
+  return (
+    <section className="rule-t py-16">
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+        <div>
+          <Eyebrow>Shared evidence</Eyebrow>
+          <h2 className="display-lg mt-4">One fact, one claim.</h2>
+          <p className="prose-lead mt-5 max-w-sm">
+            Verification needs no permission — anyone can prove a transfer happened, including one
+            between parties who have never heard of Clearbook. Committing that fact to a claim is
+            different: it needs a treasury proven by signature, and it can happen only once.
+          </p>
+          <Link href="/registry" className="link mt-6 inline-flex text-[14px]">
+            Open the evidence registry →
+          </Link>
+        </div>
+
+        <div>
+          <dl className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
+            <div>
+              <dt className="statement">Verification is open</dt>
+              <dd className="mt-2 text-[13px] leading-relaxed text-muted">
+                The registry holds facts proven from Ethereum mainnet — real transfers, between
+                addresses we do not control, on a chain we have never deployed to. Proving one
+                required permission from nobody.
+              </dd>
+            </div>
+            <div>
+              <dt className="statement">Commitment is exclusive</dt>
+              <dd className="mt-2 text-[13px] leading-relaxed text-muted">
+                A second originator attempting a fact another has already committed is refused with{' '}
+                <code className="font-mono text-[12px]">FactAlreadyUsed</code>. The registry runs
+                that call live against the deployment rather than asserting the outcome.
+              </dd>
+            </div>
+          </dl>
+
+          <div className="mt-8">
+            <ConditionArtifact />
+          </div>
+        </div>
       </div>
     </section>
   );

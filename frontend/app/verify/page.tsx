@@ -4,14 +4,15 @@ import { useState } from 'react';
 import type { Hex } from 'viem';
 
 import { Button, Callout, Eyebrow, Ident, Input, Section, Status, Working } from '@/components/ui';
-import { SOURCE_CHAIN, explorer } from '@/lib/config';
+import { SOURCE_CHAIN, explorer, sourceChain } from '@/lib/config';
 import { formatBlock, shortAddress } from '@/lib/format';
 import {
+  VERIFIABLE_CHAINS,
   attestationBounds,
   fetchAttestedHeight,
   fetchProof,
   resolveSourceChainKey,
-  sourceClient,
+  sourceClientFor,
   verifyOnChain,
   type ProofBundle,
 } from '@/lib/verifier';
@@ -51,7 +52,13 @@ export default function VerifyPage() {
   const [bundle, setBundle] = useState<ProofBundle | null>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
   const [running, setRunning] = useState(false);
+  // Which chain the pasted hash is expected to be on. Sepolia by default; the
+  // demo's claims live there, but evidence may come from anywhere attested.
+  const [chainId, setChainId] = useState<number>(SOURCE_CHAIN.chainId);
   const [meta, setMeta] = useState<{ block?: number; chainKey?: number; from?: string }>({});
+
+  const selected =
+    VERIFIABLE_CHAINS.find((c) => c.chainId === chainId) ?? VERIFIABLE_CHAINS[0];
 
   const txHash = /^0x[0-9a-fA-F]{64}$/.test(input.trim()) ? (input.trim() as Hex) : null;
 
@@ -69,7 +76,7 @@ export default function VerifyPage() {
     try {
       // 1 — locate the transaction
       set('locate', 'running');
-      const receipt = await sourceClient.getTransactionReceipt({ hash: txHash });
+      const receipt = await sourceClientFor(selected.chainKey).getTransactionReceipt({ hash: txHash });
       const block = Number(receipt.blockNumber);
       setMeta((m) => ({ ...m, block, from: receipt.from }));
 
@@ -90,9 +97,9 @@ export default function VerifyPage() {
 
       // 2 — resolve the chain key at runtime, never hardcoded
       set('chainkey', 'running');
-      const chainKey = await resolveSourceChainKey();
+      const chainKey = await resolveSourceChainKey(chainId);
       setMeta((m) => ({ ...m, chainKey }));
-      set('chainkey', 'done', `${SOURCE_CHAIN.name} is chain key ${chainKey}`);
+      set('chainkey', 'done', `${selected.name} is chain key ${chainKey}`);
 
       // 3 — is the block attested?
       set('attest', 'running');
@@ -169,17 +176,51 @@ export default function VerifyPage() {
     <div className="space-y-10">
       <header className="max-w-3xl">
         <Eyebrow>Judge mode</Eyebrow>
-        <h1 className="display-lg mt-3">Verify any {SOURCE_CHAIN.name} transaction.</h1>
+        <h1 className="display-lg mt-3">Verify any Ethereum transaction.</h1>
         <p className="prose-lead mt-4">
-          Paste a transaction hash — ours, or one you found yourself a minute ago. Clearbook will
+          Paste a transaction hash — ours, or one you found on Etherscan a minute ago. Clearbook will
           locate it, resolve the chain key from the ChainInfo precompile, ask whether its block is
           attested, fetch a proof, and have the Block Prover precompile rule on it. Every step is
           read-only. No wallet, no gas, nothing staged.
+        </p>
+        <p className="mt-3 text-[13px] leading-relaxed text-muted">
+          Mainnet works. Nothing about a transaction has to involve Clearbook for Clearbook to prove
+          it happened — which is the whole point.
         </p>
       </header>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         <div className="space-y-5">
+          {/* Which chain to look on. Offered only for chains the precompile
+              attests and we hold an endpoint for — the list is not aspirational. */}
+          <div>
+            <span className="eyebrow">Source chain</span>
+            <div className="mt-2 flex flex-wrap gap-px bg-rule">
+              {VERIFIABLE_CHAINS.map((c) => {
+                const active = c.chainId === chainId;
+                return (
+                  <button
+                    key={c.chainKey}
+                    type="button"
+                    onClick={() => setChainId(c.chainId)}
+                    aria-pressed={active}
+                    disabled={running}
+                    className={`flex-1 px-4 py-2.5 text-left transition-colors disabled:opacity-50 ${
+                      active ? 'bg-ink text-paper' : 'bg-paper hover:bg-sunken'
+                    }`}
+                  >
+                    <span className="block text-[13px] font-medium">{c.name}</span>
+                    <span
+                      className={`block text-[11px] ${active ? 'text-onDeepMuted' : 'text-faint'}`}
+                    >
+                      {c.live ? 'real value · chain key ' + c.chainKey : 'testnet · chain key ' + c.chainKey}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <Input
             label="Source-chain transaction hash"
             value={input}
