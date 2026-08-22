@@ -52,18 +52,40 @@ async function main(): Promise<void> {
     const allVerified = facts.every((f) => f.verified && f.crossChecksPassed === f.crossChecksTotal);
     console.log(`EVIDENCE — ${facts.length} facts, ${ok(allVerified)} all verified\n`);
 
+    // The ledger accumulates every round ever staged, and a fact can only back
+    // one claim. So the newest fact per (scenario, role) is the live one and any
+    // earlier one is spent — exactly the rule demo/seed.ts selects by. Showing
+    // them undifferentiated would hand the presenter a consumed hash.
+    const newest = new Map<string, number>();
+    for (const f of facts) {
+      const key = `${f.scenario}/${f.role}`;
+      const best = newest.get(key);
+      if (best === undefined || f.blockHeight > best) newest.set(key, f.blockHeight);
+    }
+    const isLive = (f: ProvenFact) => newest.get(`${f.scenario}/${f.role}`) === f.blockHeight;
+    const superseded = facts.filter((f) => !isLive(f)).length;
+
     for (const scenario of ['A', 'B', 'D']) {
-      const group = facts.filter((f) => f.scenario === scenario);
+      const group = facts.filter((f) => f.scenario === scenario).sort((a, b) => a.blockHeight - b.blockHeight);
       if (group.length === 0) continue;
       console.log(`  Scenario ${scenario}`);
       for (const f of group) {
+        const live = isLive(f);
         console.log(
-          `    ${f.role.padEnd(13)} block ${f.blockHeight}  txIdx ${String(f.txIndex).padStart(3)}  ` +
-            `logIdx ${f.logIndex}  ${f.crossChecksPassed}/${f.crossChecksTotal} checks`,
+          `    ${live ? '->' : '  '} ${f.role.padEnd(13)} block ${f.blockHeight}  txIdx ${String(f.txIndex).padStart(3)}  ` +
+            `logIdx ${f.logIndex}  ${f.crossChecksPassed}/${f.crossChecksTotal} checks` +
+            `${live ? '' : '   [superseded — already consumed]'}`,
         );
         console.log(`      ${SEPOLIA_EXPLORER}/tx/${f.txHash}`);
       }
       console.log('');
+    }
+
+    if (superseded > 0) {
+      console.log(
+        `  NOTE  ${superseded} fact(s) from earlier rounds are superseded. Rows marked "->" are the live ones.
+`,
+      );
     }
   }
 

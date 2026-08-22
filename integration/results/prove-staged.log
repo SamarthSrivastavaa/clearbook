@@ -1,0 +1,149 @@
+chainId 11155111 -> chainKey 1 (resolved at runtime)
+
+=== A · disbursement · block 11538664 ===
+  0xd922115fbefd89c7fe43a7ab33768c22d075a829b0fd3de6b53d10d818d6f84d
+    PASS  verify() returned true
+    PASS  blockHeight matches
+    PASS  txIndex matches receipt
+    PASS  receiptStatus is 1
+    PASS  token matches
+    PASS  from matches
+    PASS  to matches
+    PASS  amount matches
+  verified=true txIndex=87 logIndex=0 siblings=7 roots=37
+
+=== B · disbursement · block 11538687 ===
+  0x5329c4b5b63a95afbec6d3c85c7c94cf79830bf9cdd529cf2985964e77ee711a
+    PASS  verify() returned true
+    PASS  blockHeight matches
+    PASS  txIndex matches receipt
+    PASS  receiptStatus is 1
+    PASS  token matches
+    PASS  from matches
+    PASS  to matches
+    PASS  amount matches
+  verified=true txIndex=64 logIndex=0 siblings=7 roots=14
+
+=== B · funding · block 11538688 ===
+  0xca43a58891c97dac8d11e5838a6a6616586f1550a08f3316b33fd0bfdbd1b397
+    PASS  verify() returned true
+    PASS  blockHeight matches
+    PASS  txIndex matches receipt
+    PASS  receiptStatus is 1
+    PASS  token matches
+    PASS  from matches
+    PASS  to matches
+    PASS  amount matches
+  verified=true txIndex=79 logIndex=0 siblings=7 roots=13
+
+=== B · repayment · block 11538689 ===
+  0xcc02d3fe8859dbafa073e4fca8a95c4f2c7dd12173ae40acf62e2d52211ee9b4
+    PASS  verify() returned true
+    PASS  blockHeight matches
+    PASS  txIndex matches receipt
+    PASS  receiptStatus is 1
+    PASS  token matches
+    PASS  from matches
+    PASS  to matches
+    PASS  amount matches
+  verified=true txIndex=75 logIndex=0 siblings=7 roots=12
+
+=== A · repayment · block 11538692 ===
+  0x8edc2d763b47766962aa94f3c7e8f5fcb7f061b6019bca1546b42749ccaa09ee
+    PASS  verify() returned true
+    PASS  blockHeight matches
+    PASS  txIndex matches receipt
+    PASS  receiptStatus is 1
+    PASS  token matches
+    PASS  from matches
+    PASS  to matches
+    PASS  amount matches
+  verified=true txIndex=58 logIndex=0 siblings=6 roots=9
+
+=== B · disbursement · block 11541769 ===
+  0xbbc8293c74e8d362a8797bde78b400fbe4beead8b805ff995587c1d549e8fe0b
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541740. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541740. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541740. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541750. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541750. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541750. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541750. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541750. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541750. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541750. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541750. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541760. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541760. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541760. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541760. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541760. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541760. Retrying in 15000ms...
+Height 11541769 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541760. Retrying in 15000ms...
+    PASS  verify() returned true
+    PASS  blockHeight matches
+    PASS  txIndex matches receipt
+    PASS  receiptStatus is 1
+    PASS  token matches
+    PASS  from matches
+    PASS  to matches
+    PASS  amount matches
+  verified=true txIndex=98 logIndex=0 siblings=7 roots=2
+
+=== B · funding · block 11541770 ===
+  0xfc2dd1509962ab065423f6f12c313a2ffe714cf83e1c79c41fede2fdd11bd8b7
+    PASS  verify() returned true
+    PASS  blockHeight matches
+    PASS  txIndex matches receipt
+    PASS  receiptStatus is 1
+    PASS  token matches
+    PASS  from matches
+    PASS  to matches
+    PASS  amount matches
+  verified=true txIndex=104 logIndex=0 siblings=7 roots=1
+
+=== B · repayment · block 11541771 ===
+  0xe1ba8ac08e2690190fe6cd5295aca40bee8f83e4750671e948f3e2e9c847037e
+Height 11541771 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541770. Retrying in 15000ms...
+Height 11541771 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541770. Retrying in 15000ms...
+Height 11541771 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541770. Retrying in 15000ms...
+Height 11541771 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541770. Retrying in 15000ms...
+Height 11541771 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541770. Retrying in 15000ms...
+Height 11541771 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541770. Retrying in 15000ms...
+Height 11541771 not yet attested and in proof builder service cache for chain key 1. Latest height: 11541770. Retrying in 15000ms...
+    PASS  verify() returned true
+    PASS  blockHeight matches
+    PASS  txIndex matches receipt
+    PASS  receiptStatus is 1
+    PASS  token matches
+    PASS  from matches
+    PASS  to matches
+    PASS  amount matches
+  verified=true txIndex=87 logIndex=0 siblings=7 roots=10
+
+=== A · disbursement · block 11541773 ===
+  0xb2c57e2f2d80dcead660790fa71d0743876cd0f3cf72e19dd6dd310852b0386c
+    PASS  verify() returned true
+    PASS  blockHeight matches
+    PASS  txIndex matches receipt
+    PASS  receiptStatus is 1
+    PASS  token matches
+    PASS  from matches
+    PASS  to matches
+    PASS  amount matches
+  verified=true txIndex=70 logIndex=0 siblings=7 roots=8
+
+=== A · repayment · block 11541774 ===
+  0x9722bab1e54b0afcf10103dbcd2eee9f17a5a8d24534532ade3d0ad19587c0a8
+    PASS  verify() returned true
+    PASS  blockHeight matches
+    PASS  txIndex matches receipt
+    PASS  receiptStatus is 1
+    PASS  token matches
+    PASS  from matches
+    PASS  to matches
+    PASS  amount matches
+  verified=true txIndex=79 logIndex=0 siblings=7 roots=7
+
+10/10 proven and verified · 0 failure(s)
+Written to C:\Users\HP\OneDrive\Desktop\clearbook\demo\staged\proven-facts.json

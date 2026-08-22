@@ -289,3 +289,35 @@ There is no indexer on Creditcoin CC3 and `EvidenceVault` keeps no enumerable li
 
 **Fix, if it mattered:** record the vault's deployment block and page backwards from it, or add an enumerable index to the vault. Neither is worth a redeploy for a demo whose evidence is seeded fresh.
 
+---
+
+### K-020 · `gate5-gate6.json` records `gate6: false`, and that record is wrong
+
+**Class:** harness defect, since fixed. **Status:** resolved, superseded by a re-check; the original artifact is deliberately preserved.
+
+The recorded Gate 5/6 run reports `gate6: false`. Every economic figure in that same file is correct — slash 1.0 tCTC, bounty 0.5, sink 0.5, exposure released, I1/I2 holding — and the breach transaction succeeded on-chain.
+
+The single failing assertion was:
+
+```
+errorName === 'DisbursementNotFunding'
+```
+
+which received `"execution reverted (unknown custom error)"`. That run used a hand-written minimal ABI, and ethers cannot name a custom error without its definition. `demo/seed-clearbook.ts` now loads the full compiled ABI, but **the seed was never re-run**, so the stale artifact survived. It cannot simply be re-run either: loan B is `BREACHED` and its facts are consumed.
+
+**Resolution.** `npm run recheck` (`integration/recheck-controls.ts`) re-runs every observable assertion read-only against the live deployment and writes `gate5-gate6-recheck.json`. It confirms the economics and the terminal breach.
+
+**Confirmed.** A fresh round was staged, proven, submitted and seeded (loans 3 and 4), and the assertion now passes against the live contract:
+
+```
+PASS  B - the circular flow IS breachable            (challenge would succeed)
+PASS  A - honest loan refuses with DisbursementNotFunding
+PASS  C - unrelated citation refuses with NotTheSamePayer
+```
+
+So the contract always behaved correctly; only the harness could not read what it said.
+
+**Honest caveat.** The covenant-condition control is only observable while a challenge window is open, because `challenge()` refuses on the window before evaluating the covenant. When the window has closed, `npm run recheck` reports those two assertions as **SKIP, not PASS** — they need a freshly seeded loan (`npm run demo:seed`) to observe.
+
+`gate5-gate6.json` is left untouched. It is the honest record of what that run observed, and rewriting history to look better is exactly the failure mode this repository is arguing against.
+

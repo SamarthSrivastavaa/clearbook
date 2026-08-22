@@ -70,8 +70,39 @@ The words *fraud*, *proven fraud*, *money laundering* and *criminal* must appear
 
 ---
 
+## The challenge window expires — seed close to the demo
+
+The covenant's challenge window is **1,200 Creditcoin blocks ≈ 5 hours** (measured block time: 15.0 s). Once it closes, `challenge()` refuses with `WindowClosed` *before* it ever evaluates the covenant, so:
+
+- **the breach can no longer be performed**, and
+- **the negative controls stop being demonstrable** — an honest loan then refuses with `WindowClosed` rather than the interesting `DisbursementNotFunding`.
+
+This is correct contract behaviour, not a defect, but it makes seeding time-sensitive in both directions:
+
+| | Constraint |
+|---|---|
+| **No earlier than** | ~5 h before the demo, or the window closes mid-presentation |
+| **No later than** | ~2 h before, so attestation (7–8 min, batched) has margin for a retry |
+
+**Seed in that window.** `npm run demo:seed` prints exactly how many minutes remain and writes `blocksRemaining` to `demo/staged/clearbook-state.json`.
+
+The seeding path is re-runnable by design: it reuses the existing originator when the treasury is already bound, and always selects the **newest** proven fact per role, because every earlier round's facts are already consumed and would fail with `FactAlreadyUsed`.
+
+```
+npm run demo:stage    # broadcast fresh source-chain transfers
+npm run demo:prove    # wait for attestation, fetch and verify proofs
+npm run gate4         # submit the facts to the vault
+npm run demo:seed     # register loans, claim, leave B challengeable
+npm run demo:run      # presenter checklist
+```
+
+`npm run demo:reset` redeploys clean if the deployment itself must be replaced. It is a dry run unless given `--confirm`, and it never edits `.env` — repointing the app is a decision, not a side effect.
+
+---
+
 ## Pre-demo checklist
 
+- [ ] `npm run demo:seed` run **2–5 h before** — challenge window still open at showtime
 - [ ] `npm run demo:stage` and `npm run demo:prove` completed **≥ 2 h** before
 - [ ] `npm run demo:run` shows all facts verified and every live check OK
 - [ ] all facts `CONFIRMED` in the vault

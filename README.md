@@ -116,6 +116,26 @@ cd contracts && forge build && forge test   # 92 tests
 
 No API keys and no funded wallet are needed for any of the above — every endpoint is public and every call is read-only.
 
+Against the live deployment (read-only, no gas):
+
+```bash
+npm run recheck               # re-asserts GATE 5/6 economics and the controls
+```
+
+Running or re-running the demo (needs funded throwaway wallets):
+
+```bash
+npm run demo:stage            # broadcast fresh source-chain transfers
+npm run demo:prove            # wait for attestation, fetch + verify proofs
+npm run gate4                 # submit the verified facts to the vault
+npm run demo:seed             # register loans, claim, leave the breach un-taken
+npm run demo:run              # presenter checklist with live state
+
+npm run demo:reset            # redeploy clean (dry run unless --confirm)
+```
+
+**Seed 2–5 hours before a demo.** The challenge window is 1,200 Creditcoin blocks (~5 h): seed too early and it closes mid-presentation, too late and attestation has no margin. See `DEMO.md`.
+
 `make help` lists the same targets.
 
 ---

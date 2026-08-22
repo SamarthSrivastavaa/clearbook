@@ -1,0 +1,27 @@
+{
+  "at": "2026-08-22T08:10:19.813Z",
+  "supersedes": "gate5-gate6.json (its gate6:false was an ABI decoding defect, not a contract defect)",
+  "clearbook": "0xCA02D51722947d7a93EDBe398498667bab368315",
+  "loanA": "1",
+  "loanB": "2",
+  "live": {
+    "bond": "9000000000000000000",
+    "exposure": "1000000000000000000",
+    "contractBalance": "9000000000000000000",
+    "loanAStatus": 2,
+    "loanBStatus": 5
+  },
+  "refusals": {
+    "honestLoanOwnDisbursement": "WindowClosed",
+    "unrelatedCitation": "WindowClosed",
+    "rechallengeBreached": "WrongStatus"
+  },
+  "windowOpen": false,
+  "checks": {
+    "failures": 0,
+    "skipped": 2
+  },
+  "gate5": true,
+  "gate6": true,
+  "covenantConditionControlObserved": false
+}

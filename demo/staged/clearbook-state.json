@@ -1,20 +1,20 @@
 {
-  "at": "2026-08-21T22:33:04.011Z",
+  "at": "2026-08-22T08:28:33.656Z",
   "clearbook": "0xCA02D51722947d7a93EDBe398498667bab368315",
   "originatorId": "1",
-  "loanA": "1",
-  "loanB": "2",
-  "challengeTxHash": "0x3a22a0fffd9d78ed6547658406f641fb337fe9e4638ac9e35eaa9c9020e93d47",
-  "economics": {
-    "slash": "1000000000000000000",
-    "bounty": "500000000000000000",
-    "toSink": "500000000000000000",
-    "bondBefore": "10000000000000000000",
-    "bondAfter": "9000000000000000000",
-    "exposureBefore": "2000000000000000000",
-    "exposureAfter": "1000000000000000000"
+  "loanA": "3",
+  "loanB": "4",
+  "challengeableUntilBlock": "5354491",
+  "blocksRemaining": "1189",
+  "approxMinutesRemaining": 297,
+  "fundingFactId": "0x2d63fb53786303a1a634e24397350f4dc72a0cf6627ba8af6fd4f7a47dad4858",
+  "controls": {
+    "breach": "would succeed",
+    "honest": "DisbursementNotFunding",
+    "unrelated": "NotTheSamePayer"
   },
-  "honestLoanRevert": "execution reverted (unknown custom error)",
-  "gate5": true,
-  "gate6": false
+  "checks": {
+    "failures": 0
+  },
+  "demoReady": true
 }

@@ -1,0 +1,120 @@
+{
+  "$comment": [
+    "Deterministic demo scenarios (BUILD.md §13.1).",
+    "",
+    "This file is the declarative source of truth for what the demo asserts. It is",
+    "read by demo/seed.ts and demo/run.ts so the presenter checklist and the seeding",
+    "logic cannot drift apart.",
+    "",
+    "Every source-chain transaction referenced here is REAL, staged by us on Ethereum",
+    "Sepolia using canonical WETH — a token we do not control. Clearbook deploys",
+    "nothing on the source chain. These addresses are throwaway demo wallets and",
+    "describe no real borrower, lender, or agreement.",
+    "",
+    "expectedError values are the contract's own custom error names. They are",
+    "assertions, not documentation: seed.ts fails if the chain disagrees."
+  ],
+
+  "covenant": {
+    "id": "CIRCULAR_REPAYMENT",
+    "bit": 1,
+    "statement": "No repayment may come from an address this originator's own treasury funded for at least the repayment amount, in the same token, within W source-chain blocks.",
+    "circularWindowBlocks": 5000,
+    "challengeWindowBlocks": 1200
+  },
+
+  "economics": {
+    "bondPerLoanWei": "1000000000000000000",
+    "slashBps": 10000,
+    "bountyBps": 5000,
+    "note": "A successful challenge slashes the full per-loan bond; half goes to the challenger, half to the protocol sink (the burn address)."
+  },
+
+  "scenarios": [
+    {
+      "id": "A",
+      "name": "Legitimate loan — the honest control",
+      "role": "control",
+      "mustBeDemonstrated": true,
+      "legs": [
+        { "role": "disbursement", "from": "treasury", "to": "borrower", "amount": "0.01" },
+        { "role": "repayment", "from": "borrower", "to": "treasury", "amount": "0.01" }
+      ],
+      "expected": {
+        "challengeSucceeds": false,
+        "expectedError": "DisbursementNotFunding",
+        "why": [
+          "The borrower repaid from funds this treasury did not supply for that purpose.",
+          "Citing the loan's own disbursement as the funding leg is refused by condition 11,",
+          "which exists precisely so an honest loan cannot be made to look circular.",
+          "Nobody had to trust us for this outcome — the contract refuses on its own."
+        ]
+      }
+    },
+    {
+      "id": "B",
+      "name": "Prohibited circular flow — the breach",
+      "role": "breach",
+      "mustBeDemonstrated": true,
+      "legs": [
+        { "role": "disbursement", "from": "treasury", "to": "payer", "amount": "0.01" },
+        { "role": "funding", "from": "treasury", "to": "payer", "amount": "0.01" },
+        { "role": "repayment", "from": "payer", "to": "treasury", "amount": "0.01" }
+      ],
+      "expected": {
+        "challengeSucceeds": true,
+        "resultStatus": "BREACHED",
+        "conditionsMet": 11,
+        "why": [
+          "The treasury funded the payer, then the payer repaid the treasury, inside the",
+          "window the originator itself published and bonded against.",
+          "All eleven conditions hold, so challenge() slashes the bond in one transaction.",
+          "This is the leg the judge performs live from their own wallet."
+        ]
+      }
+    },
+    {
+      "id": "C",
+      "name": "Invalid challenge — an unrelated citation",
+      "role": "control",
+      "mustBeDemonstrated": true,
+      "performedInUi": true,
+      "legs": [],
+      "expected": {
+        "challengeSucceeds": false,
+        "expectedError": "NotTheSamePayer",
+        "why": [
+          "Citing a verified transfer that has nothing to do with this loan's payer is",
+          "refused by condition 5. Verified evidence is not the same as relevant evidence.",
+          "Shown as a pre-flight red X in the challenge console before any gas is spent."
+        ]
+      }
+    },
+    {
+      "id": "D",
+      "name": "Delinquent loan",
+      "role": "liveness",
+      "mustBeDemonstrated": false,
+      "legs": [
+        { "role": "disbursement", "from": "treasury", "to": "borrower", "amount": "0.01" }
+      ],
+      "expected": {
+        "action": "markDelinquent",
+        "permissionless": true,
+        "why": [
+          "Disbursement only, with maturityBlock passed and no repayment claimed.",
+          "Anyone may call markDelinquent() — no privileged role is involved.",
+          "Not staged by default: it costs a fourth loan's bond and adds nothing the",
+          "breach path does not already prove. Enable with seed.ts --with-delinquent."
+        ]
+      }
+    }
+  ],
+
+  "invariants": [
+    "I1 · the contract's balance always covers the sum of posted bonds",
+    "I2 · every originator's bond is at least its exposure",
+    "I3 · a verified fact backs at most one claim",
+    "I5 · no fact whose source receipt reverted is ever stored"
+  ]
+}
