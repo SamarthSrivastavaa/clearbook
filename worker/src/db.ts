@@ -134,6 +134,33 @@ export class Db {
     return res.rows.length ? toRow(res.rows[0]) : null;
   }
 
+  /**
+   * Re-queues every fact a crash could have stranded.
+   *
+   * `advance()` persists each transition before starting the next, so a hard kill
+   * leaves the row in WAITING_ATTESTATION, PROVED or SUBMITTED. Nothing else ever
+   * moves a row out of those states -- the catch block that would reset it does
+   * not run on SIGKILL -- so without this the fact is orphaned and silently lost.
+   *
+   * Replaying from DISCOVERED is safe, which is the whole point of the design:
+   * proving is read-only, the vault is idempotent, and the unique key mirrors the
+   * on-chain factId. A row already submitted simply re-derives the same factId and
+   * the vault reports it as existing rather than storing it twice.
+   *
+   * This runs at startup only. It assumes a single worker instance: a second
+   * process booting would re-queue rows the first still has in flight. That is the
+   * documented deployment shape (see KNOWN_ISSUES K-021).
+   */
+  async requeueStranded(): Promise<number> {
+    const res = await this.pool.query(
+      `UPDATE facts
+          SET state = 'DISCOVERED',
+              last_error = COALESCE(last_error, 'requeued after restart')
+        WHERE state IN ('WAITING_ATTESTATION', 'PROVED', 'SUBMITTED')`,
+    );
+    return res.rowCount ?? 0;
+  }
+
   async claimNext(states: FactState[], limit = 10): Promise<FactRow[]> {
     // FOR UPDATE SKIP LOCKED so a second worker instance cannot double-process.
     const res = await this.pool.query(

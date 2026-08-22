@@ -826,3 +826,27 @@ The console originally asked the challenger to type a 32-byte fact identifier, w
 
 **Bound:** discovery is limited to the last `VAULT_LOOKBACK_BLOCKS` (20,000) Creditcoin blocks. Measured: a 5,000-block span returns in ~0.85 s, 20,000 in ~4.5 s. See KNOWN_ISSUES K-019.
 
+---
+
+### D-049 · Stranded facts are re-queued at startup - GATE 8a found a real defect - [L]
+
+Gate 8a was written to verify a claim the worker's own header already made: *"Kill the process at any point and the replay is a no-op - no evidence lost, no duplicate submission."* Half of that was false.
+
+`advance()` persists every transition before beginning the next, but `tick()` only ever claimed `DISCOVERED` rows:
+
+```ts
+const pending = await rt.db.claimNext(['DISCOVERED'], 5);
+```
+
+The only other writer of `DISCOVERED` is the in-process `catch` block - which does not run on SIGKILL. So a hard kill left the row in `WAITING_ATTESTATION`, `PROVED` or `SUBMITTED`, and **nothing ever claimed it again**. The fact was silently lost.
+
+This was proven before it was fixed. A real SIGKILL stranded a row in `WAITING_ATTESTATION`; a 45-second restart left it exactly there, and all three in-flight states failed to recover.
+
+**Decision:** `Db.requeueStranded()` runs once at startup and returns any row in a non-terminal in-flight state to `DISCOVERED`.
+
+Replay is safe by construction, which is why this is a two-line fix rather than a redesign: proving is read-only, the unique key mirrors the on-chain `factId`, and the vault is idempotent - a re-submitted fact reports `alreadyExisted: true` and is never stored twice. The measured result confirms it: every factId remained stored **exactly once** across all four crash scenarios.
+
+**Considered and rejected:** adding the in-flight states to `claimNext`. Rows would then be re-claimed while a live `advance()` still held them, turning a crash-recovery mechanism into a concurrency bug.
+
+**Limitation:** the requeue assumes one worker instance. See KNOWN_ISSUES K-021.
+

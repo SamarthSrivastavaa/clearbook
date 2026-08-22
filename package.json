@@ -20,7 +20,9 @@
     "gate4": "tsx integration/gate4-decode.ts",
     "demo:seed": "tsx demo/seed.ts",
     "demo:reset": "tsx demo/reset.ts",
-    "recheck": "tsx integration/recheck-controls.ts"
+    "recheck": "tsx integration/recheck-controls.ts",
+    "gate8a": "tsx integration/gate8a-crash.ts",
+    "worker": "tsx worker/src/main.ts"
   },
   "license": "MIT",
   "dependencies": {

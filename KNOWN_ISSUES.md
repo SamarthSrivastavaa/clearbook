@@ -321,3 +321,17 @@ So the contract always behaved correctly; only the harness could not read what i
 
 `gate5-gate6.json` is left untouched. It is the honest record of what that run observed, and rewriting history to look better is exactly the failure mode this repository is arguing against.
 
+---
+
+### K-021 · The startup requeue assumes a single worker instance
+
+**Class:** bounded limitation, deliberate. **Status:** open, documented, matches the deployment shape.
+
+`Db.requeueStranded()` (D-049) resets every row in `WAITING_ATTESTATION`, `PROVED` or `SUBMITTED` back to `DISCOVERED` at startup. It cannot distinguish "stranded by a crash" from "in flight in another process", so if a second worker booted while the first was mid-pipeline, it would re-queue the first worker's live rows.
+
+**Consequence if it happened:** duplicated *work*, never duplicated *evidence*. Both processes would re-derive the same `factId`, and the vault would store it once and report `alreadyExisted` to the loser. The cost is wasted gas on a second submission attempt, not a corrupted book.
+
+`claimNext` uses `FOR UPDATE SKIP LOCKED`, but the lock is released as soon as that single statement's implicit transaction commits, so it does not in practice prevent two instances from processing the same row either. Neither mechanism makes the worker multi-instance safe, and it is not deployed that way.
+
+**Fix, if it mattered:** lease rows with a `locked_by` / `locked_until` column and requeue only leases that have expired. Not done because the worker is a single-instance orchestrator by design, and because nothing it does is authoritative - the vault, not the worker, decides what is true.
+

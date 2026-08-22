@@ -1,0 +1,26 @@
+{
+  "at": "2026-08-22T09:53:34.160Z",
+  "vault": "0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af",
+  "facts": 5,
+  "killedRow": {
+    "id": "1",
+    "stateAtKill": "WAITING_ATTESTATION"
+  },
+  "statesTested": [
+    "WAITING_ATTESTATION",
+    "PROVED",
+    "SUBMITTED"
+  ],
+  "onChainStoresPerFact": {
+    "0x79838b4d60fe39cbcf50d9810bb27c33836633133e9d07c4f07dc184137d61d5": 1,
+    "0x2d63fb53786303a1a634e24397350f4dc72a0cf6627ba8af6fd4f7a47dad4858": 1,
+    "0xa2d2e377fbd333ef585a2fe6e412f3566a735f340014905bad713593a53edb0e": 1,
+    "0x7989b504d49dce05068e6f0b064967feefa651f30763d862f8ed3cbbb701a758": 1,
+    "0xa81b3f3958bfa4b099bfd63213938250851c25a931ddb222e9b16899b3bf14a6": 1
+  },
+  "stuck": [],
+  "checks": {
+    "failures": 0
+  },
+  "gate8a": true
+}

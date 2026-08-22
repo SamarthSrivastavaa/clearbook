@@ -62,6 +62,11 @@ async function buildRuntime(): Promise<Runtime> {
   const db = new Db(required('DATABASE_URL'));
   await db.migrate();
 
+  // Recover anything a previous crash stranded mid-pipeline, before doing any
+  // new work. Without this a fact killed in flight is never claimed again.
+  const requeued = await db.requeueStranded();
+  if (requeued > 0) log.warn('re-queued facts stranded by a previous crash', { count: requeued });
+
   const watched = [
     process.env.DEMO_TREASURY_ADDRESS,
     process.env.DEMO_BORROWER_ADDRESS,
