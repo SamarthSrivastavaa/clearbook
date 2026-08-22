@@ -18,6 +18,7 @@ import { shortAddress, formatBlock } from '@/lib/format';
 
 const ROUTES = [
   { href: '/book', label: 'Book' },
+  { href: '/registry', label: 'Registry' },
   { href: '/challenge', label: 'Challenge' },
   { href: '/verify', label: 'Verify' },
 ];

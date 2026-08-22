@@ -1,0 +1,35 @@
+{
+  "phase": "P3 — duplicate commitment rejected",
+  "at": "2026-08-22T17:06:47.139Z",
+  "clearbook": "0xCA02D51722947d7a93EDBe398498667bab368315",
+  "establishes": "A verified TransferFact can back at most one credit claim, across all originators.",
+  "doesNotEstablish": "Collateral identity. The same underlying obligation represented by a different transaction is not detected.",
+  "fact": {
+    "factId": "0x381fd23402601eecc14df7785f595488235490ef367e989bc3746f3c56171ac3",
+    "chainKey": 1,
+    "blockHeight": "11538664",
+    "from": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+    "to": "0x293D20928EC6ee153219d37a060Ee7af751B61e0",
+    "amount": "10000000000000000"
+  },
+  "incumbent": {
+    "originatorId": 1,
+    "name": "Meridian Credit Partners",
+    "owner": "0xF474Cd59FEdE99ad147889C8AaC0c4FB049B7CFF",
+    "loanId": "1"
+  },
+  "challenger": {
+    "originatorId": "2",
+    "name": "Northgate Structured Credit",
+    "owner": "0xCC37dc94204D78608d79E24D9cCccd7328a94FD8"
+  },
+  "rejection": {
+    "error": "FactAlreadyUsed",
+    "transaction": "0xc13ced3455f0104e23f599047e86fd7a98b56c7b87ba6f63ec4b90361627b175",
+    "receiptStatus": 0
+  },
+  "checks": {
+    "failures": 0
+  },
+  "pass": true
+}

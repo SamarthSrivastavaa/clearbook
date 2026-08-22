@@ -95,6 +95,50 @@ export const clearbookAbi = [
   },
   {
     "type": "function",
+    "name": "registerLoan",
+    "inputs": [
+      {
+        "name": "originatorId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "borrower",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "principal",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maturityBlock",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "disbursementFactId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "loanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "challenge",
     "inputs": [
       {

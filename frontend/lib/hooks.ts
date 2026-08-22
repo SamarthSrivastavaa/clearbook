@@ -297,7 +297,12 @@ export const VAULT_LOOKBACK_BLOCKS = 20_000n;
 
 export interface VaultFact {
   factId: Hex;
+  /** Which source chain this fact came from, as the precompile keys it. */
+  chainKey: number;
   blockHeight: bigint;
+  txIndex: bigint;
+  /** Transaction-local: an index into this receipt's own log array. */
+  logIndex: number;
   token: Address;
   from: Address;
   to: Address;
@@ -323,7 +328,10 @@ export function useVaultFacts() {
       } as any);
       return logs.map((l: any) => ({
         factId: l.args.factId as Hex,
+        chainKey: Number(l.args.chainKey),
         blockHeight: l.args.blockHeight as bigint,
+        txIndex: l.args.txIndex as bigint,
+        logIndex: Number(l.args.logIndex),
         token: l.args.token as Address,
         from: l.args.from as Address,
         to: l.args.to as Address,
@@ -333,4 +341,43 @@ export function useVaultFacts() {
   });
 
   return { facts: data ?? [], isLoading: enabled && isLoading };
+}
+
+/**
+ * Which claim, if any, has consumed each fact.
+ *
+ * `factConsumedBy` is the registry's load-bearing read: it is what makes
+ * "this evidence is spent" a fact about chain state rather than a label this
+ * application applied. A returned 0 means unconsumed; any other value is the
+ * loan id that committed it.
+ *
+ * Batched as parallel eth_calls — there is no multicall3 on this chain
+ * (see the note at the top of this file), which is fine at registry scale.
+ */
+export function useFactConsumers(factIds: Hex[]): {
+  consumers: Map<string, bigint>;
+  isLoading: boolean;
+} {
+  const { data, isLoading } = useReadContracts({
+    contracts: factIds.map((id) => ({
+      ...clearbookContract,
+      functionName: 'factConsumedBy',
+      args: [id],
+    })) as any,
+    query: { enabled: isDeployed && !!contracts.clearbook && factIds.length > 0 },
+  });
+
+  return useMemo(() => {
+    const consumers = new Map<string, bigint>();
+    if (data) {
+      factIds.forEach((id, i) => {
+        const r = data[i];
+        // A failed read is not "unconsumed" — leaving it absent keeps the
+        // difference between "no claim" and "we could not tell" visible.
+        if (r && r.status === 'success') consumers.set(id.toLowerCase(), r.result as bigint);
+      });
+    }
+    return { consumers, isLoading };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, isLoading, factIds.join(',')]);
 }

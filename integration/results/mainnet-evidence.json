@@ -1,0 +1,36 @@
+{
+  "phase": "P0 — real Ethereum mainnet evidence",
+  "at": "2026-08-22T16:53:03.435Z",
+  "sourceChain": {
+    "name": "Ethereum Mainnet",
+    "chainId": 1,
+    "chainKey": 3
+  },
+  "attestedHeightAtRun": 25811960,
+  "subject": {
+    "txHash": "0x29582881f3f5e726c609257792053bdcf130849478df2f333037fa6d54189c02",
+    "blockNumber": 25811720,
+    "transactionLocalLogIndex": 1,
+    "token": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "tokenSymbol": "USDC",
+    "from": "0xEff6cb8b614999d130E537751Ee99724D01aA167",
+    "to": "0xE0554a476A092703abdB3Ef35c80e0D76d32939F",
+    "amount": "10506417092",
+    "amountHuman": "10,506.42 USDC",
+    "logsInTransaction": 3,
+    "thirdParty": true,
+    "etherscan": "https://etherscan.io/tx/0x29582881f3f5e726c609257792053bdcf130849478df2f333037fa6d54189c02"
+  },
+  "proof": {
+    "merkleSiblings": 8,
+    "continuityRoots": 81,
+    "txBytes": 2624
+  },
+  "vault": "0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af",
+  "factId": "0xfdde6ec93ac15cf44e46ff1f9d1c8e5d21aa079af6bae6816d68292d5b3e7cff",
+  "creditcoinTx": "0xd1166a090deec004982eaa6586a6dbbfa551b49abd072e4462f49f3e9eaeee10",
+  "checks": {
+    "failures": 0
+  },
+  "pass": true
+}

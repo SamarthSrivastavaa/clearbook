@@ -26,6 +26,7 @@ import {
   useTreasuryOwner as useChainTreasuryOwner,
   useBreachEvidence as useChainBreachEvidence,
   useVaultFacts as useChainVaultFacts,
+  useFactConsumers as useChainFactConsumers,
 } from './hooks';
 import type { Loan, Originator, TransferFact } from './protocol';
 import type { VaultFact } from './hooks';
@@ -123,12 +124,39 @@ export function useFactById(factId: Hex | null): {
   }, [factId, chain.fact, chain.exists, chain.isLoading]);
 }
 
+/**
+ * Which claim consumed a fact. Reads `factConsumedBy` from Clearbook.
+ *
+ * Returns 0n for an unconsumed fact and null when the answer is not yet known,
+ * so a caller can distinguish "free to commit" from "still loading".
+ */
 export function useFactConsumer(factId: Hex | null): bigint | null {
+  const ids = useMemo(() => (factId ? [factId] : []), [factId]);
+  const chain = useChainFactConsumers(isPreview ? [] : ids);
+
   if (isPreview) {
     if (!factId) return null;
     return FIXTURE_FACT_CONSUMED_BY[factId.toLowerCase()] ?? 0n;
   }
-  return null;
+  if (!factId) return null;
+  return chain.consumers.get(factId.toLowerCase()) ?? null;
+}
+
+/** Batched form, for the registry. */
+export function useFactConsumers(factIds: Hex[]): {
+  consumers: Map<string, bigint>;
+  isLoading: boolean;
+} {
+  const chain = useChainFactConsumers(isPreview ? [] : factIds);
+
+  if (isPreview) {
+    const consumers = new Map<string, bigint>();
+    for (const id of factIds) {
+      consumers.set(id.toLowerCase(), FIXTURE_FACT_CONSUMED_BY[id.toLowerCase()] ?? 0n);
+    }
+    return { consumers, isLoading: false };
+  }
+  return chain;
 }
 
 export function useBoundTreasuryOwner(address: Address | null) {
@@ -160,7 +188,10 @@ export function useVaultFacts(): { facts: VaultFact[]; isLoading: boolean } {
   if (isPreview) {
     const facts = Object.entries(FIXTURE_FACT_INDEX).map(([factId, f]) => ({
       factId: factId as Hex,
+      chainKey: Number(f.chainKey ?? 1),
       blockHeight: f.blockHeight,
+      txIndex: BigInt(f.txIndex ?? 0),
+      logIndex: Number(f.logIndex ?? 0),
       token: f.token,
       from: f.from,
       to: f.to,
