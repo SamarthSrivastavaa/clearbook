@@ -217,9 +217,11 @@ function SharedEvidence() {
             </div>
           </dl>
 
-          <div className="mt-8">
-            <ConditionArtifact />
-          </div>
+          <p className="mt-8 max-w-xl text-[12px] leading-relaxed text-faint">
+            This establishes that the same <em>evidence</em> cannot be committed twice. It does not
+            establish collateral identity — the same underlying obligation represented by a different
+            transaction is not detected, and Clearbook does not claim otherwise.
+          </p>
         </div>
       </div>
     </section>
