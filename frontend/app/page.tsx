@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 import { LiveSignal } from '@/components/LiveSignal';
 import { ProvenanceCaption, ProvenanceChain } from '@/components/ProvenanceChain';
+import { ClaimArtifact, ConditionArtifact, EvidenceArtifact } from '@/components/Artifacts';
+import { Plate } from '@/components/Plate';
 import { Eyebrow } from '@/components/ui';
 import { PRECOMPILES, SOURCE_CHAIN, contracts, explorer } from '@/lib/config';
 import { shortAddress } from '@/lib/format';
@@ -25,7 +27,18 @@ export default function LandingPage() {
       <div className="mx-auto max-w-[1400px] px-6">
         <LiveSignal />
         <Mechanism />
+      </div>
+
+      <LedgerBand />
+
+      <div className="mx-auto max-w-[1400px] px-6">
         <Covenant />
+      </div>
+
+      <Enforcement />
+
+      <div className="mx-auto max-w-[1400px] px-6">
+        <Preview />
         <Foundation />
         <Limits />
         <Close />
@@ -106,13 +119,13 @@ function Mechanism() {
       n: '01',
       label: 'Source-chain fact',
       claim: 'What the cryptography establishes.',
-      body: 'A transaction was included in an attested block, its receipt succeeded, and that one of its logs was an ERC-20 transfer of a given amount between two addresses. The Creditcoin Block Prover precompile decides this — not us, and not a server.',
+      body: 'A transaction was included in an attested block, its receipt succeeded, and one of its logs was an ERC-20 transfer between two addresses. The Block Prover precompile decides this — not us, and not a server.',
     },
     {
       n: '02',
       label: 'Clearbook interpretation',
       claim: 'What this application decides on top of it.',
-      body: 'That an address was bound to an originator by signature, that this transfer is the disbursement of a particular loan, and whether it satisfies the covenant the originator published and bonded against.',
+      body: 'That an address was bound to an originator by signature, that this transfer is a particular loan’s disbursement, and whether it satisfies the covenant that originator bonded against.',
     },
     {
       n: '03',
@@ -123,7 +136,7 @@ function Mechanism() {
   ];
 
   return (
-    <section className="py-20">
+    <section className="py-16">
       <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
         <div>
           <Eyebrow>The distinction</Eyebrow>
@@ -159,7 +172,7 @@ function Mechanism() {
 /** Declared rule versus observed evidence — the covenant made legible. */
 function Covenant() {
   return (
-    <section className="rule-t py-20">
+    <section className="rule-t py-16">
       <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
         <div>
           <Eyebrow>The covenant</Eyebrow>
@@ -203,14 +216,21 @@ function Covenant() {
           </div>
 
           <div className="bg-paper p-7 sm:col-span-2">
-            <div className="flex flex-wrap items-baseline justify-between gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-6">
               <div>
                 <Eyebrow>Result</Eyebrow>
-                <div className="mt-3 flex items-baseline gap-3">
-                  <span className="status text-breach">Covenant breached</span>
-                </div>
+                {/* The loudest thing this system does. Rendering it as another
+                    small row understated it by an order of magnitude. */}
+                <p className="verdict verdict-breach mt-3">
+                  <span className="inline-block h-[0.9em] w-[3px] shrink-0 bg-breach" aria-hidden />
+                  Covenant breached
+                </p>
+                <p className="mt-3 max-w-sm text-[13px] leading-relaxed text-muted">
+                  All eleven conditions held. The bond was slashed in the same transaction that
+                  proved it.
+                </p>
               </div>
-              <p className="max-w-xl text-[12px] leading-relaxed text-faint">
+              <p className="max-w-sm text-[12px] leading-relaxed text-faint">
                 A breach establishes that two verified transfers occurred in a specific relationship,
                 and therefore that the originator&rsquo;s own published rule was not met. It does not
                 establish intent, control of either address, the existence of an off-chain loan, or
@@ -219,6 +239,159 @@ function Covenant() {
             </div>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * A full-bleed plate, and one sentence.
+ *
+ * The page needed somewhere to rest. Everything around it is dense — ledgers,
+ * expressions, addresses — and a reader who never gets a pause stops reading.
+ * The image carries no information: it is paper, photographed, because that is
+ * what this product is a book of.
+ */
+function LedgerBand() {
+  return (
+    <section className="relative isolate mt-4 overflow-hidden">
+      <Plate name="ledger" className="absolute inset-0 -z-10 h-full w-full" tone="light" />
+      {/* Scrim: the statement has to stay legible whatever the photograph does. */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-deep/92 via-deep/70 to-deep/25" aria-hidden />
+
+      <div className="mx-auto max-w-[1400px] px-6 py-20 lg:py-24">
+        <p className="statement max-w-xl text-onDeep">
+          Every claim on this book points at something that already happened somewhere else — and
+          anyone can go and check it.
+        </p>
+        <p className="mt-4 max-w-md text-[13px] leading-relaxed text-onDeepMuted">
+          The evidence is ordinary ERC-20 transfers on a token we do not control, on a chain we did
+          not deploy to.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Enforcement — the consequence, on a dark band.
+ *
+ * Placed here for two reasons. Narratively it is the payoff: the covenant was
+ * broken, and this is what the protocol did about it. Compositionally the page
+ * needed a beat — without it the hero is the only moment of contrast and
+ * everything after it reads as one uninterrupted grey column.
+ */
+function Enforcement() {
+  const ledger: Array<[string, string, string]> = [
+    ['Originator bond', '−1.0 tCTC', 'slashed in full'],
+    ['Challenger', '+0.5 tCTC', 'paid on success'],
+    ['Protocol sink', '+0.5 tCTC', 'burn address'],
+  ];
+
+  return (
+    <section className="band-deep relative isolate mt-20 overflow-hidden">
+      {/* Depth, not decoration: the band is flat black otherwise, and this is the
+          one place where institutional weight is the point. */}
+      <Plate name="archive" className="absolute inset-0 -z-10 h-full w-full opacity-25" tone="deep" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-deep via-deep/94 to-deep/80" aria-hidden />
+
+      <div className="mx-auto grid max-w-[1400px] gap-14 px-6 py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:py-24">
+        <div className="flex flex-col">
+          <Eyebrow>Enforcement</Eyebrow>
+          <h2 className="display-lg mt-4 text-onDeep">
+            One transaction.
+            <br />
+            No arbitrator.
+          </h2>
+          <p className="prose-lead mt-5 max-w-md text-onDeepMuted">
+            There is no dispute period, no vote, no committee, and no appeal — because there is
+            nothing to deliberate. The conditions are arithmetic over evidence the chain already
+            verified, so the contract can settle them itself.
+          </p>
+
+          <dl className="mt-10 border-t border-[#2e2c25]">
+            {ledger.map(([k, v, note]) => (
+              <div
+                key={k}
+                className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-b border-[#2e2c25] py-4"
+              >
+                <dt className="min-w-[9.5rem] text-[13px] text-onDeepMuted">{k}</dt>
+                <dd className="tnum font-mono text-[15px] font-medium text-onDeep">{v}</dd>
+                <dd className="ml-auto text-[12px] text-onDeepMuted">{note}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <p className="mt-6 max-w-md text-[12px] leading-relaxed text-onDeepMuted">
+            Half the slashed bond pays whoever proved it; half is burned. The challenger posts no
+            bond of their own, so an invalid challenge costs them gas and nothing else.
+          </p>
+        </div>
+
+        <div className="flex flex-col lg:pt-2">
+          <Eyebrow>What the contract checked</Eyebrow>
+          <div className="mt-5">
+            <ConditionArtifact onDeep />
+          </div>
+          <p className="mt-6 max-w-md text-[12px] leading-relaxed text-onDeepMuted">
+            One of eleven. Each is a named condition with its own error, so a failed challenge tells
+            you precisely which one refused it — not simply that it did.
+          </p>
+          {/* Bottom-aligned so the column closes level with the ledger opposite,
+              rather than leaving the band visibly unbalanced. */}
+          <Link
+            href="/challenge"
+            className="mt-8 inline-flex self-start text-[13px] text-onDeep underline decoration-[#4a4638] underline-offset-[6px] transition-colors hover:decoration-onDeep lg:mt-auto"
+          >
+            Open the challenge console →
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The product itself, quoted.
+ *
+ * Everything above argues that this system is real. This shows it. The two
+ * panels are the application's own components rendered with values from the
+ * breach that executed on-chain — markup, not screenshots, so they cannot drift
+ * from what the app actually does.
+ */
+function Preview() {
+  return (
+    <section className="rule-t py-16">
+      <div className="max-w-2xl">
+        <Eyebrow>The interface</Eyebrow>
+        <h2 className="display-lg mt-4">Built to be read closely.</h2>
+        <p className="prose-lead mt-5">
+          A credit analyst should be able to follow it, and a protocol engineer should be able to
+          drill to the log index. The same screen serves both, because the difference between them
+          is depth, not a different set of facts.
+        </p>
+      </div>
+
+      <div className="mt-12 grid items-start gap-8 lg:grid-cols-2">
+        <div>
+          <ClaimArtifact />
+          <p className="mt-4 max-w-md text-[13px] leading-relaxed text-muted">
+            Status, covenant, and the evidence cited. Nothing self-reported.
+          </p>
+        </div>
+        <div>
+          <EvidenceArtifact />
+          <p className="mt-4 max-w-md text-[13px] leading-relaxed text-muted">
+            The transaction, its receipt status, and the transaction-local log index — the
+            coordinates the replay key is computed over.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-10">
+        <Link href="/book" className="link text-[14px]">
+          Open the credit book →
+        </Link>
       </div>
     </section>
   );
@@ -243,7 +416,7 @@ function Foundation() {
     {
       k: 'Replay key',
       v: <span className="ident">chainKey · block · txIndex · logIndex</span>,
-      note: 'Log-level, stricter than the reference implementation. One transaction can carry many relevant transfers.',
+      note: 'Log-level, stricter than the reference. One transaction can carry many relevant transfers.',
     },
     {
       k: 'Receipt status',
@@ -258,12 +431,12 @@ function Foundation() {
     {
       k: 'Evidence latency',
       v: <span className="tnum text-[13px]">~8–10 min</span>,
-      note: 'Measured, not quoted. Attestors attest finalized blocks; that wait is the security property.',
+      note: 'Measured, not quoted. The wait is the security property.',
     },
   ];
 
   return (
-    <section className="rule-t py-20">
+    <section className="rule-t py-16">
       <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
         <div>
           <Eyebrow>Technical foundation</Eyebrow>
@@ -277,8 +450,12 @@ function Foundation() {
             backend&rdquo; — which is the thing being eliminated. Money is slashed on these facts, so
             a server&rsquo;s assertion is not an acceptable basis.
           </p>
+          {/* Fills the column's dead space with the one image that is literally
+              about authentication rather than atmosphere. */}
+          <Plate name="seal" className="mt-9 aspect-[4/3] w-full max-w-[300px]" />
+
           {contracts.clearbook ? (
-            <div className="mt-7">
+            <div className="mt-8">
               <Eyebrow className="mb-2">Deployed</Eyebrow>
               <a
                 href={explorer.ccAddress(contracts.clearbook)}
@@ -310,43 +487,54 @@ function Foundation() {
 }
 
 function Limits() {
-  const limits = [
-    ['The covenant is bounded, not universal', 'An originator that funds a payer from an address it never binds does not breach it. Detection is depth-1 by construction — which is why the rule is framed as a covenant the originator chose, not as fraud detection.'],
-    ['Absence is unprovable', 'Merkle inclusion proofs cannot show that a transaction did not occur. Clearbook never certifies a book as clean; it makes specific claims refutable.'],
-    ['An address is not an entity', 'A bound treasury is an address that produced a signature. Nothing more.'],
-    ['Ethereum only', 'Sepolia and Ethereum Mainnet are the source chains the attestor set supports today.'],
+  const limits: Array<[string, string]> = [
+    [
+      'The covenant is bounded, not universal',
+      'An originator that funds a payer from an address it never binds does not breach it. Detection is depth-1 by construction — which is why the rule is framed as a covenant the originator chose, not as fraud detection.',
+    ],
+    [
+      'Absence is unprovable',
+      'Merkle inclusion proofs cannot show that a transaction did not occur. Clearbook never certifies a book as clean; it makes specific claims refutable.',
+    ],
+    [
+      'An address is not an entity',
+      'A bound treasury is an address that produced a signature. Nothing more.',
+    ],
+    [
+      'Ethereum only',
+      'Sepolia and Ethereum Mainnet are the source chains the attestor set supports today.',
+    ],
   ];
 
+  // Composed deliberately unlike the specification table above it: no rules, no
+  // two-column ledger, more air. This section is the product declining to claim
+  // things, and it should read quieter than the section that makes claims.
   return (
-    <section className="rule-t py-20">
-      <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-        <div>
-          <Eyebrow>Honest limits</Eyebrow>
-          <h2 className="display-lg mt-4">What this
-            <br />
-            cannot do.</h2>
-          <p className="prose-lead mt-5 max-w-sm">
-            Stated here rather than buried, because a system that claims less and proves it is worth
-            more than one that claims everything.
-          </p>
-        </div>
-
-        <dl className="rule-t">
-          {limits.map(([k, v]) => (
-            <div key={k} className="rule-b grid gap-3 py-5 sm:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-              <dt className="text-[13px] font-medium">{k}</dt>
-              <dd className="text-[13px] leading-relaxed text-muted">{v}</dd>
-            </div>
-          ))}
-        </dl>
+    <section className="rule-t py-16">
+      <div className="max-w-2xl">
+        <Eyebrow>Honest limits</Eyebrow>
+        <h2 className="display-lg mt-4">What this cannot do.</h2>
+        <p className="prose-lead mt-5">
+          Stated here rather than buried, because a system that claims less and proves it is worth
+          more than one that claims everything.
+        </p>
       </div>
+
+      <ul className="mt-14 grid gap-x-16 gap-y-12 sm:grid-cols-2">
+        {limits.map(([k, v]) => (
+          <li key={k} className="max-w-md">
+            <h3 className="statement">{k}</h3>
+            <p className="mt-3 text-[13px] leading-relaxed text-muted">{v}</p>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
 
 function Close() {
   return (
-    <section className="rule-t py-20">
+    <section className="rule-t py-16">
       <div className="flex flex-wrap items-end justify-between gap-10">
         <div className="max-w-xl">
           <h2 className="display-lg">

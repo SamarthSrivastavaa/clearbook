@@ -8,11 +8,15 @@ import { useBookLoans, useBookOriginators } from '@/lib/data';
 import { LoanStatus } from '@/lib/protocol';
 
 /**
- * Live protocol state on the landing page.
+ * Live protocol state, read from Creditcoin on every load.
  *
- * These are chain reads, not marketing figures. If the book is empty it says so
- * rather than showing an impressive zero — a landing page that invents numbers
- * would contradict the entire product.
+ * Written as a sentence rather than a row of large figures. Four big numbers
+ * under a hero is the dashboard reflex, and it says nothing: the point is not
+ * that there are four claims, it is that this page is reading a live chain and
+ * will say so honestly when the book is empty.
+ *
+ * If the book is empty it says that, rather than showing an impressive zero. A
+ * landing page that invented numbers would contradict the entire product.
  */
 export function LiveSignal() {
   const { loans, isLoading } = useBookLoans();
@@ -22,56 +26,56 @@ export function LiveSignal() {
   const claimed = loans.filter((l) => l.status === LoanStatus.REPAYMENT_CLAIMED).length;
   const bonded = originators.reduce((sum, o) => sum + o.bond, 0n);
 
-  const cells: Array<{ label: string; value: string; hint: string }> = [
-    {
-      label: 'Claims on the book',
-      value: isLoading ? '—' : String(loans.length),
-      hint: 'each backed by verified evidence',
-    },
-    {
-      label: 'Open to challenge',
-      value: isLoading ? '—' : String(claimed),
-      hint: 'anyone may challenge these',
-    },
-    {
-      label: 'Covenants breached',
-      value: isLoading ? '—' : String(breached),
-      hint: breached > 0 ? 'proven on-chain, bond slashed' : 'none proven',
-    },
-    {
-      label: 'Bond at stake',
-      value: isLoading ? '—' : `${formatCtc(bonded, 2)} tCTC`,
-      hint: 'what the originator has to lose',
-    },
-  ];
-
   return (
-    <section className="rule-t rule-b">
-      <div className="flex items-baseline justify-between gap-4 py-3">
-        <Eyebrow>Live protocol state</Eyebrow>
-        <span className="flex items-center gap-2 text-[11px] text-faint">
-          <span className="inline-block h-1.5 w-1.5 bg-verified" aria-hidden />
-          read from Creditcoin CC3, not cached
+    <section className="rule-b flex flex-wrap items-baseline gap-x-8 gap-y-3 py-4">
+      <span className="flex items-center gap-2.5">
+        <span className="relative flex h-1.5 w-1.5" aria-hidden>
+          <span className="absolute inline-flex h-full w-full animate-live bg-verified" />
         </span>
-      </div>
+        <Eyebrow>Live on Creditcoin CC3</Eyebrow>
+      </span>
 
-      <dl className="grid grid-cols-2 divide-x divide-rule border-t border-rule lg:grid-cols-4">
-        {cells.map((c) => (
-          <div key={c.label} className="px-5 py-5 first:pl-0">
-            <dt className="eyebrow">{c.label}</dt>
-            <dd className="tnum mt-2 text-[26px] font-semibold leading-none tracking-tight">
-              {c.value}
-            </dd>
-            <p className="mt-1.5 text-[11px] text-faint">{c.hint}</p>
-          </div>
-        ))}
-      </dl>
+      {isLoading ? (
+        <span className="text-[13px] text-faint">Reading the book…</span>
+      ) : loans.length === 0 ? (
+        <span className="text-[13px] text-muted">
+          No claims are registered yet. This page reads the contracts directly, so it will stay
+          empty until one is.
+        </span>
+      ) : (
+        <p className="text-[13px] leading-relaxed text-muted">
+          <Figure>{loans.length}</Figure> claims on the book, each citing verified evidence
+          {claimed > 0 ? (
+            <>
+              {' · '}
+              <Figure>{claimed}</Figure> open to challenge by anyone
+            </>
+          ) : null}
+          {breached > 0 ? (
+            <>
+              {' · '}
+              <Figure tone="breach">{breached}</Figure> proven breached and slashed
+            </>
+          ) : null}
+          {' · '}
+          <Figure>{formatCtc(bonded, 2)} tCTC</Figure> of bond at stake
+        </p>
+      )}
 
-      <div className="py-3">
-        <Link href="/book" className="link text-[13px]">
-          Open the book →
-        </Link>
-      </div>
+      <Link href="/book" className="link ml-auto shrink-0 text-[13px]">
+        Open the book →
+      </Link>
     </section>
+  );
+}
+
+/** A live figure, given just enough weight to be read as data rather than prose. */
+function Figure({ children, tone }: { children: React.ReactNode; tone?: 'breach' }) {
+  return (
+    <span
+      className={`tnum font-mono text-[13px] font-medium ${tone === 'breach' ? 'text-breach' : 'text-ink'}`}
+    >
+      {children}
+    </span>
   );
 }

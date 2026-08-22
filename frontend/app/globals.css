@@ -148,6 +148,104 @@
     color: var(--color-muted);
   }
 
+  /* The step the scale was missing. Between a section heading and body copy
+     there was nothing, so hierarchy had two levels and a cliff. This is the
+     size for a sentence that carries weight without becoming a heading. */
+  .display-sm {
+    font-size: 1.0625rem;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+
+  .statement {
+    font-size: clamp(1.125rem, 1.6vw, 1.5rem);
+    line-height: 1.4;
+    letter-spacing: -0.014em;
+    font-weight: 500;
+  }
+
+  /* ---------- product artifacts ---------- */
+
+  /*
+   * A fragment of the real interface, quoted inside a narrative page.
+   *
+   * The landing page argues that the system is real; the most direct way to
+   * support that is to show the system rather than describe it. These are
+   * rendered from the same primitives the app uses -- not screenshots, so they
+   * stay correct when the app changes, and stay crisp at any zoom.
+   */
+  .artifact {
+    background: var(--color-surface);
+    border: 1px solid var(--color-rule);
+    box-shadow: 0 1px 2px rgb(23 22 15 / 0.03), 0 8px 24px -12px rgb(23 22 15 / 0.08);
+  }
+
+  .artifact-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    border-bottom: 1px solid var(--color-rule);
+    background: var(--color-sunken);
+  }
+
+  /* On the dark bands the same artifact has to hold its own without going grey. */
+  .artifact-onDeep {
+    background: #1c1b16;
+    border-color: #33312a;
+    box-shadow: none;
+  }
+
+  .artifact-onDeep .artifact-bar {
+    background: #232219;
+    border-color: #33312a;
+  }
+
+  /* ---------- dark bands ---------- */
+
+  /*
+   * The page needs a beat. Without this the hero is the only moment of contrast
+   * and everything after it reads as one uninterrupted grey column.
+   */
+  .band-deep {
+    background: var(--color-deep);
+    color: var(--color-onDeep);
+  }
+
+  .band-deep .eyebrow {
+    color: var(--color-onDeepMuted);
+  }
+
+  .rule-onDeep {
+    border-color: #2e2c25;
+  }
+
+  /* ---------- consequence ---------- */
+
+  /*
+   * A protocol outcome, given the weight it actually carries. A slashed bond is
+   * the loudest thing this system does; rendering it as another 11px row was the
+   * single biggest mismatch between importance and presentation.
+   */
+  .verdict {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.625rem;
+    font-size: clamp(1.125rem, 2vw, 1.625rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  .verdict-breach {
+    color: var(--color-breach);
+  }
+
+  .verdict-verified {
+    color: var(--color-verified);
+  }
+
   /* ---------- technical identifiers ---------- */
 
   /* Hashes, addresses, keys. Never body text. */
@@ -328,4 +426,59 @@
 
 .animate-working {
   animation: working 1.4s ease-in-out infinite;
+}
+
+/* The live indicator. A slow, low-amplitude pulse: enough to read as "this is
+   reading a chain right now", not enough to pull the eye while someone is
+   trying to read the sentence beside it. */
+@keyframes live {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.animate-live {
+  animation: live 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-live,
+  .animate-working {
+    animation: none;
+  }
+}
+
+/* ---------- photographic plates ---------- */
+
+/*
+ * The stand-in a plate renders before its photograph exists: a ruled field, the
+ * same material the real imagery is drawn from. It reads as deliberate paper
+ * rather than as a missing asset, so the page is never broken mid-production.
+ */
+.plate-fallback {
+  background-color: var(--color-sunken);
+  background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 13px,
+      var(--color-rule) 13px,
+      var(--color-rule) 14px
+    ),
+    linear-gradient(105deg, rgb(23 22 15 / 0.05) 0%, transparent 42%, rgb(23 22 15 / 0.07) 100%);
+}
+
+.plate-fallback-deep {
+  background-color: #1c1b16;
+  background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 13px,
+      #2b2921 13px,
+      #2b2921 14px
+    ),
+    linear-gradient(105deg, rgb(0 0 0 / 0.35) 0%, transparent 42%, rgb(0 0 0 / 0.4) 100%);
 }

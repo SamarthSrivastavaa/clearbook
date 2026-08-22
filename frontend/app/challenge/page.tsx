@@ -396,38 +396,105 @@ function FactPicker({
   );
 }
 
+/**
+ * The eleven conditions, grouped by what they actually test.
+ *
+ * A flat list of eleven is technically complete and cognitively useless: a
+ * reader cannot tell which failure is a formatting mistake and which is the
+ * covenant genuinely not being met. The grouping is presentation only — the
+ * predicate is untouched, the numbering is the contract's, and every condition
+ * keeps its expression and its named error.
+ */
+const GROUPS: Array<{ name: string; blurb: string; ns: number[] }> = [
+  { name: 'Eligibility', blurb: 'Whether this claim can be challenged at all.', ns: [1, 2] },
+  { name: 'Identity', blurb: 'The parties must be the parties the covenant names.', ns: [3, 5, 6] },
+  { name: 'Value', blurb: 'The same token, and enough of it.', ns: [4, 7] },
+  { name: 'Timing', blurb: 'Funding before repayment, inside the published window.', ns: [8, 9] },
+  { name: 'Distinct evidence', blurb: 'The cited fact must be a genuinely separate leg.', ns: [10, 11] },
+];
+
 function ConditionList({ conditions }: { conditions: ConditionResult[] }) {
+  const byN = new Map(conditions.map((c) => [c.n, c]));
+
   return (
-    <ol className="rule-t">
-      {conditions.map((c) => (
-        <li key={c.n} className="rule-b flex gap-4 py-3">
-          <span
-            className={`mt-0.5 w-4 shrink-0 text-center text-[12px] font-semibold ${
-              c.status === 'pass' ? 'text-verified' : c.status === 'fail' ? 'text-breach' : 'text-faint'
-            }`}
-            aria-hidden
-          >
-            {c.status === 'pass' ? '✓' : c.status === 'fail' ? '✕' : '·'}
-          </span>
-          <span className="ident w-5 shrink-0 pt-px text-[11px]">{c.n}</span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[13px] leading-snug">{c.title}</span>
-            <code className="mt-1 block font-mono text-[11px] leading-relaxed text-faint">
-              {c.formal}
-            </code>
-            {c.status === 'fail' ? (
-              <span className="mt-1.5 block text-[12px] text-breach">
-                {c.observed ? `Observed: ${c.observed}. ` : ''}Reverts{' '}
-                <code className="font-mono">{c.errorName}</code>.
+    <div className="rule-t">
+      {GROUPS.map((g) => {
+        const items = g.ns.map((n) => byN.get(n)).filter((c): c is ConditionResult => !!c);
+        if (items.length === 0) return null;
+
+        const failed = items.filter((c) => c.status === 'fail').length;
+        const passed = items.filter((c) => c.status === 'pass').length;
+        const tone =
+          failed > 0 ? 'text-breach' : passed === items.length ? 'text-verified' : 'text-faint';
+
+        return (
+          <section key={g.name} className="rule-b py-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <div className="flex items-baseline gap-3">
+                <span
+                  className={`inline-block h-2.5 w-[2px] shrink-0 ${
+                    failed > 0 ? 'bg-breach' : passed === items.length ? 'bg-verified' : 'bg-rule-strong'
+                  }`}
+                  aria-hidden
+                />
+                <h4 className="text-[13px] font-medium">{g.name}</h4>
+                <span className="text-[12px] text-faint">{g.blurb}</span>
+              </div>
+              <span className={`tnum text-[11px] font-medium ${tone}`}>
+                {failed > 0
+                  ? `${failed} not satisfied`
+                  : passed === items.length
+                    ? `${passed} of ${items.length} satisfied`
+                    : `${passed} of ${items.length}`}
               </span>
-            ) : null}
-            <span className="sr-only">
-              {c.status === 'pass' ? 'satisfied' : c.status === 'fail' ? 'not satisfied' : 'unknown'}
-            </span>
-          </span>
-        </li>
-      ))}
-    </ol>
+            </div>
+
+            <ol className="mt-2.5 pl-[11px]">
+              {items.map((c) => (
+                <li key={c.n} className="flex gap-3.5 border-l border-rule py-2 pl-4">
+                  <span
+                    className={`mt-0.5 w-3.5 shrink-0 text-center text-[12px] font-semibold ${
+                      c.status === 'pass'
+                        ? 'text-verified'
+                        : c.status === 'fail'
+                          ? 'text-breach'
+                          : 'text-faint'
+                    }`}
+                    aria-hidden
+                  >
+                    {c.status === 'pass' ? '✓' : c.status === 'fail' ? '✕' : ''}
+                  </span>
+                  <span className="ident w-4 shrink-0 pt-px text-[11px] text-faint">{c.n}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] leading-snug">{c.title}</span>
+                    <code className="mt-1 block font-mono text-[11px] leading-relaxed text-faint">
+                      {c.formal}
+                    </code>
+                    {c.status === 'fail' ? (
+                      <span className="mt-1.5 block text-[12px] leading-relaxed text-breach">
+                        {c.observed ? (
+                          <>
+                            Observed <span className="tnum font-mono">{c.observed}</span>.{' '}
+                          </>
+                        ) : null}
+                        Reverts <code className="font-mono">{c.errorName}</code>.
+                      </span>
+                    ) : null}
+                    <span className="sr-only">
+                      {c.status === 'pass'
+                        ? 'satisfied'
+                        : c.status === 'fail'
+                          ? 'not satisfied'
+                          : 'not yet evaluated'}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        );
+      })}
+    </div>
   );
 }
 

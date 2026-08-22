@@ -376,8 +376,13 @@ function CovenantPanel({
             <div>
               <Eyebrow>Result</Eyebrow>
               <div className="mt-3">
+                {/* A slashed bond is the loudest outcome in the product; it gets
+                    the same weight here as it does on the landing page. */}
                 {breached ? (
-                  <Status tone="breach">Covenant breached</Status>
+                  <p className="verdict verdict-breach">
+                    <span className="inline-block h-[0.9em] w-[3px] shrink-0 bg-breach" aria-hidden />
+                    Covenant breached
+                  </p>
                 ) : hasFact(loan.repaymentFactId) ? (
                   <Status tone="pending">Not disproven</Status>
                 ) : (
