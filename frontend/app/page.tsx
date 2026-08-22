@@ -352,6 +352,7 @@ function Enforcement() {
       {/* Depth, not decoration: the band is flat black otherwise, and this is the
           one place where institutional weight is the point. */}
       <Plate name="archive" className="absolute inset-0 -z-10 h-full w-full opacity-25" tone="deep" />
+      <div className="band-grid band-grid-fade absolute inset-0 -z-10" aria-hidden />
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-deep via-deep/94 to-deep/80" aria-hidden />
 
       <div className="mx-auto grid max-w-[1400px] gap-14 px-6 py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:py-24">
@@ -580,9 +581,12 @@ function Limits() {
       </div>
 
       <ul className="mt-14 grid gap-x-16 gap-y-12 sm:grid-cols-2">
-        {limits.map(([k, v]) => (
-          <li key={k} className="max-w-md">
-            <h3 className="statement">{k}</h3>
+        {limits.map(([k, v], n) => (
+          <li key={k} className="max-w-md border-t border-rule pt-5">
+            <span className="ident text-[11px] text-faint">
+              {String(n + 1).padStart(2, '0')}
+            </span>
+            <h3 className="statement mt-2">{k}</h3>
             <p className="mt-3 text-[13px] leading-relaxed text-muted">{v}</p>
           </li>
         ))}

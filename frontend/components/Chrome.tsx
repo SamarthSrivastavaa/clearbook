@@ -21,6 +21,7 @@ const ROUTES = [
   { href: '/registry', label: 'Registry' },
   { href: '/challenge', label: 'Challenge' },
   { href: '/verify', label: 'Verify' },
+  { href: '/docs', label: 'Docs' },
 ];
 
 function NetworkState() {

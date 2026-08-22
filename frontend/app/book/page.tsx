@@ -63,7 +63,9 @@ export default function BookPage() {
 
       <header>
         <Eyebrow>Credit book</Eyebrow>
-        <h1 className="display-lg mt-2">{primary ? primary.name : 'The Book'}</h1>
+        <h1 className="display-lg mt-2">
+          {originators.length > 1 ? 'The shared book' : primary ? primary.name : 'The Book'}
+        </h1>
 
         <BookState
           loans={loans}
@@ -73,12 +75,27 @@ export default function BookPage() {
         />
 
         <p className="mt-5 max-w-2xl text-[12px] leading-relaxed text-faint">
-          Every claim below cites a source-chain transfer whose inclusion was verified by the
-          Creditcoin Block Prover precompile. Nothing on this page is self-reported.
+          {originators.length > 1
+            ? `${originators.length} originators, one evidence namespace. Every claim below cites a source-chain transfer verified by the Creditcoin Block Prover precompile, and no transfer may back more than one claim.`
+            : 'Every claim below cites a source-chain transfer whose inclusion was verified by the Creditcoin Block Prover precompile. Nothing on this page is self-reported.'}
         </p>
       </header>
 
-      {primary && params ? <PositionStrip originator={primary} bondPerLoan={params.bondPerLoan} /> : null}
+      {params && originators.length > 0 ? (
+        <section>
+          <div className="rule-b flex items-baseline justify-between gap-4 pb-2">
+            <Eyebrow>Originators</Eyebrow>
+            <span className="text-[11px] text-faint">
+              Each posts its own bond and publishes its own covenant
+            </span>
+          </div>
+          <div className="grid gap-px bg-rule lg:grid-cols-2">
+            {originators.map((o) => (
+              <PositionStrip key={o.id.toString()} originator={o} bondPerLoan={params.bondPerLoan} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {isPreview ? <ScenarioGuide /> : null}
 
@@ -198,47 +215,54 @@ function BookState({
   );
 }
 
-/** The originator's position, as a definition strip. Not cards. */
+/**
+ * One originator's position.
+ *
+ * Rendered per originator rather than for the first one only: the book now holds
+ * more than one institution, and a page that silently showed a single fund's
+ * bond while listing everyone's claims would misstate who is exposed to what.
+ */
 function PositionStrip({ originator, bondPerLoan }: { originator: Originator; bondPerLoan: bigint }) {
   const free = originator.bond - originator.exposure;
   const openLoans = bondPerLoan > 0n ? originator.exposure / bondPerLoan : 0n;
 
-  const items: Array<{ label: string; value: React.ReactNode; hint?: string }> = [
-    { label: 'Bond posted', value: `${formatCtc(originator.bond)} tCTC` },
-    {
-      label: 'Exposure',
-      value: `${formatCtc(originator.exposure)} tCTC`,
-      hint: `${openLoans} open loan${openLoans === 1n ? '' : 's'}`,
-    },
-    { label: 'Free bond', value: `${formatCtc(free)} tCTC` },
-    {
-      label: 'Covenant',
-      value: 'CIRCULAR_REPAYMENT',
-      hint: originator.covenants & 0x01 ? 'opted in, immutable' : 'not opted in',
-    },
-    {
-      label: 'Circular window',
-      value: `${formatBlock(originator.circularWindow)} blocks`,
-      hint: 'source chain',
-    },
-    {
-      label: 'Challenge window',
-      value: `${formatBlock(originator.challengeWindow)} blocks`,
-      hint: blocksToApproxDuration(BigInt(originator.challengeWindow)),
-    },
+  const figures: Array<[string, string, string?]> = [
+    ['Bond posted', `${formatCtc(originator.bond)} tCTC`],
+    ['Exposure', `${formatCtc(originator.exposure)} tCTC`, `${openLoans} open`],
+    ['Free bond', `${formatCtc(free)} tCTC`],
   ];
 
   return (
-    <div className="rule-t rule-b grid grid-cols-2 divide-x divide-rule sm:grid-cols-3 lg:grid-cols-6">
-      {items.map((item) => (
-        <div key={item.label} className="px-4 py-4 first:pl-0">
-          <Eyebrow>{item.label}</Eyebrow>
-          <div className="tnum mt-1.5 text-[15px] font-medium">{item.value}</div>
-          {item.hint ? (
-            <div className="mt-0.5 text-[11px] text-faint">{item.hint}</div>
-          ) : null}
+    <div className="bg-paper p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h3 className="display-sm">{originator.name}</h3>
+        <span className="text-[11px] text-faint">
+          {originator.covenants & 0x01 ? 'CIRCULAR_REPAYMENT · immutable' : 'no covenant'}
+        </span>
+      </div>
+
+      <dl className="mt-5 grid grid-cols-3 gap-x-6 border-t border-rule pt-4">
+        {figures.map(([k, v, hint]) => (
+          <div key={k}>
+            <dt className="eyebrow">{k}</dt>
+            <dd className="tnum mt-1.5 text-[15px] font-medium">{v}</dd>
+            {hint ? <dd className="mt-0.5 text-[11px] text-faint">{hint}</dd> : null}
+          </div>
+        ))}
+      </dl>
+
+      <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-1 border-t border-rule pt-3">
+        <div className="flex items-baseline gap-2">
+          <dt className="text-[11px] text-faint">Circular window</dt>
+          <dd className="tnum font-mono text-[12px]">{formatBlock(originator.circularWindow)} blocks</dd>
         </div>
-      ))}
+        <div className="flex items-baseline gap-2">
+          <dt className="text-[11px] text-faint">Challenge window</dt>
+          <dd className="tnum font-mono text-[12px]">
+            {formatBlock(originator.challengeWindow)} blocks · {blocksToApproxDuration(BigInt(originator.challengeWindow))}
+          </dd>
+        </div>
+      </dl>
     </div>
   );
 }
@@ -269,10 +293,19 @@ function LoanTable({
       </div>
 
       <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:px-0">
-        <table className="w-full min-w-[620px] border-collapse text-left">
+        <table className="w-full min-w-[780px] table-fixed border-collapse text-left">
+          <colgroup>
+            <col className="w-[9%]" />
+            <col className="w-[21%]" />
+            <col className="w-[15%]" />
+            <col className="w-[12%]" />
+            <col className="w-[10%]" />
+            <col className="w-[19%]" />
+            <col className="w-[14%]" />
+          </colgroup>
         <thead>
           <tr className="rule-b">
-            {['Loan', 'Borrower', 'Principal', 'Token', 'Status', 'Window'].map((h, i) => (
+            {['Loan', 'Originator', 'Borrower', 'Principal', 'Token', 'Status', 'Window'].map((h, i) => (
               <th
                 key={h}
                 scope="col"
@@ -309,6 +342,11 @@ function LoanTable({
                   >
                     L-{loan.id.toString().padStart(3, '0')}
                   </Link>
+                </td>
+                <td className="py-3.5">
+                  <span className="text-[12px]">
+                    {originator ? originator.name : <span className="text-faint">unknown</span>}
+                  </span>
                 </td>
                 <td className="py-3.5">
                   <a

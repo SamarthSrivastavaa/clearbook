@@ -356,12 +356,12 @@
     border-color: #4a4638;
   }
   .rail-dark .rail-node[data-state='done']::before {
-    background: #5f9d97;
-    border-color: #5f9d97;
+    background: var(--color-onDeepVerified);
+    border-color: var(--color-onDeepVerified);
   }
   .rail-dark .rail-node[data-state='breach']::before {
-    background: #e0836f;
-    border-color: #e0836f;
+    background: var(--color-onDeepBreach);
+    border-color: var(--color-onDeepBreach);
   }
 
   /* ---------- registers ---------- */
@@ -481,4 +481,42 @@
       #2b2921 14px
     ),
     linear-gradient(105deg, rgb(0 0 0 / 0.35) 0%, transparent 42%, rgb(0 0 0 / 0.4) 100%);
+}
+
+/* ---------- dark-band energy ---------- */
+
+/*
+ * The palette is tuned for warm paper, where low chroma reads as restraint. On
+ * a near-black band the same values read as murk, so the dark context gets
+ * lifted semantics — the same meanings, enough chroma to register.
+ */
+:root {
+  --color-onDeepVerified: #7fd1c1;
+  --color-onDeepBreach: #f0937c;
+  --color-onDeepSignal: #c9b47a;
+}
+
+.text-onDeepVerified {
+  color: var(--color-onDeepVerified);
+}
+.text-onDeepBreach {
+  color: var(--color-onDeepBreach);
+}
+
+/*
+ * A precision grid, barely there. It gives a dark band the sense of a drawn
+ * surface rather than an empty void — the difference between a section that
+ * feels composed and one that feels unfinished. Two values from black; if you
+ * can see it as a pattern rather than a texture, it is too strong.
+ */
+.band-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.028) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.028) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* Keeps the grid from ending on a hard edge at the band boundary. */
+.band-grid-fade {
+  mask-image: radial-gradient(ellipse 120% 80% at 50% 40%, #000 40%, transparent 100%);
 }

@@ -27,6 +27,11 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  // Absolute base for social images. Without it Next resolves them against
+  // localhost and the shared card silently breaks in production.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://clearbook-sable.vercel.app',
+  ),
   title: 'Clearbook — evidence-bound covenant compliance',
   description:
     'A bonded private-credit book whose every claim cites a cryptographically verified source-chain transfer, and whose covenant breaches anyone can prove on-chain.',
