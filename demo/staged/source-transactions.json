@@ -111,6 +111,39 @@
       "amountWei": "10000000000000000",
       "stagedAt": "2026-08-22T08:13:03.861Z",
       "note": "Honest repayment. The borrower was never separately funded by a bound treasury."
+    },
+    {
+      "role": "disbursement",
+      "scenario": "B",
+      "txHash": "0x0a7e289ae839c1040ab2eb3cd621baba3a9ccdcf068478546b53229fe55c441e",
+      "blockNumber": 11552413,
+      "from": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+      "to": "0x942B23859b19FE06ea8A4552681d1D7a115C7f1d",
+      "amountWei": "10000000000000000",
+      "stagedAt": "2026-08-23T20:36:50.357Z",
+      "note": "Loan B disbursement."
+    },
+    {
+      "role": "funding",
+      "scenario": "B",
+      "txHash": "0xecb482bce0fc7961cabdf44e5a8956eb05b85db6696ce8276224117184c7a3d3",
+      "blockNumber": 11552415,
+      "from": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+      "to": "0x942B23859b19FE06ea8A4552681d1D7a115C7f1d",
+      "amountWei": "10000000000000000",
+      "stagedAt": "2026-08-23T20:37:14.523Z",
+      "note": "The funding leg. Distinct from the disbursement, which condition 11 excludes."
+    },
+    {
+      "role": "repayment",
+      "scenario": "B",
+      "txHash": "0x5d59b80829283624eebc5bec610c5decec34eda7e06509fcb20e912882369437",
+      "blockNumber": 11552416,
+      "from": "0x942B23859b19FE06ea8A4552681d1D7a115C7f1d",
+      "to": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+      "amountWei": "10000000000000000",
+      "stagedAt": "2026-08-23T20:37:25.626Z",
+      "note": "Repayment sourced from money the treasury itself sent."
     }
   ]
 }

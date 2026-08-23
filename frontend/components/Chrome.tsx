@@ -101,37 +101,30 @@ export function Chrome({ children }: { children: React.ReactNode }) {
             <span className="text-[16px] font-semibold tracking-tight">Clearbook</span>
           </Link>
 
-          <nav className="flex shrink-0 items-center gap-1" aria-label="Primary">
-            {ROUTES.map((r) => {
-              const active =
-                r.href === '/book'
-                  ? pathname === '/book' || pathname.startsWith('/loan')
-                  : pathname.startsWith(r.href);
-              return (
-                <Link
-                  key={r.href}
-                  href={r.href}
-                  aria-current={active ? 'page' : undefined}
-                  className={`relative flex h-14 items-center px-3 text-[13px] font-medium transition-colors ${
-                    active ? 'text-ink' : 'text-muted hover:text-ink'
-                  }`}
-                >
-                  {r.label}
-                  {active ? (
-                    <span
-                      aria-hidden
-                      className="absolute inset-x-2 bottom-0 h-[2px] bg-ink"
-                    />
-                  ) : null}
-                </Link>
-              );
-            })}
+          {/* Hidden below sm, where it gets its own row: five items plus the
+              wordmark, chain state and wallet do not fit one phone-width line,
+              and the overflow scroll that used to absorb them left Verify, Docs
+              and the wallet unreachable with nothing to say they were there. */}
+          <nav className="hidden shrink-0 items-center gap-1 sm:flex" aria-label="Primary">
+            <NavLinks pathname={pathname} />
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-4 sm:gap-5">
             <NetworkState />
             <Wallet />
           </div>
+        </div>
+
+        {/* The same links, on their own line, for viewports that cannot hold one
+            row. Only ever one of the two navs is in the accessibility tree —
+            `hidden` is display:none, so nothing is announced twice. */}
+        <div className="border-t border-rule sm:hidden">
+          <nav
+            className="mx-auto flex max-w-[1400px] items-center gap-1 overflow-x-auto px-4"
+            aria-label="Primary"
+          >
+            <NavLinks pathname={pathname} />
+          </nav>
         </div>
 
         {/* Contract identity stays permanently visible: the product's whole claim
@@ -173,6 +166,40 @@ export function Chrome({ children }: { children: React.ReactNode }) {
         </footer>
       )}
     </div>
+  );
+}
+
+/**
+ * The primary links, rendered once per layout row.
+ *
+ * `h-12 sm:h-14` is the only size that differs: the mobile row sits under the
+ * main bar, so it buys back eight pixels of a short viewport while staying a
+ * comfortable tap target. Every other value is shared, so the two rows cannot
+ * drift apart.
+ */
+function NavLinks({ pathname }: { pathname: string }) {
+  return (
+    <>
+      {ROUTES.map((r) => {
+        const active =
+          r.href === '/book'
+            ? pathname === '/book' || pathname.startsWith('/loan')
+            : pathname.startsWith(r.href);
+        return (
+          <Link
+            key={r.href}
+            href={r.href}
+            aria-current={active ? 'page' : undefined}
+            className={`relative flex h-12 shrink-0 items-center px-3 text-[13px] font-medium transition-colors sm:h-14 ${
+              active ? 'text-ink' : 'text-muted hover:text-ink'
+            }`}
+          >
+            {r.label}
+            {active ? <span aria-hidden className="absolute inset-x-2 bottom-0 h-[2px] bg-ink" /> : null}
+          </Link>
+        );
+      })}
+    </>
   );
 }
 

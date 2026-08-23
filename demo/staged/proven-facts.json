@@ -1,6 +1,6 @@
 {
   "note": "Transactions we created on Sepolia, proven by the Attestcoin proof builder and verified by the Creditcoin Block Prover precompile. Verification is read-only; submitting these as facts to EvidenceVault additionally requires a funded Creditcoin account.",
-  "provenAt": "2026-08-22T08:21:46.210Z",
+  "provenAt": "2026-08-23T20:45:36.948Z",
   "facts": [
     {
       "scenario": "A",
@@ -114,7 +114,7 @@
       "crossChecksPassed": 8,
       "crossChecksTotal": 8,
       "merkleSiblings": 7,
-      "continuityRoots": 2
+      "continuityRoots": 32
     },
     {
       "scenario": "B",
@@ -133,7 +133,7 @@
       "crossChecksPassed": 8,
       "crossChecksTotal": 8,
       "merkleSiblings": 7,
-      "continuityRoots": 1
+      "continuityRoots": 31
     },
     {
       "scenario": "B",
@@ -152,7 +152,7 @@
       "crossChecksPassed": 8,
       "crossChecksTotal": 8,
       "merkleSiblings": 7,
-      "continuityRoots": 10
+      "continuityRoots": 30
     },
     {
       "scenario": "A",
@@ -171,7 +171,7 @@
       "crossChecksPassed": 8,
       "crossChecksTotal": 8,
       "merkleSiblings": 7,
-      "continuityRoots": 8
+      "continuityRoots": 28
     },
     {
       "scenario": "A",
@@ -190,7 +190,64 @@
       "crossChecksPassed": 8,
       "crossChecksTotal": 8,
       "merkleSiblings": 7,
-      "continuityRoots": 7
+      "continuityRoots": 27
+    },
+    {
+      "scenario": "B",
+      "role": "disbursement",
+      "txHash": "0x0a7e289ae839c1040ab2eb3cd621baba3a9ccdcf068478546b53229fe55c441e",
+      "chainKey": 1,
+      "blockHeight": 11552413,
+      "txIndex": 153,
+      "logIndex": 0,
+      "token": "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+      "from": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+      "to": "0x942B23859b19FE06ea8A4552681d1D7a115C7f1d",
+      "amount": "10000000000000000",
+      "receiptStatus": 1,
+      "verified": true,
+      "crossChecksPassed": 8,
+      "crossChecksTotal": 8,
+      "merkleSiblings": 8,
+      "continuityRoots": 8
+    },
+    {
+      "scenario": "B",
+      "role": "funding",
+      "txHash": "0xecb482bce0fc7961cabdf44e5a8956eb05b85db6696ce8276224117184c7a3d3",
+      "chainKey": 1,
+      "blockHeight": 11552415,
+      "txIndex": 179,
+      "logIndex": 0,
+      "token": "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+      "from": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+      "to": "0x942B23859b19FE06ea8A4552681d1D7a115C7f1d",
+      "amount": "10000000000000000",
+      "receiptStatus": 1,
+      "verified": true,
+      "crossChecksPassed": 8,
+      "crossChecksTotal": 8,
+      "merkleSiblings": 8,
+      "continuityRoots": 6
+    },
+    {
+      "scenario": "B",
+      "role": "repayment",
+      "txHash": "0x5d59b80829283624eebc5bec610c5decec34eda7e06509fcb20e912882369437",
+      "chainKey": 1,
+      "blockHeight": 11552416,
+      "txIndex": 71,
+      "logIndex": 0,
+      "token": "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+      "from": "0x942B23859b19FE06ea8A4552681d1D7a115C7f1d",
+      "to": "0xBD0E3aE227de189a751f3C9d4848AAcF8de6367A",
+      "amount": "10000000000000000",
+      "receiptStatus": 1,
+      "verified": true,
+      "crossChecksPassed": 8,
+      "crossChecksTotal": 8,
+      "merkleSiblings": 7,
+      "continuityRoots": 5
     }
   ]
 }
