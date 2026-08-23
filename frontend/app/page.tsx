@@ -7,7 +7,7 @@ import { Footer } from '@/components/Footer';
 import { Plate } from '@/components/Plate';
 import { Ticker } from '@/components/Ticker';
 import { Eyebrow } from '@/components/ui';
-import { PRECOMPILES, SOURCE_CHAIN, contracts, explorer } from '@/lib/config';
+import { PRECOMPILES, SOURCE_CHAIN_LABEL, contracts, explorer } from '@/lib/config';
 import { shortAddress } from '@/lib/format';
 
 /**
@@ -95,9 +95,15 @@ function Hero() {
           </div>
 
           <div className="mt-14 flex flex-wrap gap-x-10 gap-y-3 border-t border-[#2e2c25] pt-6 lg:mt-auto">
-            <Fact k="Deployed" v="Creditcoin CC3 testnet" />
-            <Fact k="Source chain" v={SOURCE_CHAIN.name} />
+            {/*
+              Ordered so the two facts that carry the thesis sit together: we read a
+              chain carrying real value, and we deployed nothing on it. Naming only
+              the demo's staged chain here understated what the vault holds — and
+              was inaccurate, since evidence may come from any attested chain.
+            */}
+            <Fact k="Source chains" v={SOURCE_CHAIN_LABEL} href="/registry" />
             <Fact k="Deployed on Ethereum" v="nothing" />
+            <Fact k="Deployed" v="Creditcoin CC3 testnet" />
           </div>
         </div>
 
@@ -111,11 +117,21 @@ function Hero() {
   );
 }
 
-function Fact({ k, v }: { k: string; v: string }) {
+function Fact({ k, v, href }: { k: string; v: string; href?: string }) {
   return (
     <div>
       <div className="text-[10px] uppercase tracking-[0.14em] text-onDeepMuted">{k}</div>
-      <div className="mt-1 text-[13px] text-onDeep">{v}</div>
+      {href ? (
+        // A claim a reader can go check is worth more than one they cannot.
+        <Link
+          href={href}
+          className="mt-1 block text-[13px] text-onDeep underline decoration-[#3a382f] underline-offset-4 transition-colors hover:decoration-onDeep"
+        >
+          {v}
+        </Link>
+      ) : (
+        <div className="mt-1 text-[13px] text-onDeep">{v}</div>
+      )}
     </div>
   );
 }

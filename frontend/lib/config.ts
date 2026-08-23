@@ -64,6 +64,19 @@ export const SOURCE_CHAINS: Record<number, SourceChainInfo> = {
   },
 };
 
+/**
+ * Every attested source chain, real-value first.
+ *
+ * Derived from the map rather than written out, so it cannot drift from what is
+ * actually configured. Leading with the live chain is not emphasis: reading a
+ * chain carrying real value is the harder claim, and the one worth stating
+ * first.
+ */
+export const SOURCE_CHAIN_LABEL = Object.values(SOURCE_CHAINS)
+  .sort((a, b) => Number(b.live) - Number(a.live))
+  .map((c, i) => (i === 0 ? c.name : c.short))
+  .join(' · ');
+
 /** The chain the demo's staged claims live on. Evidence may come from any. */
 export const SOURCE_CHAIN = SOURCE_CHAINS[1];
 
