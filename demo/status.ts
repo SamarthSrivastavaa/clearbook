@@ -56,7 +56,7 @@ async function main() {
     windowOf.set(id, BigInt(o[5] as number));
     const bond = Number(o[2] as bigint) / 1e18;
     const exposure = Number(o[3] as bigint) / 1e18;
-    console.log(`  ${id}  ${String(o[1]).padEnd(28)} bond ${bond} tCTC · exposure ${exposure} tCTC · ${o[8] ? 'active' : 'INACTIVE'}`);
+    console.log(`  ${id}  ${String(o[1]).padEnd(28)} bond ${bond} tCTC · exposure ${exposure} tCTC · circular ${o[4]} · challenge ${o[5]} · ${o[8] ? 'active' : 'INACTIVE'}`);
   }
 
   console.log('\nClaims');
