@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
 import { useAccount, useBlockNumber, useChainId, useConnect, useDisconnect } from 'wagmi';
 
 import { DEMO_MODE, contracts, creditcoin, explorer, isDeployed } from '@/lib/config';
@@ -87,10 +88,17 @@ export function Chrome({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-rule bg-paper/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-12 max-w-[1400px] items-center gap-4 overflow-x-auto px-6 sm:gap-8">
-          <Link href="/" className="flex shrink-0 items-baseline gap-2.5">
-            <span className="text-[15px] font-semibold tracking-tight">Clearbook</span>
-            <span className="eyebrow hidden sm:block">Evidence-bound credit</span>
+        <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-6 overflow-x-auto px-6 sm:gap-10">
+          {/* Wordmark only. The tagline used to sit beside it at eyebrow size,
+              which read as a second, competing label rather than a subtitle —
+              it lives in the hero and the footer, where it has room. The mark
+              is the rail motif: one thing above, one below, joined. */}
+          <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Clearbook home">
+            <span className="flex flex-col gap-[3px]" aria-hidden>
+              <span className="block h-[7px] w-[7px] bg-signal" />
+              <span className="block h-[7px] w-[7px] bg-ink" />
+            </span>
+            <span className="text-[16px] font-semibold tracking-tight">Clearbook</span>
           </Link>
 
           <nav className="flex shrink-0 items-center gap-1" aria-label="Primary">
@@ -104,13 +112,17 @@ export function Chrome({ children }: { children: React.ReactNode }) {
                   key={r.href}
                   href={r.href}
                   aria-current={active ? 'page' : undefined}
-                  className={`px-2.5 py-1 text-[13px] transition-colors ${
-                    active
-                      ? 'text-ink underline decoration-ink underline-offset-[6px]'
-                      : 'text-muted hover:text-ink'
+                  className={`relative flex h-14 items-center px-3 text-[13px] font-medium transition-colors ${
+                    active ? 'text-ink' : 'text-muted hover:text-ink'
                   }`}
                 >
                   {r.label}
+                  {active ? (
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-2 bottom-0 h-[2px] bg-ink"
+                    />
+                  ) : null}
                 </Link>
               );
             })}
@@ -146,15 +158,20 @@ export function Chrome({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className={isLanding ? 'py-10' : 'mx-auto max-w-[1400px] px-6 py-10'}>{children}</main>
+      <main className={isLanding ? 'pt-10' : 'mx-auto max-w-[1400px] px-6 py-10'}>{children}</main>
 
-      <footer className="mt-16 border-t border-rule">
-        <div className="mx-auto max-w-[1400px] px-6 py-6 text-[11px] leading-relaxed text-faint">
-          Clearbook verifies that a transaction was included in an attested source-chain block and
-          that its receipt succeeded. It does not establish intent, control of any address by any
-          person or entity, the existence of an off-chain agreement, or any violation of law.
-        </div>
-      </footer>
+      {/* The landing page renders the full footer itself. Everywhere else keeps
+          the standing disclaimer: it is a truthfulness guardrail, not decoration,
+          and dropping it from the app screens would be the wrong economy. */}
+      {pathname === '/' ? null : (
+        <footer className="mt-16 border-t border-rule">
+          <div className="mx-auto max-w-[1400px] px-6 py-6 text-[11px] leading-relaxed text-faint">
+            Clearbook verifies that a transaction was included in an attested source-chain block and
+            that its receipt succeeded. It does not establish intent, control of any address by any
+            person or entity, the existence of an off-chain agreement, or any violation of law.
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

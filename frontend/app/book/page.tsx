@@ -89,7 +89,7 @@ export default function BookPage() {
               Each posts its own bond and publishes its own covenant
             </span>
           </div>
-          <div className="grid gap-px bg-rule lg:grid-cols-2">
+          <div className="grid gap-6 pt-6 lg:grid-cols-2">
             {originators.map((o) => (
               <PositionStrip key={o.id.toString()} originator={o} bondPerLoan={params.bondPerLoan} />
             ))}
@@ -233,9 +233,9 @@ function PositionStrip({ originator, bondPerLoan }: { originator: Originator; bo
   ];
 
   return (
-    <div className="bg-paper p-6">
+    <div className="hard-rule border-2 border-ink bg-surface p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h3 className="display-sm">{originator.name}</h3>
+        <h3 className="display-md">{originator.name}</h3>
         <span className="text-[11px] text-faint">
           {originator.covenants & 0x01 ? 'CIRCULAR_REPAYMENT · immutable' : 'no covenant'}
         </span>

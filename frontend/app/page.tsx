@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { LiveSignal } from '@/components/LiveSignal';
 import { ProvenanceCaption, ProvenanceChain } from '@/components/ProvenanceChain';
 import { ClaimArtifact, ConditionArtifact, EvidenceArtifact } from '@/components/Artifacts';
+import { Footer } from '@/components/Footer';
 import { Plate } from '@/components/Plate';
+import { Ticker } from '@/components/Ticker';
 import { Eyebrow } from '@/components/ui';
 import { PRECOMPILES, SOURCE_CHAIN, contracts, explorer } from '@/lib/config';
 import { shortAddress } from '@/lib/format';
@@ -22,6 +24,7 @@ import { shortAddress } from '@/lib/format';
 export default function LandingPage() {
   return (
     <div className="-mt-10">
+      <Ticker />
       <Hero />
 
       <div className="mx-auto max-w-[1400px] px-6">
@@ -29,10 +32,9 @@ export default function LandingPage() {
         <Mechanism />
       </div>
 
-      <LedgerBand />
+      <SharedEvidence />
 
       <div className="mx-auto max-w-[1400px] px-6">
-        <SharedEvidence />
         <Covenant />
       </div>
 
@@ -44,6 +46,8 @@ export default function LandingPage() {
         <Limits />
         <Close />
       </div>
+
+      <Footer />
     </div>
   );
 }
@@ -78,13 +82,13 @@ function Hero() {
           <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
             <Link
               href="/book"
-              className="inline-flex h-11 items-center border border-onDeep bg-onDeep px-6 text-[14px] font-medium text-deep transition-colors hover:bg-white"
+              className="press hard-signal inline-flex h-12 items-center border-2 border-onDeep bg-onDeep px-7 text-[14px] font-semibold uppercase tracking-[0.06em] text-deep transition-colors hover:bg-white"
             >
               Open the credit book
             </Link>
             <Link
               href="/verify"
-              className="text-[14px] text-onDeepMuted underline decoration-[#3a382f] underline-offset-[6px] transition-colors hover:text-onDeep"
+              className="press inline-flex h-12 items-center border-2 border-[#4a4638] px-7 text-[14px] font-semibold uppercase tracking-[0.06em] text-onDeep transition-colors hover:border-onDeep"
             >
               Verify a transaction yourself
             </Link>
@@ -140,35 +144,34 @@ function Mechanism() {
   ];
 
   return (
-    <section className="py-16">
-      <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+    <section className="py-14">
+      <div className="grid items-end gap-x-16 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
         <div>
           <Eyebrow>The distinction</Eyebrow>
-          <h2 className="display-lg mt-4">
-            Three registers,
-            <br />
-            never blurred.
-          </h2>
-          <p className="prose-lead mt-5 max-w-sm">
-            Most systems collapse evidence, inference and claim into one confident sentence.
-            Clearbook keeps them apart everywhere — in the contracts, in the interface, and in what
-            it refuses to say.
-          </p>
+          <h2 className="display-lg mt-3">Three registers, never blurred.</h2>
         </div>
-
-        <dl className="rule-t">
-          {registers.map((r) => (
-            <div key={r.n} className="rule-b grid gap-4 py-7 sm:grid-cols-[3rem_minmax(0,14rem)_minmax(0,1fr)]">
-              <div className="ident text-[11px] text-faint">{r.n}</div>
-              <dt>
-                <div className="text-[15px] font-medium">{r.label}</div>
-                <div className="mt-1 text-[13px] text-muted">{r.claim}</div>
-              </dt>
-              <dd className="text-[13px] leading-relaxed text-muted">{r.body}</dd>
-            </div>
-          ))}
-        </dl>
+        <p className="text-[14px] leading-relaxed text-muted lg:pb-2">
+          Most systems collapse evidence, inference and claim into one confident sentence. Clearbook
+          keeps them apart everywhere — in the contracts, in the interface, and in what it refuses
+          to say.
+        </p>
       </div>
+
+      <ol className="mt-12 grid gap-6 sm:grid-cols-3">
+        {registers.map((r, i) => (
+          <li
+            key={r.n}
+            // Each register steps down from the last: the rank reads as a
+            // sequence rather than three parallel columns.
+            className={`border-t-2 border-ink pt-5 ${i === 1 ? 'sm:mt-8' : i === 2 ? 'sm:mt-16' : ''}`}
+          >
+            <span className="ident text-[11px] text-signal">{r.n}</span>
+            <h3 className="statement mt-2">{r.label}</h3>
+            <p className="mt-1.5 text-[13px] text-faint">{r.claim}</p>
+            <p className="mt-3 text-[13px] leading-relaxed text-muted">{r.body}</p>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
@@ -182,46 +185,67 @@ function Mechanism() {
  */
 function SharedEvidence() {
   return (
-    <section className="rule-t py-16">
-      <div className="grid gap-12 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
-        <div>
-          <Eyebrow>Shared evidence</Eyebrow>
-          <h2 className="display-lg mt-4">One fact, one claim.</h2>
-          <p className="prose-lead mt-5 max-w-sm">
+    // Full-bleed and set on sunken ground: this is the property the whole
+    // registry argument rests on, and it should not read as one more section.
+    <section className="border-y-2 border-ink bg-sunken">
+      <div className="mx-auto max-w-[1400px] px-6 py-20">
+        {/* Heading and lead sit side by side: at this size the headline would
+            otherwise leave half the band empty to its right. */}
+        <div className="grid items-end gap-x-16 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+          <div>
+            <Eyebrow>Shared evidence</Eyebrow>
+            <h2 className="display-xl mt-3">
+              One fact,
+              <br />
+              one claim.
+            </h2>
+          </div>
+          <p className="prose-lead lg:pb-3">
             Verification needs no permission — anyone can prove a transfer happened, including one
             between parties who have never heard of Clearbook. Committing that fact to a claim is
             different: it needs a treasury proven by signature, and it can happen only once.
           </p>
-          <Link href="/registry" className="link mt-6 inline-flex text-[14px]">
-            Open the evidence registry →
-          </Link>
         </div>
 
-        <div>
-          <dl className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
-            <div>
-              <dt className="statement">Verification is open</dt>
-              <dd className="mt-2 text-[13px] leading-relaxed text-muted">
-                The registry holds facts proven from Ethereum mainnet — real transfers, between
-                addresses we do not control, on a chain we have never deployed to. Proving one
-                required permission from nobody.
-              </dd>
+        <div className="mt-14 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,300px)]">
+          <div className="hard border-2 border-ink bg-surface p-7">
+            <div className="flex items-center gap-2.5">
+              <span className="inline-block h-3 w-[3px] bg-verified" aria-hidden />
+              <h3 className="text-[13px] font-semibold tracking-[0.04em] text-verified">
+                Verification is open
+              </h3>
             </div>
-            <div>
-              <dt className="statement">Commitment is exclusive</dt>
-              <dd className="mt-2 text-[13px] leading-relaxed text-muted">
-                A second originator attempting a fact another has already committed is refused with{' '}
-                <code className="font-mono text-[12px]">FactAlreadyUsed</code>. The registry runs
-                that call live against the deployment rather than asserting the outcome.
-              </dd>
-            </div>
-          </dl>
+            <p className="mt-4 text-[14px] leading-relaxed">
+              The registry holds facts proven from Ethereum mainnet — real transfers, between
+              addresses we do not control, on a chain we have never deployed to. Proving one
+              required permission from nobody.
+            </p>
+          </div>
 
-          <p className="mt-8 max-w-xl text-[12px] leading-relaxed text-faint">
-            This establishes that the same <em>evidence</em> cannot be committed twice. It does not
-            establish collateral identity — the same underlying obligation represented by a different
-            transaction is not detected, and Clearbook does not claim otherwise.
-          </p>
+          <div className="hard border-2 border-ink bg-surface p-7 lg:mt-10">
+            <div className="flex items-center gap-2.5">
+              <span className="inline-block h-3 w-[3px] bg-breach" aria-hidden />
+              <h3 className="text-[13px] font-semibold tracking-[0.04em] text-breach">
+                Commitment is exclusive
+              </h3>
+            </div>
+            <p className="mt-4 text-[14px] leading-relaxed">
+              A second originator attempting a fact another has already committed is refused with{' '}
+              <code className="font-mono text-[13px]">FactAlreadyUsed</code>. The registry runs that
+              call live against the deployment rather than asserting the outcome.
+            </p>
+          </div>
+
+          <div className="lg:pt-4">
+            <p className="text-[12px] leading-relaxed text-faint">
+              This establishes that the same <em>evidence</em> cannot be committed twice. It does not
+              establish collateral identity — the same underlying obligation represented by a
+              different transaction is not detected, and Clearbook does not claim otherwise.
+            </p>
+            <Link href="/registry" className="link mt-5 inline-flex text-[14px]">
+              Open the evidence registry →
+            </Link>
+          </div>
         </div>
       </div>
     </section>
@@ -231,23 +255,23 @@ function SharedEvidence() {
 /** Declared rule versus observed evidence — the covenant made legible. */
 function Covenant() {
   return (
-    <section className="rule-t py-16">
-      <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-        <div>
+    <section className="rule-t py-14">
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)]">
+        <div className="order-1 lg:order-2 lg:pt-1">
           <Eyebrow>The covenant</Eyebrow>
           <h2 className="display-lg mt-4">
             A rule the fund
             <br />
             published itself.
           </h2>
-          <p className="prose-lead mt-5 max-w-sm">
+          <p className="mt-4 text-[14px] leading-relaxed text-muted">
             Not a rule we imposed. An originator opts into <code className="font-mono text-[14px] text-ink">CIRCULAR_REPAYMENT</code> at
             registration, publishes its window on-chain, and posts a bond against it. A rule you can
             change after publishing is not a covenant, so it is immutable thereafter.
           </p>
         </div>
 
-        <div className="grid gap-px bg-rule sm:grid-cols-2">
+        <div className="order-2 grid gap-px bg-rule sm:grid-cols-2 lg:order-1">
           <div className="bg-paper p-7">
             <Eyebrow>Declared</Eyebrow>
             <p className="mt-3 text-[14px] leading-relaxed">
@@ -298,35 +322,6 @@ function Covenant() {
             </div>
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
-
-/**
- * A full-bleed plate, and one sentence.
- *
- * The page needed somewhere to rest. Everything around it is dense — ledgers,
- * expressions, addresses — and a reader who never gets a pause stops reading.
- * The image carries no information: it is paper, photographed, because that is
- * what this product is a book of.
- */
-function LedgerBand() {
-  return (
-    <section className="relative isolate mt-4 overflow-hidden">
-      <Plate name="ledger" className="absolute inset-0 -z-10 h-full w-full" tone="light" />
-      {/* Scrim: the statement has to stay legible whatever the photograph does. */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-deep/92 via-deep/70 to-deep/25" aria-hidden />
-
-      <div className="mx-auto max-w-[1400px] px-6 py-20 lg:py-24">
-        <p className="statement max-w-xl text-onDeep">
-          Every claim on this book points at something that already happened somewhere else — and
-          anyone can go and check it.
-        </p>
-        <p className="mt-4 max-w-md text-[13px] leading-relaxed text-onDeepMuted">
-          The evidence is ordinary ERC-20 transfers on a token we do not control, on a chain we did
-          not deploy to.
-        </p>
       </div>
     </section>
   );
@@ -421,7 +416,7 @@ function Enforcement() {
  */
 function Preview() {
   return (
-    <section className="rule-t py-16">
+    <section className="rule-t py-14">
       <div className="max-w-2xl">
         <Eyebrow>The interface</Eyebrow>
         <h2 className="display-lg mt-4">Built to be read closely.</h2>
@@ -432,14 +427,14 @@ function Preview() {
         </p>
       </div>
 
-      <div className="mt-12 grid items-start gap-8 lg:grid-cols-2">
-        <div>
+      <div className="mt-12 grid items-start gap-x-10 gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <div className="tilt-l lg:mt-10">
           <ClaimArtifact />
           <p className="mt-4 max-w-md text-[13px] leading-relaxed text-muted">
             Status, covenant, and the evidence cited. Nothing self-reported.
           </p>
         </div>
-        <div>
+        <div className="tilt-r">
           <EvidenceArtifact />
           <p className="mt-4 max-w-md text-[13px] leading-relaxed text-muted">
             The transaction, its receipt status, and the transaction-local log index — the
@@ -469,19 +464,9 @@ function Foundation() {
       note: 'Called directly. No indexer, no relayer, no oracle.',
     },
     {
-      k: 'Chain keys',
-      v: <span className="text-[13px]">resolved at runtime</span>,
-      note: 'Never hardcoded. Read from the ChainInfo precompile on every run.',
-    },
-    {
       k: 'Replay key',
       v: <span className="ident">chainKey · block · txIndex · logIndex</span>,
       note: 'Log-level, stricter than the reference. One transaction can carry many relevant transfers.',
-    },
-    {
-      k: 'Receipt status',
-      v: <span className="text-[13px]">asserted by us</span>,
-      note: 'The precompile proves inclusion, not success. A reverted transfer moved no value.',
     },
     {
       k: 'Forged proofs',
@@ -496,8 +481,8 @@ function Foundation() {
   ];
 
   return (
-    <section className="rule-t py-16">
-      <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+    <section className="rule-t py-14">
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
         <div>
           <Eyebrow>Technical foundation</Eyebrow>
           <h2 className="display-lg mt-4">
@@ -510,10 +495,6 @@ function Foundation() {
             backend&rdquo; — which is the thing being eliminated. Money is slashed on these facts, so
             a server&rsquo;s assertion is not an acceptable basis.
           </p>
-          {/* Fills the column's dead space with the one image that is literally
-              about authentication rather than atmosphere. */}
-          <Plate name="seal" className="mt-9 aspect-[4/3] w-full max-w-[300px]" />
-
           {contracts.clearbook ? (
             <div className="mt-8">
               <Eyebrow className="mb-2">Deployed</Eyebrow>
@@ -566,61 +547,62 @@ function Limits() {
     ],
   ];
 
-  // Composed deliberately unlike the specification table above it: no rules, no
-  // two-column ledger, more air. This section is the product declining to claim
-  // things, and it should read quieter than the section that makes claims.
+  // Mirrored against the section above it: that one puts its heading on the
+  // left, this one on the right. The alternation is what stops four stacked
+  // sections reading as one repeated template.
   return (
-    <section className="rule-t py-16">
-      <div className="max-w-2xl">
-        <Eyebrow>Honest limits</Eyebrow>
-        <h2 className="display-lg mt-4">What this cannot do.</h2>
-        <p className="prose-lead mt-5">
-          Stated here rather than buried, because a system that claims less and proves it is worth
-          more than one that claims everything.
-        </p>
-      </div>
+    <section className="rule-t py-14">
+      <div className="grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
+        <ul className="order-2 grid gap-x-12 gap-y-10 sm:grid-cols-2 lg:order-1">
+          {limits.map(([k, v], n) => (
+            <li
+              key={k}
+              // Alternating vertical offset: the pairs sit off each other's
+              // baseline so the block reads as a composition, not a table.
+              className={`max-w-md border-t-2 border-ink pt-4 ${n % 2 === 1 ? 'sm:mt-10' : ''}`}
+            >
+              <span className="ident text-[11px] text-signal">
+                {String(n + 1).padStart(2, '0')}
+              </span>
+              <h3 className="statement mt-2">{k}</h3>
+              <p className="mt-2.5 text-[13px] leading-relaxed text-muted">{v}</p>
+            </li>
+          ))}
+        </ul>
 
-      <ul className="mt-14 grid gap-x-16 gap-y-12 sm:grid-cols-2">
-        {limits.map(([k, v], n) => (
-          <li key={k} className="max-w-md border-t border-rule pt-5">
-            <span className="ident text-[11px] text-faint">
-              {String(n + 1).padStart(2, '0')}
-            </span>
-            <h3 className="statement mt-2">{k}</h3>
-            <p className="mt-3 text-[13px] leading-relaxed text-muted">{v}</p>
-          </li>
-        ))}
-      </ul>
+        <div className="order-1 lg:order-2 lg:pt-2">
+          <Eyebrow>Honest limits</Eyebrow>
+          <h2 className="display-lg mt-3">What this cannot do.</h2>
+          <p className="mt-4 text-[14px] leading-relaxed text-muted">
+            Stated here rather than buried, because a system that claims less and proves it is worth
+            more than one that claims everything.
+          </p>
+        </div>
+      </div>
     </section>
   );
 }
 
 function Close() {
   return (
-    <section className="rule-t py-16">
-      <div className="flex flex-wrap items-end justify-between gap-10">
-        <div className="max-w-xl">
-          <h2 className="display-lg">
-            Read the book.
-            <br />
-            Try to break it.
-          </h2>
-          <p className="prose-lead mt-5">
-            One claim on it is breachable and one is not. The interface will tell you which of the
-            eleven conditions holds before you ever open a wallet.
-          </p>
-        </div>
+    <section className="rule-t py-14">
+      <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-8">
+        <h2 className="display-lg max-w-xl">
+          Read the book.
+          <br />
+          Try to break it.
+        </h2>
 
-        <div className="flex flex-wrap gap-x-8 gap-y-4">
+        <div className="flex flex-wrap gap-x-6 gap-y-4">
           <Link
             href="/book"
-            className="inline-flex h-11 items-center border border-ink bg-ink px-6 text-[14px] font-medium text-paper transition-colors hover:bg-black"
+            className="press hard-sm inline-flex h-12 items-center border-2 border-ink bg-ink px-7 text-[14px] font-semibold uppercase tracking-[0.06em] text-paper transition-colors hover:bg-black"
           >
             Open the credit book
           </Link>
           <Link
             href="/challenge"
-            className="inline-flex h-11 items-center border border-rule-strong px-6 text-[14px] font-medium transition-colors hover:border-ink"
+            className="press hard-rule inline-flex h-12 items-center border-2 border-ink px-7 text-[14px] font-semibold uppercase tracking-[0.06em] transition-colors hover:bg-sunken"
           >
             Challenge console
           </Link>

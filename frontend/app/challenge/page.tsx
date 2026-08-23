@@ -134,7 +134,8 @@ function ChallengeConsole() {
         </p>
       </header>
 
-      <ol className="rail max-w-4xl">
+      <div className="grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] lg:items-start">
+      <ol className="rail min-w-0">
         {/* ---------------- 1 · the claim ---------------- */}
         <li className="rail-node pb-12" data-state={stageState(1)}>
           <Stage n="01" title="Select the claim" />
@@ -144,7 +145,7 @@ function ChallengeConsole() {
               originator claims a repayment, and stays so until the window closes.
             </p>
           ) : (
-            <div className="mt-4 grid max-w-2xl gap-2 sm:grid-cols-2">
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {challengeable.map((l) => (
                 <LoanChoice
                   key={l.id.toString()}
@@ -169,17 +170,19 @@ function ChallengeConsole() {
             vault — evidence is ingested before it can be cited, by anyone, permissionlessly.
           </p>
 
-          <div className="mt-4 max-w-xl">
-            <Input
-              label="Funding fact identifier"
-              value={fundingInput}
-              onChange={(v) => {
-                setFundingInput(v);
-                reset();
-              }}
-              placeholder="0x…"
-              invalid={fundingInput.length > 0 && !fundingFactId}
-            />
+          <div className="mt-4">
+            <div className="max-w-xl">
+              <Input
+                label="Funding fact identifier"
+                value={fundingInput}
+                onChange={(v) => {
+                  setFundingInput(v);
+                  reset();
+                }}
+                placeholder="0x…"
+                invalid={fundingInput.length > 0 && !fundingFactId}
+              />
+            </div>
             {fundingInput.length > 0 && !fundingFactId ? (
               <p className="mt-2 text-[12px] text-breach">
                 A fact identifier is 32 bytes of hex, starting 0x.
@@ -247,7 +250,7 @@ function ChallengeConsole() {
         {/* ---------------- 4 · submission and outcome ---------------- */}
         <li className="rail-node" data-state={stageState(4)}>
           <Stage n="04" title="Submit and settle" />
-          <div className="mt-4 max-w-3xl">
+          <div className="mt-4">
             {!result ? (
               <Hint>The outcome appears once the covenant has been evaluated.</Hint>
             ) : (
@@ -268,6 +271,97 @@ function ChallengeConsole() {
           </div>
         </li>
       </ol>
+
+      <ConsoleAside
+        originator={originator}
+        bondPerLoan={params?.bondPerLoan ?? null}
+        bountyBps={params?.bountyBps ?? 0}
+      />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Context the challenger needs while working, not after.
+ *
+ * The economics used to appear only at stage four, which meant the one number
+ * that decides whether a challenge is worth making was invisible for the three
+ * stages where the decision is actually taken. Pinning it also puts the
+ * covenant's own text beside the evidence being judged against it.
+ */
+function ConsoleAside({
+  originator,
+  bondPerLoan,
+  bountyBps,
+}: {
+  originator: { circularWindow: number; challengeWindow: number } | null;
+  bondPerLoan: bigint | null;
+  bountyBps: number;
+}) {
+  const slash = bondPerLoan;
+  const bounty = slash !== null ? (slash * BigInt(bountyBps)) / 10_000n : null;
+  const sink = slash !== null && bounty !== null ? slash - bounty : null;
+
+  return (
+    <aside className="lg:sticky lg:top-24 lg:pt-2" aria-label="Challenge context">
+      {slash !== null && bounty !== null && sink !== null ? (
+        <div className="hard-rule border-2 border-ink bg-surface p-5">
+          <Eyebrow>If the challenge succeeds</Eyebrow>
+          <dl className="mt-4 space-y-3">
+            <StakeRow k="Originator bond" v={`−${formatCtc(slash)} tCTC`} tone="breach" />
+            <StakeRow k="Paid to you" v={`+${formatCtc(bounty)} tCTC`} tone="verified" />
+            <StakeRow k="Burned" v={`${formatCtc(sink)} tCTC`} />
+          </dl>
+          <p className="mt-4 border-t border-rule pt-3 text-[11px] leading-relaxed text-faint">
+            Computed from the contract&rsquo;s own parameters. An invalid challenge reverts and costs
+            you gas only.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="mt-8">
+        <Eyebrow>The covenant under test</Eyebrow>
+        <p className="mt-3 text-[13px] leading-relaxed text-muted">
+          No repayment may come from an address the originator&rsquo;s own treasury funded for at
+          least the repayment amount, in the same token, within{' '}
+          {originator ? (
+            <span className="tnum font-medium text-ink">
+              {originator.circularWindow.toLocaleString('en-US')}
+            </span>
+          ) : (
+            'the published number of'
+          )}{' '}
+          source-chain blocks.
+        </p>
+        <Link href="/docs/covenant-predicate" className="link mt-3 inline-flex text-[12px]">
+          The predicate, formally →
+        </Link>
+      </div>
+
+      <div className="mt-8 border-t border-rule pt-5">
+        <Eyebrow>What a breach establishes</Eyebrow>
+        <p className="mt-3 text-[12px] leading-relaxed text-faint">
+          That two verified transfers occurred in a specific relationship, and therefore that the
+          originator&rsquo;s own published rule was not met. Not intent, not control of either
+          address, not the existence of an off-chain loan, and not any violation of law.
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+function StakeRow({ k, v, tone }: { k: string; v: string; tone?: 'verified' | 'breach' }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-[12px] text-muted">{k}</dt>
+      <dd
+        className={`tnum font-mono text-[13px] font-medium ${
+          tone === 'breach' ? 'text-breach' : tone === 'verified' ? 'text-verified' : 'text-ink'
+        }`}
+      >
+        {v}
+      </dd>
     </div>
   );
 }

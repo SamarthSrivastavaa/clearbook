@@ -153,15 +153,16 @@ export function Button({
   type?: 'button' | 'submit';
   className?: string;
 }) {
+  // Weight comes from a hard offset shadow rather than colour: the palette is
+  // reserved for protocol state, so an action cannot announce itself with hue.
+  // Disabled buttons drop the shadow — an action that cannot be taken should
+  // not look like it is sitting proud of the page.
   const base =
-    'inline-flex items-center justify-center gap-2 px-4 h-9 text-[13px] font-medium border transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
+    'press inline-flex items-center justify-center gap-2 px-5 h-10 text-[13px] font-semibold tracking-[0.04em] border-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none';
   const variants = {
-    primary:
-      'bg-ink text-paper border-ink hover:bg-black disabled:hover:bg-ink',
-    default:
-      'bg-surface text-ink border-rule-strong hover:border-ink',
-    quiet:
-      'bg-transparent text-muted border-transparent hover:text-ink px-2',
+    primary: 'hard-sm bg-ink text-paper border-ink hover:bg-black disabled:hover:bg-ink',
+    default: 'hard-rule bg-surface text-ink border-ink hover:bg-sunken',
+    quiet: 'bg-transparent text-muted border-transparent hover:text-ink px-2 shadow-none',
   };
   return (
     <button

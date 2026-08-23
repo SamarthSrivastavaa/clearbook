@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import type { Hex } from 'viem';
 
@@ -38,12 +39,44 @@ interface Step {
   detail?: string;
 }
 
+/** What each step is for, shown before it has anything to report. */
+const ABOUT: Record<string, string> = {
+  locate: 'Read directly from the source chain, independently of any proof.',
+  chainkey: 'Resolved at run time. Never hardcoded.',
+  attest: 'Attestors attest finalized blocks; until quorum, the evidence does not exist here.',
+  proof: 'Merkle inclusion plus continuity roots. The proof builder is untrusted.',
+  verify: 'The step that turns proof material into a fact a contract will act on.',
+};
+
 const INITIAL: Step[] = [
   { key: 'locate', label: 'Locate transaction on the source chain', state: 'idle' },
   { key: 'chainkey', label: 'Resolve chain key from the ChainInfo precompile', state: 'idle' },
   { key: 'attest', label: 'Check whether the block is attested', state: 'idle' },
   { key: 'proof', label: 'Request proof from the Attestcoin proof builder', state: 'idle' },
   { key: 'verify', label: 'Verify proof at the Block Prover precompile', state: 'idle' },
+];
+
+/**
+ * Real transactions a reader can verify immediately.
+ *
+ * Without these the page opens on an empty field and assumes the visitor has a
+ * transaction hash to hand, which almost nobody does. Both were verified
+ * end-to-end through this exact path; the mainnet one is third-party activity
+ * we did not create and cannot control.
+ */
+const EXAMPLES: Array<{ label: string; note: string; chainId: number; hash: string }> = [
+  {
+    label: 'Real Ethereum mainnet transfer',
+    note: '10,506.42 USDC between two strangers',
+    chainId: 1,
+    hash: '0x29582881f3f5e726c609257792053bdcf130849478df2f333037fa6d54189c02',
+  },
+  {
+    label: 'A staged Sepolia transfer',
+    note: 'One leg of the demo book',
+    chainId: 11155111,
+    hash: '0xbbc8293c74e8d362a8797bde78b400fbe4beead8b805ff995587c1d549e8fe0b',
+  },
 ];
 
 export default function VerifyPage() {
@@ -178,19 +211,15 @@ export default function VerifyPage() {
         <Eyebrow>Judge mode</Eyebrow>
         <h1 className="display-lg mt-3">Verify any Ethereum transaction.</h1>
         <p className="prose-lead mt-4">
-          Paste a transaction hash — ours, or one you found on Etherscan a minute ago. Clearbook will
-          locate it, resolve the chain key from the ChainInfo precompile, ask whether its block is
-          attested, fetch a proof, and have the Block Prover precompile rule on it. Every step is
-          read-only. No wallet, no gas, nothing staged.
-        </p>
-        <p className="mt-3 text-[13px] leading-relaxed text-muted">
-          Mainnet works. Nothing about a transaction has to involve Clearbook for Clearbook to prove
-          it happened — which is the whole point.
+          Paste any transaction hash — ours, or one you found on Etherscan a minute ago. Every step
+          is read-only: no wallet, no gas, nothing staged.
         </p>
       </header>
 
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-        <div className="space-y-5">
+      {/* The instrument, not an article about it: controls across the top, the
+          verification path beneath as the result area. */}
+      <div className="hard-rule border-2 border-ink bg-surface">
+        <div className="grid gap-x-8 gap-y-5 p-6 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)_auto] lg:items-end">
           {/* Which chain to look on. Offered only for chains the precompile
               attests and we hold an endpoint for — the list is not aspirational. */}
           <div>
@@ -221,16 +250,18 @@ export default function VerifyPage() {
             </div>
           </div>
 
-          <Input
-            label="Source-chain transaction hash"
-            value={input}
-            onChange={setInput}
-            placeholder="0x…"
-            invalid={input.length > 0 && !txHash}
-          />
-          {input.length > 0 && !txHash ? (
-            <p className="text-[12px] text-breach">A transaction hash is 32 bytes of hex.</p>
-          ) : null}
+          <div className="min-w-0">
+            <Input
+              label="Source-chain transaction hash"
+              value={input}
+              onChange={setInput}
+              placeholder="0x…"
+              invalid={input.length > 0 && !txHash}
+            />
+            {input.length > 0 && !txHash ? (
+              <p className="mt-1.5 text-[12px] text-breach">A transaction hash is 32 bytes of hex.</p>
+            ) : null}
+          </div>
 
           <div className="flex items-center gap-4">
             <Button variant="primary" onClick={run} disabled={!txHash || running}>
@@ -241,19 +272,38 @@ export default function VerifyPage() {
                 href={explorer.sourceTx(txHash)}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-[12px] text-muted underline underline-offset-4 hover:text-ink"
+                className="whitespace-nowrap text-[12px] text-muted underline underline-offset-4 hover:text-ink"
               >
-                View on explorer
+                On explorer
               </a>
             ) : null}
           </div>
 
-          <Callout tone="inert" title="What this proves">
-            That the transaction was included in a block the attestor set has attested, and that its
-            receipt succeeded. It proves nothing about who controls the addresses involved, or why
-            the transfer happened.
-          </Callout>
         </div>
+
+        {/* Examples ride along the bottom of the panel: they are how you start,
+            not a separate topic. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-rule bg-sunken px-6 py-3">
+          <span className="eyebrow">Try one</span>
+          {EXAMPLES.map((ex) => (
+            <button
+              key={ex.hash}
+              type="button"
+              disabled={running}
+              onClick={() => {
+                setChainId(ex.chainId);
+                setInput(ex.hash);
+              }}
+              className="group text-left text-[12px] transition-colors disabled:opacity-40"
+            >
+              <span className="font-medium underline decoration-rule-strong underline-offset-4 group-hover:decoration-ink">
+                {ex.label}
+              </span>
+              <span className="ml-2 text-faint">{ex.note}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
         <Section title="Verification path" aside={verified === true ? 'Complete' : undefined}>
           <ol className="rail">
@@ -299,7 +349,15 @@ export default function VerifyPage() {
             </div>
           ) : null}
         </Section>
-      </div>
+
+      <p className="max-w-3xl text-[12px] leading-relaxed text-faint">
+        This proves the transaction was included in a block the attestor set has attested and that
+        its receipt succeeded. It proves nothing about who controls either address, why the transfer
+        happened, or whether an off-chain agreement exists.{' '}
+        <Link href="/docs/verification" className="link">
+          How verification works
+        </Link>
+      </p>
     </div>
   );
 }
@@ -345,7 +403,13 @@ function StepRow({ step, index }: { step: Step; index: number }) {
           >
             {step.detail}
           </span>
-        ) : null}
+        ) : (
+          // Before a run there is nothing to report, so the step explains what
+          // it is for. Five bare labels in a tall column read as a stub.
+          <span className="mt-1 block max-w-lg text-[12px] leading-relaxed text-faint">
+            {ABOUT[step.key]}
+          </span>
+        )}
       </span>
     </li>
   );

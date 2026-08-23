@@ -41,6 +41,14 @@
   --color-accent: #0e4b4b;
   --color-accent-soft: #e8f0ee;
 
+  /*
+   * Structural accent. Deliberately a blue: it cannot be mistaken for verified
+   * green, breach red or pending amber, so it can carry weight — borders,
+   * offsets, the ticker — without ever being read as protocol state.
+   */
+  --color-signal: #1e3ad6;
+  --color-signal-soft: #e9ecfc;
+
   /* --- meaning. Used ONLY for protocol state. --- */
   --color-verified: #1f6f43;
   --color-verified-soft: #edf4ef;
@@ -121,14 +129,14 @@
 
   /* Display sizes. Tight tracking; these are statements, not headlines. */
   .display-xl {
-    font-size: clamp(1.875rem, 7vw, 4.25rem);
+    font-size: clamp(2.25rem, 8.5vw, 5.75rem);
     line-height: 0.98;
     letter-spacing: -0.035em;
     font-weight: 600;
   }
 
   .display-lg {
-    font-size: clamp(1.5rem, 4.5vw, 2.5rem);
+    font-size: clamp(1.75rem, 5vw, 3.25rem);
     line-height: 1.06;
     letter-spacing: -0.025em;
     font-weight: 600;
@@ -178,7 +186,7 @@
   .artifact {
     background: var(--color-surface);
     border: 1px solid var(--color-rule);
-    box-shadow: 0 1px 2px rgb(23 22 15 / 0.03), 0 8px 24px -12px rgb(23 22 15 / 0.08);
+    box-shadow: 5px 5px 0 var(--color-ink);
   }
 
   .artifact-bar {
@@ -369,7 +377,8 @@
   /* Evidence record: the printed-receipt register. */
   .record {
     background: var(--color-surface);
-    border: 1px solid var(--color-rule);
+    border: 1px solid var(--color-rule-strong);
+    box-shadow: 4px 4px 0 var(--color-rule-strong);
   }
 
   /* Interpretation: prose, offset, visibly derived rather than observed. */
@@ -519,4 +528,81 @@
 /* Keeps the grid from ending on a hard edge at the band boundary. */
 .band-grid-fade {
   mask-image: radial-gradient(ellipse 120% 80% at 50% 40%, #000 40%, transparent 100%);
+}
+
+/* ---------- weight ---------- */
+
+/*
+ * Hard offset shadows. No blur, no opacity ramp — a solid displaced block, the
+ * way a printed thing sits on paper. This is where the interface gets physical
+ * weight without spending a single unit of colour, which matters because colour
+ * here is reserved for protocol state.
+ */
+.hard {
+  box-shadow: 6px 6px 0 var(--color-ink);
+}
+.hard-sm {
+  box-shadow: 4px 4px 0 var(--color-ink);
+}
+.hard-signal {
+  box-shadow: 6px 6px 0 var(--color-signal);
+}
+.hard-rule {
+  box-shadow: 5px 5px 0 var(--color-rule-strong);
+}
+
+/* Buttons press into their own shadow rather than lifting off the page. */
+.press {
+  transition:
+    transform 90ms ease-out,
+    box-shadow 90ms ease-out;
+}
+.press:active {
+  transform: translate(3px, 3px);
+  box-shadow: 2px 2px 0 var(--color-ink);
+}
+
+/*
+ * A deliberate tilt, for artifacts only. A record that sits fractionally off
+ * the grid reads as a physical object placed on a surface rather than a div.
+ * Kept under two degrees: past that it stops looking placed and starts looking
+ * broken.
+ */
+.tilt-l {
+  transform: rotate(-1.4deg);
+}
+.tilt-r {
+  transform: rotate(1.1deg);
+}
+
+/* ---------- ticker ---------- */
+
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: ticker 48s linear infinite;
+  will-change: transform;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+  .tilt-l,
+  .tilt-r {
+    transform: none;
+  }
 }
