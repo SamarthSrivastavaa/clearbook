@@ -1,4 +1,12 @@
 'use client';
+import {
+  boundTreasuries,
+  measureCoverage,
+  COVERAGE_WINDOW_BLOCKS,
+  type Coverage,
+  type CoverageScope,
+} from './coverage';
+import { ccClient, sourceClientFor } from './verifier';
 
 import { useMemo } from 'react';
 import type { Address, Hex } from 'viem';
@@ -6,7 +14,7 @@ import { useReadContract, useReadContracts, usePublicClient } from 'wagmi';
 import { useQuery } from '@tanstack/react-query';
 
 import { clearbookAbi, evidenceVaultAbi } from './abi';
-import { contracts, isDeployed } from './config';
+import { contracts, isDeployed, SOURCE_CHAIN } from './config';
 import { LoanStatus, type Loan, type Originator, type TransferFact } from './protocol';
 
 /**
@@ -380,4 +388,74 @@ export function useFactConsumers(factIds: Hex[]): {
     return { consumers, isLoading };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, isLoading, factIds.join(',')]);
+}
+
+/**
+ * Activity coverage, per originator.
+ *
+ * Deliberately expensive and deliberately cached hard: the measurement walks a
+ * bounded source-chain window and fetches a receipt per transaction, because
+ * the vault keys facts by a transaction-local log index that `eth_getLogs`
+ * does not report. There is no cheaper way to get the number right, and a
+ * number that is fast and wrong is worth less than nothing here.
+ */
+export function useCoverage(originatorIds: bigint[]) {
+  const enabled = isDeployed && !!contracts.clearbook && originatorIds.length > 0;
+  const key = originatorIds.map((i) => i.toString()).join(',');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['activity-coverage', key],
+    enabled,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    retry: false,
+    queryFn: async (): Promise<Coverage[]> => {
+      const [ccHead, srcHead] = await Promise.all([
+        ccClient.getBlockNumber(),
+        sourceClientFor(SOURCE_CHAIN.chainKey).getBlockNumber(),
+      ]);
+
+      // Read the book once: it yields both the committed disbursement set and,
+      // per originator, the tokens their own claims are denominated in.
+      const nextLoanId = (await ccClient.readContract({
+        address: contracts.clearbook!,
+        abi: clearbookAbi,
+        functionName: 'nextLoanId',
+      })) as bigint;
+
+      const committed = new Set<string>();
+      const tokensByOriginator = new Map<string, Set<Address>>();
+
+      for (let id = 1n; id < nextLoanId; id++) {
+        const loan = (await ccClient.readContract({
+          address: contracts.clearbook!,
+          abi: clearbookAbi,
+          functionName: 'loans',
+          args: [id],
+        })) as unknown as unknown[];
+
+        committed.add(String(loan[5]).toLowerCase());
+
+        const owner = String(loan[0]);
+        const set = tokensByOriginator.get(owner) ?? new Set<Address>();
+        set.add(loan[1] as Address);
+        tokensByOriginator.set(owner, set);
+      }
+
+      const out: Coverage[] = [];
+      for (const id of originatorIds) {
+        const scope: CoverageScope = {
+          chainKey: SOURCE_CHAIN.chainKey,
+          tokens: [...(tokensByOriginator.get(id.toString()) ?? new Set<Address>())],
+          fromBlock: srcHead > COVERAGE_WINDOW_BLOCKS ? srcHead - COVERAGE_WINDOW_BLOCKS : 0n,
+          toBlock: srcHead,
+        };
+        const treasuries = await boundTreasuries(id, ccHead);
+        out.push(await measureCoverage(id, treasuries, scope, committed));
+      }
+      return out;
+    },
+  });
+
+  return { coverage: data ?? null, isLoading: enabled && isLoading };
 }

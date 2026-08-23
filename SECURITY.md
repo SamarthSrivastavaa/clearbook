@@ -162,12 +162,39 @@ Pinned by `test_03_second_tranche_makes_first_loan_challengeable` and
 `test_05_tight_circular_window_excludes_the_tranche` in
 `test/CovenantSemantics.t.sol`.
 
-Consequence for automated challengers: any autonomous actor must fail closed
-here. The reference challenger declines a funding leg that is a treasury
-transfer to the loan's own borrower, deliberately under-enforcing the published
-covenant rather than producing a contested slash.
+Consequence for automated challengers: the reference challenger acts on both
+shapes, because both breach a rule the originator published, but it classifies
+them. A funding leg paid to a third party who then repaid the loan is recorded
+as `third-party`; one paid to the loan's own borrower is recorded as
+`same-borrower` — actionable, and weaker, and said so. Operators who would
+rather miss breaches than press an arguable one set `CHALLENGER_STRICT=true`.
 
-## 10. What remains unproven
+## 10. Activity coverage: what the ratio can and cannot be made to say
+
+**[C]** Coverage is `committed / qualifying` over successful outbound transfers
+from bound treasuries, in the tokens an originator's own claims are denominated
+in, inside a stated block range. Every input is public and recomputable.
+
+Attacks considered:
+
+| Attack | Outcome |
+|---|---|
+| Unbind a treasury once its activity looks bad | **Impossible.** `bindTreasury` reverts `AlreadyBound`; no unbind path exists in the contract. |
+| Operate from an address never declared | **Works, and is the stated limitation.** Coverage measures declared treasuries only, and says so beside every figure. |
+| Fragment one payment into many transfers | Lowers coverage, not raises it — the denominator grows. No incentive. |
+| Inflate the numerator with fake commitments | Requires a verified fact and a bond per claim. Committing a fact that is not a real loan is still a bonded, challengeable claim. |
+| A malicious token emitting fake `Transfer` events | Only affects tokens the originator already lends in; it would inflate their own denominator. |
+| An RPC silently omitting logs | **Real risk, and it flatters the originator** by shrinking the denominator. Mitigated by server-side `from` filtering, chunks well under the node's 10,000-block `eth_getLogs` limit, and two independently written implementations that must agree (`npm run gate10`). |
+| Duplicate logs inflating the denominator | Each transfer reduces to a unique `factId`; duplicates collapse. |
+
+Not defended, and stated rather than hidden: the denominator counts activity that
+was never intended as a loan — gas, rebalancing, fees — so a low figure is not by
+itself evidence of anything withheld.
+
+**Coverage is not a credit score.** It carries no opinion about creditworthiness
+and is never rendered as a grade, rank, or colour.
+
+## 11. What remains unproven
 
 Stated plainly, because a security document that lists only successes is marketing.
 

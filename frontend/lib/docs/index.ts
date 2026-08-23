@@ -27,11 +27,11 @@ export const SECTIONS: DocSection[] = [
   { title: 'Introduction', pages: ['', 'overview', 'how-it-works', 'concepts'] },
   {
     title: 'Product',
-    pages: ['evidence-registry', 'duplicate-commitment', 'claims', 'covenants', 'challenges'],
+    pages: ['evidence-registry', 'coverage', 'duplicate-commitment', 'claims', 'covenants', 'challenges'],
   },
   {
     title: 'Protocol',
-    pages: ['protocol', 'covenant-predicate', 'enforcement', 'state-machine', 'invariants'],
+    pages: ['protocol', 'covenant-predicate', 'enforcement', 'reference-challenger', 'state-machine', 'invariants'],
   },
   { title: 'Verification', pages: ['verification', 'source-chains'] },
   { title: 'Architecture', pages: ['architecture', 'security'] },

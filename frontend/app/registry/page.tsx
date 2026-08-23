@@ -11,6 +11,8 @@ import { DEMO_ARTIFACTS, PRECOMPILES, explorer, sourceChain } from '@/lib/config
 import { formatBlock, formatTokenAmount, shortAddress } from '@/lib/format';
 import { tokenMeta } from '@/lib/token';
 import { dataSource, useBookLoans, useBookOriginators, useFactConsumers, useVaultFacts } from '@/lib/data';
+import { useCoverage } from '@/lib/hooks';
+import { CoveragePanel } from '@/components/Coverage';
 import { VAULT_LOOKBACK_BLOCKS, type VaultFact } from '@/lib/hooks';
 
 /**
@@ -36,6 +38,8 @@ export default function RegistryPage() {
   const { facts, isLoading } = useVaultFacts();
   const { loans } = useBookLoans();
   const { originators } = useBookOriginators();
+  const originatorIds = useMemo(() => originators.map((o) => o.id), [originators]);
+  const { coverage, isLoading: coverageLoading } = useCoverage(originatorIds);
   const [open, setOpen] = useState<Hex | null>(null);
 
   const factIds = useMemo(() => facts.map((f) => f.factId), [facts]);
@@ -93,6 +97,44 @@ export default function RegistryPage() {
           </p>
         ) : null}
       </header>
+
+      {/*
+        Coverage answers the objection every reader of an evidence-bound book
+        arrives with: that the originator simply does not register what it would
+        rather nobody saw. Clearbook cannot stop that. It can measure it, and
+        measuring it is worth more than pretending the book is complete.
+      */}
+      {originators.length > 0 ? (
+        <section className="space-y-4">
+          <div>
+            <Eyebrow>Declared activity</Eyebrow>
+            <h2 className="mt-2 text-[19px] font-semibold tracking-tight">
+              How much of each book is actually on the book.
+            </h2>
+            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">
+              Nothing forces an originator to register a loan. So rather than assume the book is
+              complete, Clearbook measures the share of declared-treasury activity that reached a
+              claim. This is a ratio, not a rating.
+            </p>
+          </div>
+
+          {coverageLoading ? (
+            <p className="text-[13px] text-faint">
+              Measuring declared activity against the source chain…
+            </p>
+          ) : coverage === null ? null : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {coverage.map((c) => (
+                <CoveragePanel
+                  key={c.originatorId.toString()}
+                  coverage={c}
+                  name={originators.find((o) => o.id === c.originatorId)?.name ?? `Originator ${c.originatorId}`}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       {isLoading ? (
         <p className="text-[13px] text-faint">Reading the vault from Creditcoin…</p>

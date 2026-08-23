@@ -16,13 +16,17 @@
  *    breach occurred. No transaction is broadcast unless `eth_call` against the
  *    deployed `challenge()` succeeds first with the exact arguments intended.
  *
- * 2. FAIL CLOSED ON AMBIGUITY. Transfer facts cannot distinguish money that
- *    funded a repayment from money that merely preceded it, so a legitimate
+ * 2. REPORT THE SHAPE, DO NOT FLATTEN IT. Transfer facts cannot distinguish
+ *    money that funded a repayment from money that merely preceded it, so a
  *    second tranche satisfies the funding leg exactly as a circular flow does
- *    (SECURITY.md §9). This process therefore declines any funding leg paid to
- *    the loan's own borrower, deliberately under-enforcing the published
- *    covenant. Those cases remain challengeable by a human, who can bring
- *    context the chain does not carry.
+ *    (SECURITY.md §9). Both are genuine breaches of a rule the originator
+ *    published and bonded against, so both are actionable — but they are not
+ *    equally telling, and the challenger says which it found rather than
+ *    presenting them as the same discovery.
+ *
+ *    Set CHALLENGER_STRICT=true to refuse the weaker shape entirely. That is a
+ *    deliberate under-enforcement of the published covenant, appropriate for an
+ *    operator who would rather miss breaches than press an arguable one.
  */
 import { Contract, JsonRpcProvider, Wallet, type TransactionReceipt } from 'ethers';
 
@@ -35,7 +39,7 @@ export const CLEARBOOK_ABI = [
   'function originators(uint256) view returns (address owner, string name, uint256 bond, uint256 exposure, uint32 circularWindow, uint32 challengeWindow, uint64 lastClaimBlock, uint16 covenants, bool active)',
   'function treasuryOwner(address) view returns (uint256)',
   'function challenge(uint256 loanId, bytes32 fundingFactId) returns (uint256)',
-  'event CovenantBreached(uint256 indexed loanId, uint16 covenant, bytes32 fundingFactId, bytes32 repaymentFactId, address indexed challenger)',
+  'event CovenantBreached(uint256 indexed loanId, uint16 indexed covenantId, bytes32 fundingFactId, bytes32 repaymentFactId, address indexed challenger)',
   'event BountyPaid(uint256 indexed loanId, address indexed challenger, uint256 bounty, uint256 toSink)',
 ];
 
@@ -74,23 +78,34 @@ export interface OpenClaim {
 }
 
 export type Outcome =
-  | { kind: 'confirmed'; loanId: bigint; fundingFactId: string; ccTxHash: string; bounty: bigint; detectionLagBlocks: bigint }
+  | { kind: 'confirmed'; loanId: bigint; fundingFactId: string; ccTxHash: string; bounty: bigint; detectionLagBlocks: bigint; shape: Shape }
   | { kind: 'simulation-reverted'; loanId: bigint; fundingFactId: string; reason: string }
   | { kind: 'lost-race'; loanId: bigint; fundingFactId: string; reason: string }
-  | { kind: 'declined-ambiguous'; loanId: bigint; fundingFactId: string };
+  | { kind: 'declined-strict'; loanId: bigint; fundingFactId: string };
 
 const eq = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
+/** How strongly the evidence points, independent of whether the covenant broke. */
+export type Shape = 'third-party' | 'same-borrower';
+
 /**
- * Rule 2, isolated so it can be tested and read on its own.
+ * Which shape a funding leg has.
  *
- * A funding leg paid to the loan's own borrower is refused. In that shape a
- * legitimate second tranche and a genuine circular flow produce identical
- * evidence (SECURITY.md §9), and an autonomous actor must not guess. A human
- * challenger may still pursue it through the console.
+ * `third-party` — someone other than the borrower repaid the loan, and the
+ * treasury had funded them. There is no ordinary lending explanation for that.
+ *
+ * `same-borrower` — the borrower repaid, and the treasury had also sent the
+ * borrower money inside the window. The published covenant is broken either
+ * way, but this is the same shape honest re-lending produces (SECURITY.md §9),
+ * so it is reported as the weaker finding it is.
  */
-export function isAmbiguousFundingLeg(fundingTo: string, borrower: string): boolean {
-  return eq(fundingTo, borrower);
+export function fundingLegShape(fundingTo: string, borrower: string): Shape {
+  return eq(fundingTo, borrower) ? 'same-borrower' : 'third-party';
+}
+
+/** True when this operator has opted out of acting on the weaker shape. */
+export function isStrict(env: Record<string, string | undefined> = process.env): boolean {
+  return (env.CHALLENGER_STRICT ?? '').toLowerCase() === 'true';
 }
 
 /** The repayment fields the off-chain filter compares against. */
@@ -150,6 +165,9 @@ export class ReferenceChallenger {
 
   /** Claim/fact pairs already simulated and refused, so each is tried once per run. */
   private refused = new Set<string>();
+
+  /** Opt-in refusal of the weaker shape. Off by default. */
+  private readonly strict = isStrict();
 
   constructor(cc: JsonRpcProvider, privateKey: string, clearbookAddress: string, vaultAddress: string) {
     this.cc = cc;
@@ -278,21 +296,24 @@ export class ReferenceChallenger {
     const key = `${claim.loanId}:${funding.factId}`;
     if (this.refused.has(key)) return null;
 
-    // --- Rule 2: fail closed where the evidence cannot distinguish. ---
-    if (isAmbiguousFundingLeg(funding.to, claim.borrower)) {
+    // --- Rule 2: report the shape; refuse the weaker one only in strict mode. ---
+    const shape = fundingLegShape(funding.to, claim.borrower);
+
+    if (shape === 'same-borrower' && this.strict) {
       this.refused.add(key);
-      log.info('DECLINED_AMBIGUOUS', {
+      log.info('DECLINED_STRICT', {
         loanId: claim.loanId.toString(),
         factId: funding.factId,
-        reason: 'funding leg paid the loan borrower; a tranche and a circular flow are indistinguishable here',
+        reason: 'funding leg paid the loan borrower; honest re-lending produces the same shape',
       });
-      metrics.increment('challenger_declined_ambiguous_total');
-      return { kind: 'declined-ambiguous', loanId: claim.loanId, fundingFactId: funding.factId };
+      metrics.increment('challenger_declined_strict_total');
+      return { kind: 'declined-strict', loanId: claim.loanId, fundingFactId: funding.factId };
     }
 
     log.info('CANDIDATE_FOUND', {
       loanId: claim.loanId.toString(),
       factId: funding.factId,
+      shape,
       blocksLeft: claim.blocksLeft.toString(),
     });
 
@@ -351,9 +372,10 @@ export class ReferenceChallenger {
         ccTxHash: tx.hash,
         bounty: bounty.toString(),
         detectionLagBlocks: detectionLagBlocks.toString(),
+        shape,
       });
 
-      return { kind: 'confirmed', loanId: claim.loanId, fundingFactId: funding.factId, ccTxHash: tx.hash, bounty, detectionLagBlocks };
+      return { kind: 'confirmed', loanId: claim.loanId, fundingFactId: funding.factId, ccTxHash: tx.hash, bounty, detectionLagBlocks, shape };
     } catch (e: unknown) {
       // Nonce conflicts, gas failures, a claim closing mid-flight. Give up on
       // this pair for the run; the next sweep re-derives from live state.

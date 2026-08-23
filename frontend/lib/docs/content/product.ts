@@ -296,4 +296,106 @@ const challenges: DocPage = {
   ],
 };
 
-export const productPages: DocPage[] = [registry, duplicate, claims, covenants, challenges];
+
+const coverage: DocPage = {
+  slug: 'coverage',
+  title: 'Activity coverage',
+  summary: 'How much of an originator’s declared activity actually reached a claim.',
+  audience: 'Everyone',
+  blocks: [
+    {
+      t: 'lead',
+      text: 'Nothing forces an originator to register a loan. Rather than assume a book is complete, Clearbook measures how much of it is.',
+    },
+    {
+      t: 'p',
+      text: 'The obvious objection to any evidence-bound loan book is that the originator simply does not register the activity it would rather nobody examined. Clearbook cannot prevent that. It can measure it — and publishing the measurement is worth more than pretending the problem does not exist.',
+    },
+    { t: 'h', text: 'The formula' },
+    {
+      t: 'code',
+      lang: 'text',
+      caption: 'A ratio with a stated denominator, not a rating',
+      code: `coverage = committed / qualifying
+
+qualifying  every successful outbound ERC-20 Transfer of a token this
+            originator lends in, sent from a treasury it bound by
+            signature, inside the measured block range
+
+committed   those whose factId appears as a claim's disbursement`,
+    },
+    { t: 'h', text: 'What counts as qualifying' },
+    {
+      t: 'list',
+      ordered: true,
+      items: [
+        'Emitted by a token contract this originator’s own claims are denominated in — read from the book, never configured.',
+        '`from` equals one of the originator’s bound treasuries.',
+        'The transaction receipt succeeded. A reverted transfer moved nothing and is excluded.',
+        'The block falls inside the stated range.',
+        'It is a standard ERC-20 `Transfer` — ERC-721 shares the same event signature and is excluded.',
+      ],
+    },
+    { t: 'h', text: 'How a transfer is matched to a claim' },
+    {
+      t: 'p',
+      text: 'Not by amount, and not by transaction hash. Each transfer is reduced to the vault’s own identity — `keccak256(abi.encode(chainKey, blockHeight, txIndex, logIndex))` — and compared against the disbursement facts on the book. `logIndex` here is **transaction-local**: the log’s position inside its own receipt, not the block-global index `eth_getLogs` returns. Conflating the two produces a plausible-looking identifier for a fact that does not exist, which is why the receipt fetch is mandatory rather than an optimisation.',
+    },
+    { t: 'h', text: 'The three classes' },
+    {
+      t: 'table',
+      head: ['Class', 'Meaning'],
+      rows: [
+        ['Committed to a claim', 'Proved, and bonded against by a claim.'],
+        ['Verified, never claimed', 'Proved into the vault, but no claim cites it.'],
+        ['Never verified', 'Never entered the verification pipeline at all.'],
+      ],
+    },
+    {
+      t: 'note',
+      tone: 'default',
+      title: 'Coverage is not a credit score',
+      text: 'It says nothing about creditworthiness, default risk, or whether an originator is trustworthy. It is one deterministic ratio over a stated scope, and it is an input to a judgement rather than the judgement itself.',
+    },
+    { t: 'h', text: 'What it cannot see' },
+    {
+      t: 'split',
+      canTitle: 'Measured',
+      can: [
+        'Outbound transfers from treasuries bound by signature',
+        'Tokens the originator’s own claims are denominated in',
+        'The stated source-chain block range',
+        'Successful transfers only',
+      ],
+      cannotTitle: 'Invisible to it',
+      cannot: [
+        'Any address the originator never declared',
+        'Tokens it has never lent in',
+        'Activity outside the measured block range',
+        'Whether an uncommitted transfer was even a loan',
+      ],
+    },
+    {
+      t: 'p',
+      text: 'That first limitation is the important one, and it ships beside every figure rather than in a footnote. What stops the measurement being theatre is that **binding cannot be undone**: `bindTreasury` reverts `AlreadyBound` for any address already bound, and the contract has no unbind path. A treasury cannot be quietly un-declared once its activity becomes inconvenient.',
+    },
+    {
+      t: 'p',
+      text: 'The denominator also counts activity that was never meant to be a loan — gas top-ups, rebalancing, fee payments all appear as uncommitted. Coverage measures what reached a claim, not what should have.',
+    },
+    { t: 'h', text: 'Recomputing it yourself' },
+    {
+      t: 'p',
+      text: 'Every input is public. The scope, the declared treasuries and their binding blocks are shown with the figure, and `npm run gate10` recomputes the same number with a second, independently written implementation and fails if the two disagree.',
+    },
+    {
+      t: 'next',
+      items: [
+        { href: '/docs/evidence-registry', label: 'The evidence registry', sub: 'What a verified fact is' },
+        { href: '/docs/limitations', label: 'Limitations', sub: 'Everything this system does not establish' },
+      ],
+    },
+  ],
+};
+
+export const productPages: DocPage[] = [registry, coverage, duplicate, claims, covenants, challenges];

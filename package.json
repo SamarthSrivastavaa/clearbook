@@ -20,10 +20,12 @@
     "gate4": "tsx integration/gate4-decode.ts",
     "demo:seed": "tsx demo/seed.ts",
     "demo:status": "tsx demo/status.ts",
+    "challenger": "tsx demo/challenger.ts",
     "demo:reset": "tsx demo/reset.ts",
     "recheck": "tsx integration/recheck-controls.ts",
     "gate8a": "tsx integration/gate8a-crash.ts",
     "gate9": "tsx integration/gate9-challenger.ts",
+    "gate10": "tsx integration/gate10-coverage.ts",
     "worker": "tsx worker/src/main.ts"
   },
   "license": "MIT",

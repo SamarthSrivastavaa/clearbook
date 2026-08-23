@@ -77,6 +77,29 @@ export const SOURCE_CHAIN_LABEL = Object.values(SOURCE_CHAINS)
   .map((c, i) => (i === 0 ? c.name : c.short))
   .join(' · ');
 
+/**
+ * Creditcoin CC3 block time, measured rather than assumed (15.0s over a
+ * 500-block sample). Used only to render a block count as a duration a reader
+ * can feel; every figure derived from it is shown as an approximation.
+ */
+export const CC_BLOCK_SECONDS = 15;
+
+/**
+ * The reference challenger's address, when one is running.
+ *
+ * Purely cosmetic: it lets the interface name a challenger the reader may
+ * otherwise not recognise. The protocol does not know this address and grants
+ * it nothing — it is an ordinary account with gas, and any other address
+ * challenging the same claim would be treated identically.
+ */
+const REFERENCE_CHALLENGER = (process.env.NEXT_PUBLIC_REFERENCE_CHALLENGER ?? '').trim();
+
+/** True only for an address configured as the reference challenger. */
+export function isReferenceChallenger(address: string | null | undefined): boolean {
+  if (!REFERENCE_CHALLENGER || !address) return false;
+  return REFERENCE_CHALLENGER.toLowerCase() === address.toLowerCase();
+}
+
 /** The chain the demo's staged claims live on. Evidence may come from any. */
 export const SOURCE_CHAIN = SOURCE_CHAINS[1];
 

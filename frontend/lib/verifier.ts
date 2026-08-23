@@ -190,17 +190,29 @@ export async function verifyOnChain(bundle: ProofBundle): Promise<boolean> {
   })) as boolean;
 }
 
+/**
+ * The proxy's error shape. Typed rather than inferred because `Response.json()`
+ * resolves to `unknown` outside a DOM lib, and these helpers are read by the
+ * coverage gate under the repository-root config as well as by the browser.
+ */
+interface ProverError {
+  detail?: string;
+}
+
 export async function fetchAttestedHeight(chainKey: number): Promise<number | null> {
   const res = await fetch(`/api/prover?kind=attested-height&chainKey=${chainKey}`);
-  if (!res.ok) throw new Error((await res.json()).detail ?? 'prover unavailable');
-  const body = await res.json();
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as ProverError;
+    throw new Error(err.detail ?? 'prover unavailable');
+  }
+  const body = (await res.json()) as { attestedHeight?: unknown };
   return typeof body.attestedHeight === 'number' ? body.attestedHeight : null;
 }
 
 export async function fetchProof(chainKey: number, txHash: Hex): Promise<ProofBundle> {
   const res = await fetch(`/api/prover?kind=proof&chainKey=${chainKey}&txHash=${txHash}`);
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+    const body = (await res.json().catch(() => ({}))) as ProverError;
     throw new Error(body.detail ?? `The proof builder returned ${res.status}.`);
   }
   return (await res.json()) as ProofBundle;

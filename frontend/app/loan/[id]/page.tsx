@@ -7,7 +7,7 @@ import { useMemo } from 'react';
 import { EvidenceFlow, NotClaimed, type EvidenceItem } from '@/components/Evidence';
 import { LoadingRows, NotDeployed, PreviewBanner } from '@/components/States';
 import { Callout, Disclosure, Empty, Eyebrow, Ident, Section, Status } from '@/components/ui';
-import { SOURCE_CHAIN, explorer } from '@/lib/config';
+import { SOURCE_CHAIN, explorer, isReferenceChallenger, CC_BLOCK_SECONDS } from '@/lib/config';
 import {
   dataSource,
   isPreview,
@@ -199,6 +199,9 @@ export default function LoanPage() {
           windowLeft={windowLeft}
           bondPerLoan={params?.bondPerLoan ?? null}
           breach={breach}
+          challengeLagBlocks={
+            breach && funding?.ccBlock ? breach.block - funding.ccBlock : null
+          }
         />
       ) : null}
 
@@ -319,6 +322,7 @@ function CovenantPanel({
   windowLeft,
   bondPerLoan,
   breach,
+  challengeLagBlocks,
 }: {
   loan: import('@/lib/protocol').Loan;
   circularWindow: number;
@@ -326,6 +330,8 @@ function CovenantPanel({
   windowLeft: bigint | null;
   bondPerLoan: bigint | null;
   breach: import('@/lib/hooks').BreachEvidence | null;
+  /** Blocks between the funding evidence being stored and the challenge landing. */
+  challengeLagBlocks: bigint | null;
 }) {
   const breached = loan.status === LoanStatus.BREACHED;
 
@@ -416,6 +422,35 @@ function CovenantPanel({
                     one transaction
                   </a>
                   .
+                </p>
+              ) : null}
+              {/*
+                The gap between evidence becoming citable and enforcement
+                landing. It is the honest measure of how long a breach stayed
+                un-acted-on, and the only number that distinguishes a book
+                somebody watches from one nobody does.
+              */}
+              {breached && challengeLagBlocks !== null ? (
+                <p className="tnum mt-1.5 text-[12px] text-faint">
+                  Challenged {challengeLagBlocks.toString()} Creditcoin blocks after the evidence
+                  became citable
+                  <span className="text-subtle">
+                    {' '}
+                    (~{Math.max(1, Math.round((Number(challengeLagBlocks) * CC_BLOCK_SECONDS) / 60))} min)
+                  </span>
+                  .
+                </p>
+              ) : null}
+              {/*
+                Naming the reference challenger matters only because a reader
+                would otherwise see an unfamiliar address. It is deliberately
+                phrased as something anyone runs, not as a service Clearbook
+                operates — the protocol does not know this account.
+              */}
+              {breached && breach && isReferenceChallenger(breach.challenger) ? (
+                <p className="mt-1.5 max-w-md text-[12px] leading-relaxed text-faint">
+                  That address is the reference challenger — an open process anyone can run. It holds
+                  no privilege here; it called the same function the console does.
                 </p>
               ) : null}
             </div>

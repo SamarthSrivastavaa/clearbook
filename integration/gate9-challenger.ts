@@ -1,22 +1,24 @@
 /**
  * Gate 9 — the reference challenger refuses more than it accepts.
  *
- * An autonomous actor that submits transactions against a live book has exactly
- * two properties worth proving, and neither is "it finds breaches":
+ * An autonomous actor that submits transactions against a live book has two
+ * properties worth proving, and neither is "it finds breaches":
  *
- *   1. It never broadcasts after a failed simulation.
- *   2. It never acts on evidence that cannot distinguish an honest originator
- *      from a dishonest one.
+ *   1. It never broadcasts after a failed simulation. This is the safety
+ *      property: the deployed contract decides, always.
+ *   2. It classifies the funding leg honestly, so a breach that honest
+ *      re-lending would also produce is never reported as though it were the
+ *      telling kind.
  *
  * Everything else — which candidates it considers, how it scans — is an
- * optimisation. These are the safety properties, so they are tested in
- * isolation from any chain.
+ * optimisation, because a wrong filter can only waste a call or miss a
+ * detection. Neither can slash anyone.
  *
  *   npx tsx integration/gate9-challenger.ts
  */
 import {
   gatedChallenge,
-  isAmbiguousFundingLeg,
+  fundingLegShape,
   matchesFundingLeg,
   type Fact,
   type RepaymentView,
@@ -104,12 +106,12 @@ async function main(): Promise<void> {
   console.log('\nThe ambiguity guard (SECURITY.md §9)');
   // ---------------------------------------------------------------
 
-  check('funding paid to the loan borrower is ambiguous', isAmbiguousFundingLeg(BORROWER, BORROWER), true);
-  check('funding paid to a third-party payer is not', isAmbiguousFundingLeg(PAYER, BORROWER), false);
+  check('funding paid to the loan borrower is the weaker shape', fundingLegShape(BORROWER, BORROWER), 'same-borrower');
+  check('funding paid to a third party is the telling shape', fundingLegShape(PAYER, BORROWER), 'third-party');
   check(
-    'the guard is case-insensitive on addresses',
-    isAmbiguousFundingLeg(BORROWER.toUpperCase().replace('0X', '0x'), BORROWER),
-    true,
+    'shape detection is case-insensitive on addresses',
+    fundingLegShape(BORROWER.toUpperCase().replace('0X', '0x'), BORROWER),
+    'same-borrower',
   );
 
   // ---------------------------------------------------------------
@@ -187,7 +189,12 @@ async function main(): Promise<void> {
     matchesFundingLeg(tranche, trancheRepayment, WINDOW, CLAIM),
     true,
   );
-  check('and the guard refuses it anyway', isAmbiguousFundingLeg(tranche.to, BORROWER), true);
+  check('and it is reported as the weaker shape', fundingLegShape(tranche.to, BORROWER), 'same-borrower');
+  check(
+    'a third party repaying is reported as the telling shape',
+    fundingLegShape(PAYER, BORROWER),
+    'third-party',
+  );
 
   console.log(`\n${failures === 0 ? 'GATE 9 PASS' : `GATE 9 FAIL — ${failures} failing`}\n`);
   process.exit(failures === 0 ? 0 : 1);

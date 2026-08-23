@@ -426,10 +426,104 @@ const verification: DocPage = {
   ],
 };
 
+
+const referenceChallenger: DocPage = {
+  slug: 'reference-challenger',
+  title: 'The reference challenger',
+  summary: 'An open process anyone can run that submits real challenges. The protocol does not depend on it.',
+  audience: 'Developers',
+  blocks: [
+    {
+      t: 'lead',
+      text: 'Enforcement that requires someone to be watching is only as good as whoever is watching. Clearbook ships a process that watches — and it has no privilege whatsoever.',
+    },
+    {
+      t: 'p',
+      text: 'The reference challenger reads the shared book, finds claims whose challenge window is open, looks for verified evidence that would breach one, and submits a real `challenge()` transaction. It is an ordinary account with gas calling a public function. **Anyone can run it, and Clearbook works exactly the same if nobody does.**',
+    },
+    { t: 'h', text: 'What it is not' },
+    {
+      t: 'split',
+      canTitle: 'It does',
+      can: [
+        'Read public state and public events',
+        'Simulate `challenge()` against the deployed contract',
+        'Broadcast a transaction any account could broadcast',
+        'Compete with other challengers for the same bounty',
+      ],
+      cannotTitle: 'It does not',
+      cannot: [
+        'Monitor anyone — it reads a public book, like any observer',
+        'Decide that a covenant was breached; only the contract does that',
+        'Hold any role, permission, or privileged access',
+        'Guarantee detection, or claim a book is clean',
+      ],
+    },
+    {
+      t: 'note',
+      tone: 'default',
+      title: 'Clearbook does not monitor your loans',
+      text: 'It would be easy to describe this as monitoring, and it would be wrong. There is no service, no subscription, and no operator watching on anyone’s behalf. There is a public book and a loop that anyone may run against it.',
+    },
+    { t: 'h', text: 'Two rules' },
+    {
+      t: 'p',
+      text: '**The contract is the authority.** Off-chain filtering only decides which candidates deserve a simulation. Nothing is broadcast unless `eth_call` against the deployed `challenge()` succeeds first with the exact arguments intended. A filter that is too permissive wastes a call; one that is too strict misses a detection. Neither can produce a wrong slash.',
+    },
+    {
+      t: 'p',
+      text: '**It reports the shape rather than flattening it.** Transfer facts cannot distinguish money that funded a repayment from money that merely preceded it, so a second tranche looks exactly like a circular flow. Both break a rule the originator published and bonded against, so the challenger acts on both — but it records which it found. A third party the treasury funded repaying the loan has no ordinary lending explanation; the borrower repaying after receiving more money has an obvious one. Set `CHALLENGER_STRICT=true` to refuse the weaker shape entirely. See [limitations](/docs/limitations).',
+    },
+    {
+      t: 'flow',
+      steps: [
+        { label: 'Read open claims', sub: 'REPAYMENT_CLAIMED, window still open' },
+        { label: 'Match verified evidence', sub: 'off-chain filter, an optimisation only' },
+        { label: 'Classify the shape', sub: 'third-party, or the weaker same-borrower case', tone: 'pending' },
+        { label: 'Simulate on-chain', sub: 'eth_call against the deployed challenge()' },
+        { label: 'Broadcast, or stop', sub: 'a revert ends it; nothing is sent', tone: 'default' },
+        { label: 'Bond slashed, bounty paid', sub: 'settled in one transaction', tone: 'breach' },
+      ],
+    },
+    { t: 'h', text: 'Races are expected' },
+    {
+      t: 'p',
+      text: 'A human may challenge the same claim first. Another challenger may win. The window may close between simulation and inclusion. In every case the transaction simply reverts and the process moves on — losing a race is the normal outcome of a competitive bounty, not a failure.',
+    },
+    { t: 'h', text: 'Why competition is the point' },
+    {
+      t: 'p',
+      text: 'Multiple independent challengers competing for the same bounty is intended. It is also an economic hypothesis rather than a demonstrated property: more claims make the shared evidence more valuable, which creates more opportunities to challenge, which should attract more independent challengers. Nothing here proves that happens at scale.',
+    },
+    { t: 'h', text: 'Running it' },
+    {
+      t: 'code',
+      lang: 'bash',
+      caption: 'Set a funded throwaway key; without it the worker skips enforcement entirely',
+      code: `CHALLENGER_PRIVATE_KEY=0x...   # an ordinary account with gas
+CLEARBOOK_ADDRESS=0x...
+
+npm run worker`,
+    },
+    {
+      t: 'p',
+      text: 'The key is read from the environment, never logged and never exposed to the browser. It holds no protocol authority: if it were compromised, the attacker could challenge claims and collect bounties, which is precisely what any member of the public may already do.',
+    },
+    {
+      t: 'next',
+      items: [
+        { href: '/docs/enforcement', label: 'Enforcement and economics', sub: 'What a slash pays, and to whom' },
+        { href: '/docs/limitations', label: 'Limitations', sub: 'Why a breach is not the same as fraud' },
+      ],
+    },
+  ],
+};
+
 export const protocolPages: DocPage[] = [
   contracts,
   predicate,
   enforcement,
+  referenceChallenger,
   stateMachine,
   invariants,
   verification,
