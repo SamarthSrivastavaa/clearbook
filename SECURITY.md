@@ -139,7 +139,35 @@ The step order in BUILD.md §5.1 is security-critical and must not be rearranged
 
 ---
 
-## 9. What remains unproven
+## 9. Covenant scope: the funding leg is broader than fraud
+
+**[C]** `CIRCULAR_REPAYMENT` fires whenever the originator's bound treasury sent the
+repaying address at least the repayment amount, in the same token, within
+`circularWindow` source-chain blocks. It does not require those funds to be the
+ones that repaid — transfer facts cannot establish that.
+
+So a second tranche, a revolving draw, or any same-day disbursement to a
+counterparty that then repays a different loan satisfies the funding leg exactly
+as a circular flow does. Both deployed originators publish
+`circularWindow = 5000` (~17 hours), so the exposure is real, not theoretical.
+
+This is the covenant behaving as published. Inferring which coins repaid a loan
+is precisely the inference this protocol refuses to make, and the alternative —
+guessing — would be worse than the breadth. `circularWindow` is the originator's
+control: a wide window is a strong claim carrying real exposure, a tight one
+claims less and is operationally comfortable. **An originator running an active
+revolving facility cannot use a wide window.**
+
+Pinned by `test_03_second_tranche_makes_first_loan_challengeable` and
+`test_05_tight_circular_window_excludes_the_tranche` in
+`test/CovenantSemantics.t.sol`.
+
+Consequence for automated challengers: any autonomous actor must fail closed
+here. The reference challenger declines a funding leg that is a treasury
+transfer to the loan's own borrower, deliberately under-enforcing the published
+covenant rather than producing a contested slash.
+
+## 10. What remains unproven
 
 Stated plainly, because a security document that lists only successes is marketing.
 

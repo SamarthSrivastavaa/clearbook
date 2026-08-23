@@ -13,6 +13,14 @@ import {IEvidenceVault} from "../interfaces/IEvidenceVault.sol";
 ///      relationship. It does NOT establish intent, control of either address by
 ///      any person or entity, the existence of an off-chain loan, or any violation
 ///      of law. It establishes that the originator's own published rule was not met.
+///
+///      The rule is deliberately broad. Transfer facts cannot distinguish money
+///      that funded a repayment from money that merely preceded it, so a second
+///      tranche or a revolving draw to the address that repays satisfies the
+///      funding leg exactly as a circular flow does. That is the covenant as
+///      published, not a defect: guessing which coins were which would be the
+///      inference this protocol refuses to make. `circularWindow` is the
+///      originator's control over how much of that breadth it accepts.
 library CovenantLib {
     /// @notice Covenant identifiers (BUILD.md §4.1), used as a bitmask.
     uint16 internal constant CIRCULAR_REPAYMENT = 0x01;

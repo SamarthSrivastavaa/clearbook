@@ -23,6 +23,7 @@
     "demo:reset": "tsx demo/reset.ts",
     "recheck": "tsx integration/recheck-controls.ts",
     "gate8a": "tsx integration/gate8a-crash.ts",
+    "gate9": "tsx integration/gate9-challenger.ts",
     "worker": "tsx worker/src/main.ts"
   },
   "license": "MIT",

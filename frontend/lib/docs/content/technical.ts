@@ -191,6 +191,13 @@ const limitations: DocPage = {
           technical: 'Detection is depth-1 by construction. This is why the rule is framed as a covenant the originator chose and bonded against, not as fraud detection.',
         },
         {
+          term: 'The window catches honest re-lending too',
+          simple:
+            'If your treasury sends money to a counterparty and that same counterparty repays you shortly after, the covenant fires — even when the two are unrelated.',
+          technical:
+            'Transfer facts cannot distinguish money that funded a repayment from money that merely preceded it. A second tranche, a revolving draw, or any same-day disbursement to the address that repays you satisfies the funding leg. This is the covenant behaving as published, not a defect — and it is why circularWindow is the originator’s dial: 5,000 blocks (~17h) is a strong claim with real exposure; a tight window is operationally comfortable and claims less. An originator running an active revolver cannot use a wide window.',
+        },
+        {
           term: 'Absence is unprovable',
           simple: 'Clearbook can never certify a book as clean.',
           technical: 'Merkle inclusion proofs establish that something happened. There is no corresponding proof that something did not. Clearbook makes specific claims refutable; it does not attest completeness.',

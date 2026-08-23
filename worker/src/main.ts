@@ -23,6 +23,7 @@ import { log, metrics } from './log.js';
 import { Prechecker } from './precheck.js';
 import { Prover, ProofError, type ProofBundle } from './prove.js';
 import { Submitter } from './submit.js';
+import { ReferenceChallenger } from './enforce.js';
 import { Watcher } from './watch.js';
 
 function required(name: string): string {
@@ -41,6 +42,8 @@ interface Runtime {
   prover: Prover;
   prechecker: Prechecker;
   submitter: Submitter;
+  /** Optional: absent unless a challenger key is configured. */
+  challenger: ReferenceChallenger | null;
   health: HealthServer;
 }
 
@@ -77,6 +80,18 @@ async function buildRuntime(): Promise<Runtime> {
     log.warn('no watched addresses configured; the watcher will discover nothing', {});
   }
 
+  // The reference challenger is strictly opt-in. Without a key the worker
+  // behaves exactly as before: the protocol has never depended on it.
+  const challengerKey = process.env.CHALLENGER_PRIVATE_KEY;
+  const clearbookAddress = process.env.CLEARBOOK_ADDRESS;
+  let challenger: ReferenceChallenger | null = null;
+  if (challengerKey && clearbookAddress) {
+    challenger = new ReferenceChallenger(cc, challengerKey, clearbookAddress, vaultAddress);
+    log.info('reference challenger enabled', { challenger: challenger.address });
+  } else {
+    log.info('reference challenger disabled', { reason: 'CHALLENGER_PRIVATE_KEY or CLEARBOOK_ADDRESS not set' });
+  }
+
   const health = new HealthServer(Number(process.env.HEALTH_PORT ?? 8080));
 
   return {
@@ -89,6 +104,7 @@ async function buildRuntime(): Promise<Runtime> {
     prover: new Prover(chain.chainKey, proverUrl),
     prechecker: new Prechecker(cc),
     submitter: new Submitter(cc, workerKey, vaultAddress),
+    challenger,
     health,
   };
 }
@@ -171,6 +187,16 @@ async function tick(rt: Runtime): Promise<void> {
 
   const pending = await rt.db.claimNext(['DISCOVERED'], 5);
   for (const row of pending) await advance(rt, row);
+
+  // Enforcement runs after ingestion, so evidence stored this tick is already
+  // citable. A failure here must never stop the worker ingesting.
+  if (rt.challenger) {
+    try {
+      await rt.challenger.sweep();
+    } catch (e: unknown) {
+      log.warn('challenger sweep failed', { error: (e as Error).message ?? String(e) });
+    }
+  }
 
   rt.health.update({
     status: 'ok',
