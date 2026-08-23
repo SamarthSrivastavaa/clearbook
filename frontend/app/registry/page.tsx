@@ -11,7 +11,7 @@ import { DEMO_ARTIFACTS, PRECOMPILES, explorer, sourceChain } from '@/lib/config
 import { formatBlock, formatTokenAmount, shortAddress } from '@/lib/format';
 import { tokenMeta } from '@/lib/token';
 import { dataSource, useBookLoans, useBookOriginators, useFactConsumers, useVaultFacts } from '@/lib/data';
-import type { VaultFact } from '@/lib/hooks';
+import { VAULT_LOOKBACK_BLOCKS, type VaultFact } from '@/lib/hooks';
 
 /**
  * The evidence registry.
@@ -63,7 +63,7 @@ export default function RegistryPage() {
     <div className="space-y-10">
       <header>
         <Eyebrow>Evidence registry</Eyebrow>
-        <h1 className="display-lg mt-2">Every fact this system will accept.</h1>
+        <h1 className="display-lg mt-2">The evidence this book runs on.</h1>
         <p className="prose-lead mt-4 max-w-2xl">
           Verification needs no permission — anyone can prove a transfer happened, including
           transfers between parties who have never heard of Clearbook.{' '}
@@ -76,6 +76,20 @@ export default function RegistryPage() {
             <Figure>{ordered.length}</Figure> verified facts ·{' '}
             <Figure>{consumersLoading ? '—' : consumedCount}</Figure> committed to a claim ·{' '}
             <Figure>{liveChainCount}</Figure> from a chain carrying real value
+          </p>
+        ) : null}
+
+        {/* The listing is a bounded scan of the vault's own logs, not the whole
+            history. Saying so matters more here than anywhere else in the
+            product: a page that implied completeness it does not have would
+            undercut the one claim everything else rests on. */}
+        {!isLoading && ordered.length > 0 ? (
+          <p className="mt-2 text-[12px] leading-relaxed text-faint">
+            Listed from the last {Number(VAULT_LOOKBACK_BLOCKS).toLocaleString('en-US')} Creditcoin
+            blocks. There is no indexer on this chain and the vault keeps no enumerable list, so
+            discovery is a bounded log scan — an older fact is still fully citable by identifier, and{' '}
+            <span className="text-muted">the contract accepts it regardless</span>. The bound limits
+            this listing, never what the protocol will take.
           </p>
         ) : null}
       </header>

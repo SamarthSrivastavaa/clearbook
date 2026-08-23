@@ -24,7 +24,7 @@ import {Clearbook} from "../src/Clearbook.sol";
 contract EvidenceCommitmentTest is TestBase {
     /// Reads one originator's exposure in its own stack frame — see D-018.
     function _exposureOf(uint256 originatorId) private view returns (uint256 exposure) {
-        (,, , exposure,,,,,) = clearbook.originators(originatorId);
+        (,,, exposure,,,,,) = clearbook.originators(originatorId);
     }
 
     /// A second, fully independent originator: own owner, own bond, own treasury.
@@ -67,6 +67,46 @@ contract EvidenceCommitmentTest is TestBase {
         // The refusal changes nothing: A keeps the fact, B takes on no exposure.
         assertEq(clearbook.factConsumedBy(factId), loanId, "fact was rebound");
         assertEq(_exposureOf(idB), 0, "B took on exposure from a refused commitment");
+    }
+
+    /// @notice Self-challenge is strictly loss-making.
+    ///
+    /// The documentation states that `BOUNTY_BPS < SLASH_BPS` is what stops an
+    /// originator challenging its own breaching claim to recover the bond. That
+    /// is an economic claim about deployed parameters, so it is asserted here
+    /// rather than left to be believed: the originator ends down by the burned
+    /// remainder, whoever presses the button.
+    function test_self_challenge_is_loss_making() public {
+        (uint256 idA, uint256 loanId,) = _setUpLoan();
+
+        // A genuine circular flow: treasury funds the payer, payer repays.
+        bytes32 fundingFactId = _submitTransfer(300, 0, token, treasury, payer, PRINCIPAL);
+        bytes32 repaymentFactId = _submitTransfer(301, 0, token, payer, treasury, PRINCIPAL);
+
+        vm.prank(originatorOwner);
+        clearbook.claimRepayment(loanId, repaymentFactId);
+
+        uint256 bondBefore = _bondOf(idA);
+        uint256 walletBefore = originatorOwner.balance;
+
+        // The originator challenges its own claim.
+        vm.prank(originatorOwner);
+        uint256 bounty = clearbook.challenge(loanId, fundingFactId);
+
+        uint256 lost = bondBefore - _bondOf(idA);
+        assertEq(lost, 1 ether, "slash was not the full bond for the claim");
+        assertEq(bounty, 0.5 ether, "bounty was not half the slash");
+        assertEq(originatorOwner.balance, walletBefore + bounty, "bounty was not paid");
+
+        // Net position: down by the burned remainder. Breaking the covenant is
+        // never free, even when you are the one who reports it.
+        assertLt(bounty, lost, "self-challenge recovered the full slash");
+        assertEq(lost - bounty, 0.5 ether, "burned remainder is not the difference");
+    }
+
+    /// Reads one originator's bond in its own stack frame — see D-018.
+    function _bondOf(uint256 originatorId) private view returns (uint256 bond) {
+        (,, bond,,,,,,) = clearbook.originators(originatorId);
     }
 
     /// @notice The same guard protects the repayment leg.

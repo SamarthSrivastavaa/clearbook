@@ -111,6 +111,9 @@ function ChallengeConsole() {
       originators.some((o) => o.id === l.originatorId && isChallengeable(l, o, currentBlock)),
   );
 
+  // Shown only when nothing is challengeable, as standing proof the console works.
+  const breached = loans.filter((l) => l.status === LoanStatus.BREACHED);
+
   // Rail state per stage, so progress is visible at a glance.
   const stageState = (n: number): 'done' | 'active' | undefined => {
     if (n === 1) return loan ? 'done' : 'active';
@@ -140,10 +143,52 @@ function ChallengeConsole() {
         <li className="rail-node pb-12" data-state={stageState(1)}>
           <Stage n="01" title="Select the claim" />
           {challengeable.length === 0 ? (
-            <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-muted">
-              No claim currently has an open challenge window. A claim becomes challengeable when its
-              originator claims a repayment, and stays so until the window closes.
-            </p>
+            <div className="mt-4 max-w-xl space-y-4">
+              <p className="text-[13px] leading-relaxed text-muted">
+                No claim currently has an open challenge window. A claim becomes challengeable when
+                its originator claims a repayment, and stays so until the window closes.
+              </p>
+
+              {/*
+                An inert console invites the wrong conclusion — that the mechanism is
+                theoretical. It is not: a bond has already been slashed here. When there is
+                nothing live to challenge, we point at the breach that did execute, because
+                that is the honest answer to "does this actually work".
+              */}
+              {breached.length > 0 ? (
+                <div className="border-l-2 border-breach pl-4">
+                  <p className="text-[13px] leading-relaxed text-ink">
+                    The mechanism has fired on this book. {breached.length === 1 ? 'One claim was' : `${breached.length} claims were`}{' '}
+                    challenged successfully and the bond slashed — not a simulation, a settled
+                    transaction on Creditcoin.
+                  </p>
+                  <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
+                    {breached.map((l) => (
+                      <li key={l.id.toString()}>
+                        <Link
+                          href={`/loan/${l.id}`}
+                          className="text-[13px] text-breach underline decoration-breach/40 underline-offset-4 transition-colors hover:decoration-breach"
+                        >
+                          Claim #{l.id.toString()} — bond slashed
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              <p className="text-[12px] leading-relaxed text-subtle">
+                You can still walk the full evaluation without an open window: the{' '}
+                <Link href="/registry" className="underline underline-offset-4 hover:text-ink">
+                  evidence registry
+                </Link>{' '}
+                lists every verified fact, and{' '}
+                <Link href="/verify" className="underline underline-offset-4 hover:text-ink">
+                  verification
+                </Link>{' '}
+                needs no permission and no open claim.
+              </p>
+            </div>
           ) : (
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {challengeable.map((l) => (
@@ -167,7 +212,8 @@ function ChallengeConsole() {
           <Stage n="02" title="Cite the funding evidence" />
           <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-muted">
             Identify the verified transfer you believe funded the payer. It must already exist in the
-            vault — evidence is ingested before it can be cited, by anyone, permissionlessly.
+            vault — evidence is ingested before it can be cited, by anyone, permissionlessly. The
+            list below is a recent scan; any older fact can still be cited by pasting its identifier.
           </p>
 
           <div className="mt-4">
@@ -445,7 +491,9 @@ function FactPicker({
     <div className="mt-6">
       <div className="rule-b flex items-baseline justify-between gap-4 pb-2">
         <Eyebrow>Evidence in the vault</Eyebrow>
-        <span className="text-[11px] text-faint">{ordered.length} verified facts</span>
+        <span className="text-[11px] text-faint">
+          {ordered.length} verified facts · recent scan
+        </span>
       </div>
 
       <ul>

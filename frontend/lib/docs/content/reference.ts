@@ -190,7 +190,7 @@ const reference: DocPage = {
         ['`verify()` at the precompile', '0.8 s'],
         ['`submitTransferFact`', '~226,000 gas'],
         ['Deploying both contracts', '0.0018 tCTC'],
-        ['Test suite', '94 tests, 100% line coverage of `src/`; branch coverage 75.61%'],
+        ['Test suite', '95 tests, 100% line coverage of `src/`; branch coverage 75.61%'],
       ],
     },
   ],

@@ -19,6 +19,7 @@
     "demo:run": "tsx demo/run.ts",
     "gate4": "tsx integration/gate4-decode.ts",
     "demo:seed": "tsx demo/seed.ts",
+    "demo:status": "tsx demo/status.ts",
     "demo:reset": "tsx demo/reset.ts",
     "recheck": "tsx integration/recheck-controls.ts",
     "gate8a": "tsx integration/gate8a-crash.ts",

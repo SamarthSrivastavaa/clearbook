@@ -1,7 +1,10 @@
 # Clearbook — what exists today
 
-A precise inventory of the built product as of 2026-08-22. Everything below is
-implemented and executed unless explicitly marked otherwise.
+A precise inventory of the built product, refreshed 2026-08-23. Everything below
+is implemented and executed unless explicitly marked otherwise.
+
+For the narrative account — what Clearbook is, in plain language first — see
+[OVERVIEW.md](OVERVIEW.md).
 
 ---
 
@@ -18,8 +21,11 @@ Anyone may then prove a covenant breach in a single permissionless transaction
 and be paid half the slashed bond for doing so.
 
 The differentiator: **Clearbook deploys nothing on the source chain.** Evidence
-is ordinary third-party ERC-20 transfers on canonical Sepolia WETH — a contract
-we do not control.
+is ordinary third-party ERC-20 transfers on tokens we do not control — including
+a real Ethereum mainnet USDC transfer between two addresses we hold no key for.
+
+Evidence is a single global namespace: a verified fact backs **at most one claim,
+across every originator**. Two originators are registered on the deployed book.
 
 ## 2. The mechanism
 
@@ -49,7 +55,7 @@ challenge() slashes the bond, pays the challenger
 | Protocol sink | `0x000000000000000000000000000000000000dEaD` (burn) |
 | Block Prover precompile | `0x0000000000000000000000000000000000000FD2` |
 | ChainInfo precompile | `0x0000000000000000000000000000000000000FD3` |
-| Source chain | Ethereum Sepolia (chainKey resolved at runtime, never hardcoded) |
+| Source chains | Ethereum Sepolia (chain key 1) and Ethereum Mainnet (chain key 3), resolved at runtime and never hardcoded |
 | Source token | Canonical Sepolia WETH `0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9` |
 | Live frontend | https://clearbook-sable.vercel.app |
 
@@ -153,10 +159,12 @@ direct chain read in the browser.
 | Route | Purpose |
 |---|---|
 | `/` | Landing page |
-| `/book` | The credit book — ledger of all claims |
+| `/book` | The shared book — claims across all originators |
+| `/registry` | Evidence registry — what is verified, and what consumed it |
 | `/loan/[id]` | Claim detail: covenant, evidence, result |
 | `/challenge` | Challenge console — the investigation |
-| `/verify` | Judge mode — verify any Sepolia transaction, read-only |
+| `/verify` | Verify any Sepolia or mainnet transaction, read-only |
+| `/docs` | Product and protocol documentation, 24 pages |
 | `/api/prover` | CORS proxy to the Attestcoin proof builder (holds no secrets) |
 | `/opengraph-image`, `/icon` | Rendered in code by `ImageResponse` |
 
@@ -214,7 +222,7 @@ transaction reverts. If it disappears, anyone can submit the identical bundle.
 | 0 | Chain discovery, attestation live and advancing | PASS |
 | 1a | Real package paths compile, verifier interface resolves | PASS |
 | 2 | Contracts build, `forge fmt`, `solhint` clean | PASS |
-| 3 | 92 tests, 100% line coverage of `src/` | PASS |
+| 3 | 95 tests, 100% line coverage of `src/` | PASS |
 | 2/3 | Proof obtained, precompile `verify()` returns true | PASS |
 | 4 | On-chain decode matches the source chain — 120/120 checks over 10 facts | PASS |
 | 5 | Circular flow breaches; honest loan reverts | PASS |

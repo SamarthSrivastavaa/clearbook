@@ -2,7 +2,7 @@
 
 **Evidence-bound covenant compliance for credit originators, on Creditcoin.**
 
-A private-credit loan book is a self-reported spreadsheet. Nobody can check whether a "repayment" was real third-party money or the fund cycling its own. Clearbook makes a published loan book **refutable**: an originator posts a bond, publishes a covenant, and registers loans whose disbursement and repayment claims must each cite a cryptographically verified source-chain `Transfer`. Anyone may then prove a covenant breach in a single permissionless transaction — and get paid for it.
+A private-credit loan book is a self-reported spreadsheet. Nobody can check whether a "repayment" was real third-party money or the fund cycling its own. Clearbook is a **shared, cryptographically verified evidence registry** that several originators use at once, and it makes a published loan book **refutable**: an originator posts a bond, publishes a covenant, and registers loans whose disbursement and repayment claims must each cite a cryptographically verified source-chain `Transfer`. Anyone may then prove a covenant breach in a single permissionless transaction — and get paid for it.
 
 **Live: [clearbook-sable.vercel.app](https://clearbook-sable.vercel.app)** — reads Creditcoin CC3 directly in the browser. No backend, no database, no server holding state; every figure on the page is a chain read.
 
@@ -33,13 +33,21 @@ Full detail, including a candid "protocol limits we hit" section: [`docs/ATTESTC
 | 0 | Chain discovery · attestation live and advancing | **PASS** |
 | 1a | Real package paths compile · full verifier interface resolves | **PASS** |
 | 2 | Contracts build · fmt · lint clean | **PASS** |
-| 3 | 92 tests · 100% line coverage of `src/` | **PASS** |
+| 3 | 95 tests · 100% line coverage of `src/` | **PASS** |
 | 2/3 | Proof obtained · precompile `verify()` returns true | **PASS** |
 | **4** | **On-chain decode matches the source chain — 120/120 checks over 10 facts** | **PASS** |
 | **5** | **Circular flow breaches; honest loan reverts** | **PASS** |
 | **6** | **Bond slashed, bounty paid, sink credited — all exact** | **PASS** |
 | **7** | **Six forged proofs rejected, on-chain** | **PASS** |
 | **8a** | **Worker killed mid-flight recovers; no fact lost, no duplicate submission** | **PASS** |
+
+### The shared registry
+
+Evidence is a single global namespace. A verified `TransferFact` can back **at most one claim, across every originator** — `factConsumedBy` is one mapping, not one per fund, and the guard is checked before the treasury binding so the refusal reports the right reason.
+
+Two originators are registered on the deployed book. The second attempting a fact the first had already committed was refused `FactAlreadyUsed` and reverted on-chain.
+
+The registry also holds **real Ethereum mainnet evidence**: a 10,506.42 USDC transfer between two addresses we do not control, in block 25,811,720. It is verified and permanently uncommittable — committing needs a treasury proven by signature, and we hold no key for either address. **Verification requires no permission; commitment does.**
 
 ### The evidence, in short
 
@@ -114,7 +122,7 @@ npm run gate1                 # discover a real third-party ERC-20 Transfer
 npm run gate2                 # prove it, verify it at 0x0FD2, decode, cross-check
 npm run gate7                 # mutate a valid proof six ways; all must be rejected
 
-cd contracts && forge build && forge test   # 92 tests
+cd contracts && forge build && forge test   # 95 tests
 ```
 
 No API keys and no funded wallet are needed for any of the above — every endpoint is public and every call is read-only.
@@ -128,6 +136,7 @@ npm run recheck               # re-asserts GATE 5/6 economics and the controls
 Running or re-running the demo (needs funded throwaway wallets):
 
 ```bash
+npm run demo:status           # is a challenge window open right now?
 npm run demo:stage            # broadcast fresh source-chain transfers
 npm run demo:prove            # wait for attestation, fetch + verify proofs
 npm run gate4                 # submit the verified facts to the vault
@@ -137,7 +146,15 @@ npm run demo:run              # presenter checklist with live state
 npm run demo:reset            # redeploy clean (dry run unless --confirm)
 ```
 
-**Seed 2–5 hours before a demo.** The challenge window is 1,200 Creditcoin blocks (~5 h): seed too early and it closes mid-presentation, too late and attestation has no margin. See `DEMO.md`.
+**Before presenting, run `npm run demo:status`** — it asks the chain whether any
+claim is currently challengeable and says plainly whether to reseed.
+
+The challenge window is 1,200 Creditcoin blocks (~5 h at 15s blocks) and it
+closes silently. Seed too early and it lapses mid-presentation; too late and
+attestation has no margin — so seed **2–5 hours before**, allowing ~15 minutes
+for source-chain attestation. The console degrades honestly when no window is
+open (it cites the breach that already settled), but the live path is the thing
+worth showing. See `DEMO.md`.
 
 `make help` lists the same targets.
 

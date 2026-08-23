@@ -91,9 +91,8 @@ Asserted under a fuzzing handler that registers, binds, claims, challenges, fina
 
 Stated plainly, because a threat model that only lists successes is marketing.
 
-- **`verifyAndEmit`'s failure mode is inferred, not observed.** Gate 7 exercised the read-only `verify()`. Identical behaviour from the state-changing overload is expected but unconfirmed until the mutations are submitted on-chain.
-- **No contract has run on a real chain.** All 92 tests are a local EVM against a mock verifier. The decoder is genuinely exercised, but every input is synthetic.
-- **The frontend's wallet path is untested.** No wallet has been connected and `challenge()` has never been submitted from the UI.
-- **Branch coverage of `Clearbook.sol` is 75.6%**, below its 100% line coverage.
+- **The UI's write path is unexercised.** Every state-changing call so far was submitted by script. The frontend simulates them correctly, but no transaction has been signed from a browser wallet.
+- **Branch coverage of `Clearbook.sol` is 75.6%**, below its 100% line coverage. The gap is compound conditions.
+- **Attestation liveness is inherited from the attestor set.** If attestation of a source chain stops, no new evidence about it can enter the vault.
 
-The first three close on deployment. The fourth is a matter of deepening tests around compound conditions.
+The first is a demonstration gap, not a protocol gap — the same calldata succeeds from a script. The second is a matter of deepening tests around compound conditions. The third is a stated dependency (T25), not a defect.

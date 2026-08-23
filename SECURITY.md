@@ -1,6 +1,6 @@
 # SECURITY.md
 
-Status: **contracts written and tested, not yet deployed.** 92 tests pass against a mock verifier, and the protocol path is verified live against CC3 testnet. What is *not* yet established is the on-chain consumption of verified facts, which needs a funded deployment. Every claim below carries the evidence class that supports it.
+Status: **deployed to Creditcoin CC3 testnet and exercised end-to-end.** 95 tests pass against a mock verifier, and the full protocol path — proof, on-chain decode, commitment, breach, slash, bounty — has executed live. Every claim below carries the evidence class that supports it.
 
 The full threat table with per-threat tests is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
@@ -143,10 +143,10 @@ The step order in BUILD.md §5.1 is security-critical and must not be rearranged
 
 Stated plainly, because a security document that lists only successes is marketing.
 
-- **`verifyAndEmit`'s failure mode is inferred.** Gate 7 exercised the read-only `verify()` overload. The state-changing overload is expected to behave identically, but that is unconfirmed until the mutations are submitted on-chain (Gate 7 part B).
-- **No contract has executed on a real chain.** The 92 tests run on a local EVM against a mock verifier. The official decoder is genuinely exercised, but every input is synthetic.
-- **On-chain decode of live data is untested** — Gate 4.
-- **Live slashing and bounty payment are untested** — Gates 5 and 6.
-- **The frontend's wallet path is untested.** No wallet has been connected; `challenge()` has never been submitted from the UI.
+- **The UI's write path has not been exercised end-to-end.** Every state-changing call demonstrated so far — `registerLoan`, `claimRepayment`, `challenge` — was submitted by script with a throwaway key. The frontend builds and simulates these transactions correctly (the challenge console runs a live `eth_call` before enabling its button), but no challenge has been *signed from a browser wallet*.
+- **Branch coverage of `Clearbook.sol` is 75.6%**, against 100% line coverage. The gap is compound conditions, not unreached functions.
+- **Attestation liveness is inherited, not guaranteed by us.** If the Attestcoin attestor set stops attesting a source chain, no new evidence about that chain can enter the vault. Facts already stored are unaffected.
+- **The 95 unit tests run against a mock verifier.** The live proof path is proven separately, on-chain, by Gates 2/3, 4 and 7 — but the two are distinct bodies of evidence and are not interchangeable.
+- **A bound treasury proves control of a key and nothing more.** It does not establish that an address belongs to any named person or company. Every downstream conclusion inherits that limit.
 
 Deliberately accepted for v1, per BUILD.md: **challenge front-running** (T16 — commit–reveal is the production fix, and it costs a block of latency on the most important demo beat) and **reorg after attestation** (T25 — inherited from the attestor set, and we say so rather than claiming more).
