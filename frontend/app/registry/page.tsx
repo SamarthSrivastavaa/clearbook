@@ -14,6 +14,7 @@ import { dataSource, useBookLoans, useBookOriginators, useFactConsumers, useVaul
 import { useCoverage } from '@/lib/hooks';
 import { CoveragePanel } from '@/components/Coverage';
 import { VAULT_LOOKBACK_BLOCKS, type VaultFact } from '@/lib/hooks';
+import { MetricBand } from '@/components/Metrics';
 
 /**
  * The evidence registry.
@@ -68,19 +69,25 @@ export default function RegistryPage() {
       <header>
         <Eyebrow>Evidence registry</Eyebrow>
         <h1 className="display-lg mt-2">The evidence this book runs on.</h1>
-        <p className="prose-lead mt-4 max-w-2xl">
-          Verification needs no permission — anyone can prove a transfer happened, including
-          transfers between parties who have never heard of Clearbook.{' '}
-          <span className="text-ink">Commitment does.</span> Binding a fact to a claim requires a
-          treasury the originator proved control of by signature, and no fact may be committed twice.
+        {/* One line of argument, then the figures. The full asymmetry is the
+            page's thesis but it belongs in a sentence, not a paragraph — the
+            evidence itself is what the reader came for. */}
+        <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
+          Verification needs no permission. <span className="text-ink">Commitment does</span> — and
+          no fact may be committed twice.
         </p>
 
         {!isLoading && ordered.length > 0 ? (
-          <p className="mt-5 text-[13px] leading-relaxed text-muted">
-            <Figure>{ordered.length}</Figure> verified facts ·{' '}
-            <Figure>{consumersLoading ? '—' : consumedCount}</Figure> committed to a claim ·{' '}
-            <Figure>{liveChainCount}</Figure> from a chain carrying real value
-          </p>
+          <MetricBand
+            metrics={[
+              { label: 'Verified facts', value: String(ordered.length) },
+              {
+                label: 'Committed · one claim each',
+                value: consumersLoading ? '—' : String(consumedCount),
+              },
+              { label: 'From a live chain', value: String(liveChainCount) },
+            ]}
+          />
         ) : null}
 
         {/* The listing is a bounded scan of the vault's own logs, not the whole
@@ -112,9 +119,11 @@ export default function RegistryPage() {
               How much of each book is actually on the book.
             </h2>
             <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">
-              Nothing forces an originator to register a loan. So rather than assume the book is
-              complete, Clearbook measures the share of declared-treasury activity that reached a
-              claim. This is a ratio, not a rating.
+              Nothing forces an originator to register a loan, so Clearbook measures how much of the
+              declared activity reached a claim.{' '}
+              <Link href="/docs/coverage" className="link">
+                How this is measured
+              </Link>
             </p>
           </div>
 
@@ -133,6 +142,21 @@ export default function RegistryPage() {
               ))}
             </div>
           )}
+
+          {/* Said once, beneath both, rather than repeated inside each panel.
+              The limitation is the same for every originator, and printing it
+              twice made the cards read as documentation rather than figures. */}
+          {!coverageLoading && coverage !== null ? (
+            <p className="max-w-3xl text-[12px] leading-relaxed text-faint">
+              Coverage counts successful outbound transfers of the tokens an originator lends in,
+              from treasuries it bound by signature, and asks how many reached a claim.{' '}
+              <span className="text-muted">
+                Activity from an address it never declared is outside this measurement entirely.
+              </span>{' '}
+              What keeps the figure honest is that binding cannot be undone: an address already
+              bound reverts <span className="ident">AlreadyBound</span>, and no unbind path exists.
+            </p>
+          ) : null}
         </section>
       ) : null}
 

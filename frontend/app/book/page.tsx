@@ -9,6 +9,7 @@ import { explorer } from '@/lib/config';
 import { blocksToApproxDuration, formatBlock, formatCtc, formatTokenAmount, shortAddress } from '@/lib/format';
 import { tokenMeta } from '@/lib/token';
 import { dataSource, isPreview, useBookLoans, useBookOriginators, useCurrentBlock, useParams } from '@/lib/data';
+import { MetricBand } from '@/components/Metrics';
 import {
   LoanStatus,
   STATUS_META,
@@ -72,22 +73,15 @@ export default function BookPage() {
           originatorById={originatorById}
           currentBlock={currentBlock}
           isLoading={isLoading}
+          originatorCount={originators.length}
+          bonded={originators.reduce((sum, o) => sum + o.bond, 0n)}
         />
-
-        <p className="mt-5 max-w-2xl text-[12px] leading-relaxed text-faint">
-          {originators.length > 1
-            ? `${originators.length} originators, one evidence namespace. Every claim below cites a source-chain transfer verified by the Creditcoin Block Prover precompile, and no transfer may back more than one claim.`
-            : 'Every claim below cites a source-chain transfer whose inclusion was verified by the Creditcoin Block Prover precompile. Nothing on this page is self-reported.'}
-        </p>
       </header>
 
       {params && originators.length > 0 ? (
         <section>
-          <div className="rule-b flex items-baseline justify-between gap-4 pb-2">
+          <div className="rule-b pb-2">
             <Eyebrow>Originators</Eyebrow>
-            <span className="text-[11px] text-faint">
-              Each posts its own bond and publishes its own covenant
-            </span>
           </div>
           <div className="grid gap-6 pt-6 lg:grid-cols-2">
             {originators.map((o) => (
@@ -111,7 +105,6 @@ export default function BookPage() {
           {attention.length > 0 && currentBlock ? (
             <LoanTable
               title="Requires attention"
-              subtitle="Open challenge windows, delinquencies, and proven breaches"
               loans={attention}
               originatorById={originatorById}
               currentBlock={currentBlock}
@@ -148,14 +141,18 @@ function BookState({
   originatorById,
   currentBlock,
   isLoading,
+  originatorCount,
+  bonded,
 }: {
   loans: Loan[];
   originatorById: Map<string, Originator>;
   currentBlock: bigint | undefined;
   isLoading: boolean;
+  originatorCount: number;
+  bonded: bigint;
 }) {
   if (isLoading || !currentBlock) {
-    return <p className="prose-lead mt-4 max-w-2xl text-faint">Reading the book from Creditcoin…</p>;
+    return <p className="mt-6 text-[13px] text-faint">Reading the book from Creditcoin…</p>;
   }
 
   const breached = loans.filter((l) => l.status === LoanStatus.BREACHED);
@@ -173,45 +170,31 @@ function BookState({
     if (soonest === null || left < soonest) soonest = left;
   }
 
-  const clauses: React.ReactNode[] = [];
-
-  if (breached.length > 0) {
-    clauses.push(
-      <span key="breached">
-        {word(breached.length)} covenant{breached.length === 1 ? ' has' : 's have'} been proven{' '}
-        <span className="text-breach">breached</span> and the bond slashed.
-      </span>,
-    );
-  }
-
-  if (open.length > 0) {
-    clauses.push(
-      <span key="open">
-        {word(open.length)} claim{open.length === 1 ? ' is' : 's are'} open to challenge
-        {soonest !== null ? <> for another {blocksToApproxDuration(soonest)}</> : null}.
-      </span>,
-    );
-  }
-
-  if (clauses.length === 0) {
-    clauses.push(
-      <span key="quiet">
-        Nothing on the book is currently open to challenge. Claims become challengeable when an
-        originator asserts repayment.
-      </span>,
-    );
-  }
-
+  // Live state as figures, not as a sentence. A paragraph describing the book
+  // reads like documentation about a product; the figures themselves read like
+  // the product. Every value here is a chain read.
+  //
+  // Qualifiers ("one namespace", "bond slashed") used to sit under some cells
+  // and not others, which left the band with a ragged bottom edge. They are in
+  // the labels now, so every figure lands on the same baseline.
   return (
-    <p className="prose-lead mt-4 max-w-2xl">
-      {clauses.map((c, i) => (
-        <span key={i}>
-          {i > 0 ? ' ' : ''}
-          {c}
-        </span>
-      ))}{' '}
-      <span className="text-muted">Anyone may challenge, without permission.</span>
-    </p>
+    <MetricBand
+      metrics={[
+        { label: 'Claims', value: String(loans.length) },
+        { label: 'Originators', value: String(originatorCount) },
+        { label: 'Bonded', value: `${formatCtc(bonded)} tCTC` },
+        {
+          label: soonest !== null ? `Open · ${blocksToApproxDuration(soonest)} left` : 'Open to challenge',
+          value: String(open.length),
+          tone: open.length > 0 ? 'pending' : undefined,
+        },
+        {
+          label: breached.length > 0 ? 'Breached · slashed' : 'Breached',
+          value: String(breached.length),
+          tone: breached.length > 0 ? 'breach' : undefined,
+        },
+      ]}
+    />
   );
 }
 
@@ -378,15 +361,35 @@ function LoanTable({
                     <Status tone={meta.tone}>{meta.label}</Status>
                   </div>
                 </td>
+                {/*
+                  The window column carries the action rather than only the
+                  time. A book that reports state and offers nothing to do with
+                  it is a report; the whole claim here is that anyone may act,
+                  so the row where acting is possible says so.
+                */}
                 <td className="tnum py-3.5 text-right text-[12px] text-muted">
                   {loan.status === LoanStatus.REPAYMENT_CLAIMED ? (
                     challengeable ? (
-                      <span title={`${left} Creditcoin blocks remain`}>
-                        {blocksToApproxDuration(left)} left
-                      </span>
+                      <Link
+                        href={`/challenge?loan=${loan.id}`}
+                        title={`${left} Creditcoin blocks remain`}
+                        className="group inline-flex items-baseline gap-1.5 text-pending transition-colors hover:text-ink"
+                      >
+                        <span className="font-medium">Challenge</span>
+                        <span className="text-[11px] text-muted group-hover:text-ink">
+                          {blocksToApproxDuration(left)} left
+                        </span>
+                      </Link>
                     ) : (
                       <span className="text-faint">closed</span>
                     )
+                  ) : loan.status === LoanStatus.BREACHED ? (
+                    <Link
+                      href={`/loan/${loan.id}`}
+                      className="text-breach transition-colors hover:text-ink"
+                    >
+                      See the evidence
+                    </Link>
                   ) : (
                     <span className="text-faint">—</span>
                   )}

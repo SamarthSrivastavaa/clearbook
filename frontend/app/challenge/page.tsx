@@ -130,10 +130,12 @@ function ChallengeConsole() {
       <header className="max-w-3xl">
         <Eyebrow>Challenge console</Eyebrow>
         <h1 className="display-lg mt-3">Prove a covenant breach.</h1>
-        <p className="prose-lead mt-4">
-          Anyone may challenge. No allowlist, no challenger bond, no dispute period. The contract
-          evaluates eleven conditions over verified evidence and either slashes the
-          originator&rsquo;s bond or reverts. An invalid challenge costs you gas and nothing else.
+        {/* The argument in one line. The eleven conditions are evaluated in
+            front of the reader a few hundred pixels below, which makes the case
+            better than a paragraph promising it will. */}
+        <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
+          No allowlist, no challenger bond, no dispute period.{' '}
+          <span className="text-ink">An invalid challenge costs you gas and nothing else.</span>
         </p>
       </header>
 
@@ -211,9 +213,8 @@ function ChallengeConsole() {
         <li className="rail-node pb-12" data-state={stageState(2)}>
           <Stage n="02" title="Cite the funding evidence" />
           <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-muted">
-            Identify the verified transfer you believe funded the payer. It must already exist in the
-            vault — evidence is ingested before it can be cited, by anyone, permissionlessly. The
-            list below is a recent scan; any older fact can still be cited by pasting its identifier.
+            The transfer you believe funded the payer. It must already be in the vault — anyone may
+            put it there. Older facts stay citable by identifier.
           </p>
 
           <div className="mt-4">

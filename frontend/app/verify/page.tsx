@@ -82,6 +82,9 @@ const EXAMPLES: Array<{ label: string; note: string; chainId: number; hash: stri
 export default function VerifyPage() {
   const [input, setInput] = useState('');
   const [steps, setSteps] = useState<Step[]>(INITIAL);
+
+  /** Nothing has run yet, so the path is an outline rather than a report. */
+  const idle = steps.every((s) => s.state === 'idle');
   const [bundle, setBundle] = useState<ProofBundle | null>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
   const [running, setRunning] = useState(false);
@@ -306,9 +309,16 @@ export default function VerifyPage() {
       </div>
 
         <Section title="Verification path" aside={verified === true ? 'Complete' : undefined}>
+          {/*
+            Before a run this is an outline, not a report. Rendering each step's
+            purpose here filled the result area with prose describing what would
+            happen — which reads as documentation about the instrument rather
+            than the instrument. Idle stays compact; the rail expands once there
+            is something real to say.
+          */}
           <ol className="rail">
             {steps.map((s, i) => (
-              <StepRow key={s.key} step={s} index={i + 1} />
+              <StepRow key={s.key} step={s} index={i + 1} idle={idle} />
             ))}
           </ol>
 
@@ -362,7 +372,7 @@ export default function VerifyPage() {
   );
 }
 
-function StepRow({ step, index }: { step: Step; index: number }) {
+function StepRow({ step, index, idle }: { step: Step; index: number; idle: boolean }) {
   // Resolved states get a glyph so the outcome never depends on colour alone.
   // Pending steps get nothing — the rail node already says "not yet", and a dot
   // beside an empty node is noise. The column keeps its width either way.
@@ -382,7 +392,7 @@ function StepRow({ step, index }: { step: Step; index: number }) {
     step.state === 'done' ? 'done' : step.state === 'failed' ? 'breach' : step.state === 'running' ? 'active' : undefined;
 
   return (
-    <li className="rail-node flex gap-4 pb-6 last:pb-0" data-state={railState}>
+    <li className={`rail-node flex gap-4 last:pb-0 ${idle ? 'pb-3.5' : 'pb-6'}`} data-state={railState}>
       <span className={`mt-0.5 w-4 shrink-0 text-center text-[12px] font-semibold ${tone}`} aria-hidden>
         {mark}
       </span>
@@ -403,9 +413,7 @@ function StepRow({ step, index }: { step: Step; index: number }) {
           >
             {step.detail}
           </span>
-        ) : (
-          // Before a run there is nothing to report, so the step explains what
-          // it is for. Five bare labels in a tall column read as a stub.
+        ) : idle ? null : (
           <span className="mt-1 block max-w-lg text-[12px] leading-relaxed text-faint">
             {ABOUT[step.key]}
           </span>

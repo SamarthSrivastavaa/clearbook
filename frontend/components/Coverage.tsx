@@ -116,16 +116,6 @@ export function CoveragePanel({
           </div>
         </dl>
 
-        <p className="mt-4 max-w-2xl text-[12px] leading-relaxed text-faint">
-          Coverage counts successful outbound transfers of the tokens this originator lends in, from
-          treasuries it bound by signature, and asks how many reached a claim.{' '}
-          <span className="text-muted">
-            Activity from an address it never declared is outside this measurement entirely.
-          </span>{' '}
-          What keeps the figure honest is that binding cannot be undone: an address already bound
-          reverts <span className="ident">AlreadyBound</span>, and no unbind path exists.
-        </p>
-
         {coverage.revertedSkipped > 0 ? (
           <p className="mt-2 text-[12px] text-faint">
             {coverage.revertedSkipped} transfer
