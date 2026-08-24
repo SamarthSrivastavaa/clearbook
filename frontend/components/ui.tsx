@@ -153,14 +153,16 @@ export function Button({
   type?: 'button' | 'submit';
   className?: string;
 }) {
-  // Weight comes from a hard offset shadow rather than colour: the palette is
-  // reserved for protocol state, so an action cannot announce itself with hue.
-  // Disabled buttons drop the shadow — an action that cannot be taken should
-  // not look like it is sitting proud of the page.
+  // Weight comes from a hard offset shadow. The primary action displaces in
+  // signal blue, which is allowed because signal is not a protocol colour: it
+  // cannot be misread as verified, breached or pending. Everything else stays
+  // monochrome, so there is exactly one thing on any screen announcing itself.
+  // Disabled buttons drop the shadow, since an action that cannot be taken
+  // should not sit proud of the page.
   const base =
     'press inline-flex items-center justify-center gap-2 px-5 h-10 text-[13px] font-semibold tracking-[0.04em] border-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none';
   const variants = {
-    primary: 'hard-sm bg-ink text-paper border-ink hover:bg-black disabled:hover:bg-ink',
+    primary: 'hard-sm-signal bg-ink text-paper border-ink hover:bg-black disabled:hover:bg-ink',
     default: 'hard-rule bg-surface text-ink border-ink hover:bg-sunken',
     quiet: 'bg-transparent text-muted border-transparent hover:text-ink px-2 shadow-none',
   };

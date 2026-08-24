@@ -33,7 +33,7 @@ export function CoveragePanel({
   const chain = sourceChain(coverage.scope.chainKey);
 
   return (
-    <div className="border border-rule bg-paper p-6">
+    <div className="hard-signal border-2 border-ink bg-surface p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <h3 className="text-[15px] font-semibold tracking-tight">{name}</h3>
         <Eyebrow>Activity coverage</Eyebrow>
@@ -42,8 +42,8 @@ export function CoveragePanel({
       {state === 'no-treasury' ? (
         <p className="mt-4 max-w-md text-[13px] leading-relaxed text-muted">
           This originator has declared no treasury, so none of its activity is measurable and none
-          of its claims can be registered. There is no denominator here — and that absence is the
-          finding, not a zero.
+          of its claims can be registered. There is no denominator here, and that absence is the
+          finding rather than a zero.
         </p>
       ) : state === 'no-activity' ? (
         <p className="mt-4 max-w-md text-[13px] leading-relaxed text-muted">

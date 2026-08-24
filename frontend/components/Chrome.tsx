@@ -195,7 +195,7 @@ function NavLinks({ pathname }: { pathname: string }) {
             }`}
           >
             {r.label}
-            {active ? <span aria-hidden className="absolute inset-x-2 bottom-0 h-[2px] bg-ink" /> : null}
+            {active ? <span aria-hidden className="absolute inset-x-2 bottom-0 h-[2px] bg-signal" /> : null}
           </Link>
         );
       })}

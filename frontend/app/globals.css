@@ -547,6 +547,18 @@
 .hard-sm {
   box-shadow: 4px 4px 0 var(--color-ink);
 }
+/*
+ * The primary action, displaced in signal blue.
+ *
+ * The rule that colour is reserved for protocol state still holds: signal is
+ * deliberately a blue precisely so it can carry structure without ever being
+ * read as verified, breached or pending. A black button on white paper with a
+ * blue shadow is the whole palette, and it is the only place an action is
+ * allowed to announce itself.
+ */
+.hard-sm-signal {
+  box-shadow: 4px 4px 0 var(--color-signal);
+}
 .hard-signal {
   box-shadow: 6px 6px 0 var(--color-signal);
 }

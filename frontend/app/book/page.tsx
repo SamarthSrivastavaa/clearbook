@@ -219,7 +219,7 @@ function PositionStrip({ originator, bondPerLoan }: { originator: Originator; bo
     originator.bond > 0n ? Number((originator.exposure * 100n) / originator.bond) : 0;
 
   return (
-    <div className="border border-rule bg-paper p-6 transition-colors hover:border-ink">
+    <div className="hard-signal border-2 border-ink bg-surface p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h3 className="text-[17px] font-semibold tracking-tight">{originator.name}</h3>
         <span className="ident text-[11px] text-faint">
