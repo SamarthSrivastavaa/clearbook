@@ -110,7 +110,12 @@ export function Ident({
   };
 
   return (
-    <span className="inline-flex items-baseline gap-2">
+    // The copy control is present in the DOM always, so it is reachable by
+    // keyboard and announced by a screen reader, but it only becomes visible on
+    // hover or focus. A truncated address is the content; a permanent "copy"
+    // label beside every one of them is chrome, and in a dense table it reads
+    // as noise rather than affordance.
+    <span className="group/ident inline-flex items-baseline gap-2">
       {href ? (
         <a
           className="ident ident-link"
@@ -130,7 +135,11 @@ export function Ident({
         type="button"
         onClick={copy}
         aria-label={`Copy ${label ?? 'value'} in full`}
-        className="text-[10px] uppercase tracking-wider text-faint transition-colors hover:text-ink"
+        className={`shrink-0 text-[10px] uppercase tracking-wider transition-all duration-150 focus-visible:opacity-100 group-hover/ident:opacity-100 ${
+          copied
+            ? 'text-verified opacity-100'
+            : 'text-faint opacity-0 hover:text-ink'
+        }`}
       >
         {copied ? 'copied' : 'copy'}
       </button>

@@ -7,6 +7,7 @@ import { useAccount, useBlockNumber, useChainId, useConnect, useDisconnect } fro
 
 import { DEMO_MODE, contracts, creditcoin, explorer, isDeployed } from '@/lib/config';
 import { shortAddress, formatBlock } from '@/lib/format';
+import { Ident } from '@/components/ui';
 
 /**
  * The application chrome: a single thin status bar.
@@ -207,15 +208,7 @@ function ContractRef({ label, address }: { label: string; address: string }) {
   return (
     <span className="flex shrink-0 items-baseline gap-2">
       <span className="eyebrow">{label}</span>
-      <a
-        href={explorer.ccAddress(address)}
-        target="_blank"
-        rel="noreferrer noopener"
-        className="ident ident-link text-[11px]"
-        title={address}
-      >
-        {shortAddress(address)}
-      </a>
+      <Ident value={address} href={explorer.ccAddress(address)} label={label} lead={6} tail={4} />
     </span>
   );
 }

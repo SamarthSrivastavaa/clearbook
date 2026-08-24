@@ -5,7 +5,7 @@ import { explorer } from '@/lib/config';
 import { tokenMeta } from '@/lib/token';
 import { coveragePercent, coverageState, type Coverage } from '@/lib/coverage';
 import { sourceChain } from '@/lib/config';
-import { Eyebrow } from '@/components/ui';
+import { Eyebrow, Ident } from '@/components/ui';
 
 /**
  * Activity coverage, rendered.
@@ -33,7 +33,7 @@ export function CoveragePanel({
   const chain = sourceChain(coverage.scope.chainKey);
 
   return (
-    <div className="hard-signal border-2 border-ink bg-surface p-6">
+    <div className="hard-xs border-2 border-ink bg-surface p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <h3 className="text-[15px] font-semibold tracking-tight">{name}</h3>
         <Eyebrow>Activity coverage</Eyebrow>
@@ -97,15 +97,13 @@ export function CoveragePanel({
               ) : (
                 coverage.treasuries.map((t) => (
                   <div key={t.address} className="text-[12px]">
-                    <a
+                    <Ident
+                      value={t.address}
                       href={explorer.sourceAddress(t.address, coverage.scope.chainKey)}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="ident ident-link"
-                      title={t.address}
-                    >
-                      {shortAddress(t.address)}
-                    </a>
+                      label="Declared treasury"
+                      lead={6}
+                      tail={4}
+                    />
                     <span className="ml-2 text-faint">
                       bound at Creditcoin block {formatBlock(t.boundAt)}
                     </span>

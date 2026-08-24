@@ -52,9 +52,18 @@ export default function RegistryPage() {
     [originators],
   );
 
+  // Chains carrying real value lead. Sorting by chain key alone buried the
+  // Ethereum mainnet fact at the bottom of the ledger purely because its key is
+  // 3 and Sepolia's is 1, which put the single most consequential row on the
+  // page last. Within a chain the order stays chronological.
   const ordered = useMemo(
     () =>
-      [...facts].sort((a, b) => a.chainKey - b.chainKey || Number(a.blockHeight - b.blockHeight)),
+      [...facts].sort(
+        (a, b) =>
+          Number(sourceChain(b.chainKey).live) - Number(sourceChain(a.chainKey).live) ||
+          a.chainKey - b.chainKey ||
+          Number(a.blockHeight - b.blockHeight),
+      ),
     [facts],
   );
 
@@ -223,16 +232,25 @@ function FactTable({
 }) {
   return (
     <section>
-      <div className="rule-b flex items-baseline justify-between gap-4 pb-2">
+      {/*
+        The assurance is stated once here rather than repeated per row. Every
+        fact in this vault was proven by the precompile before it was stored, so
+        a VERIFICATION column printed the same word fourteen times and carried
+        no information while occupying a tenth of the table.
+      */}
+      <div className="rule-b flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 pb-2">
         <Eyebrow>Verified facts</Eyebrow>
-        <span className="text-[11px] text-faint">Consumption read from Clearbook, not inferred</span>
+        <span className="text-[11px] text-faint">
+          Every row was proven on-chain by the Block Prover precompile before storage. Consumption is
+          read from Clearbook, never inferred.
+        </span>
       </div>
 
       <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:px-0">
         <table className="w-full min-w-[860px] border-collapse text-left">
           <thead>
             <tr className="rule-b">
-              {['Source', 'Transfer', 'Amount', 'Block', 'Verification', 'Committed to'].map((h, i) => (
+              {['Source', 'Transfer', 'Amount', 'Source block', 'Committed to'].map((h, i) => (
                 <th
                   key={h}
                   scope="col"
@@ -264,8 +282,14 @@ function FactTable({
                   }`}
                 >
                   <td className={`py-3.5 ${chain.live ? 'border-l-2 border-l-accent pl-3' : 'pl-3'}`}>
-                    <div className="text-[13px] font-medium">{chain.short}</div>
-                    <div className="text-[11px] text-faint">
+                    <div className={`text-[13px] ${chain.live ? 'font-semibold' : 'font-medium'}`}>
+                      {chain.short}
+                    </div>
+                    <div
+                      className={`text-[11px] ${
+                        chain.live ? 'font-medium text-accent' : 'text-faint'
+                      }`}
+                    >
                       {chain.live ? 'real value' : 'testnet'}
                     </div>
                   </td>
@@ -287,12 +311,6 @@ function FactTable({
 
                   <td className="tnum py-3.5 text-right font-mono text-[12px] text-muted">
                     {formatBlock(f.blockHeight)}
-                  </td>
-
-                  <td className="py-3.5 text-right">
-                    <div className="flex justify-end">
-                      <Status tone="verified">Verified</Status>
-                    </div>
                   </td>
 
                   <td className="py-3.5 pr-3 text-right">

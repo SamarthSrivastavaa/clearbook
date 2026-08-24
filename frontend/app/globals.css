@@ -548,6 +548,14 @@
   box-shadow: 4px 4px 0 var(--color-ink);
 }
 /*
+ * The card weight. Ink rather than signal: a surface is not an action, and
+ * spending the accent on every panel left the page with four things all
+ * claiming to be the primary one. Blue is now reserved for what you can press.
+ */
+.hard-xs {
+  box-shadow: 3px 3px 0 var(--color-ink);
+}
+/*
  * The primary action, displaced in signal blue.
  *
  * The rule that colour is reserved for protocol state still holds: signal is
@@ -557,10 +565,18 @@
  * allowed to announce itself.
  */
 .hard-sm-signal {
-  box-shadow: 4px 4px 0 var(--color-signal);
+  box-shadow: 2px 2px 0 var(--color-signal);
 }
+/*
+ * Signal displacement, deliberately thin.
+ *
+ * At 6px a saturated blue stops being an edge and becomes a slab: on a card the
+ * shadow competes with the content it is meant to lift. 3px still separates the
+ * surface from the page and still reads as a decision rather than a default,
+ * while spending a fraction of the ink.
+ */
 .hard-signal {
-  box-shadow: 6px 6px 0 var(--color-signal);
+  box-shadow: 3px 3px 0 var(--color-signal);
 }
 .hard-rule {
   box-shadow: 5px 5px 0 var(--color-rule-strong);

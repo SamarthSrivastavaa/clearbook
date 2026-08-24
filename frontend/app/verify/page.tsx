@@ -221,7 +221,7 @@ export default function VerifyPage() {
 
       {/* The instrument, not an article about it: controls across the top, the
           verification path beneath as the result area. */}
-      <div className="hard-signal border-2 border-ink bg-surface">
+      <div className="hard-xs border-2 border-ink bg-surface">
         <div className="grid gap-x-8 gap-y-5 p-6 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)_auto] lg:items-end">
           {/* Which chain to look on. Offered only for chains the precompile
               attests and we hold an endpoint for — the list is not aspirational. */}

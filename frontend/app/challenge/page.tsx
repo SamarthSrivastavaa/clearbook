@@ -353,7 +353,7 @@ function ConsoleAside({
   return (
     <aside className="lg:sticky lg:top-24 lg:pt-2" aria-label="Challenge context">
       {slash !== null && bounty !== null && sink !== null ? (
-        <div className="hard-signal border-2 border-ink bg-surface p-5">
+        <div className="hard-xs border-2 border-ink bg-surface p-5">
           <Eyebrow>If the challenge succeeds</Eyebrow>
           <dl className="mt-4 space-y-2.5">
             <StakeRow k="Originator bond" v={`−${formatCtc(slash)} tCTC`} tone="breach" />
