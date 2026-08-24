@@ -129,7 +129,10 @@
 
   /* Display sizes. Tight tracking; these are statements, not headlines. */
   .display-xl {
-    font-size: clamp(2.25rem, 8.5vw, 5.75rem);
+    /* Capped at 4.75rem rather than 5.75rem. At the larger size the hero
+       headline ran to three lines and pushed its own call to action off the
+       first screen, which is an expensive way to be emphatic. */
+    font-size: clamp(2.125rem, 7vw, 4.75rem);
     line-height: 0.98;
     letter-spacing: -0.035em;
     font-weight: 600;

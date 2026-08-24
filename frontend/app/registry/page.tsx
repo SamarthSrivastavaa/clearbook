@@ -66,44 +66,71 @@ export default function RegistryPage() {
 
   return (
     <div className="space-y-10">
-      <header>
-        <Eyebrow>Evidence registry</Eyebrow>
-        <h1 className="display-lg mt-2">The evidence this book runs on.</h1>
-        {/* One line of argument, then the figures. The full asymmetry is the
-            page's thesis but it belongs in a sentence, not a paragraph — the
-            evidence itself is what the reader came for. */}
-        <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
-          Verification needs no permission. <span className="text-ink">Commitment does</span> — and
-          no fact may be committed twice.
-        </p>
+      {/*
+        The evidence is what this page is. State sits beside the title rather
+        than beneath it, and the coverage measurement sits after the register
+        rather than in front of it: coverage is a statement about the list, so
+        the reader should meet the list first.
+      */}
+      <header className="flex flex-wrap items-end justify-between gap-x-12 gap-y-6">
+        <div>
+          <Eyebrow>Evidence registry</Eyebrow>
+          <h1 className="display-lg mt-2">The evidence this book runs on.</h1>
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
+            Verification needs no permission. <span className="text-ink">Commitment does</span>,
+            and no fact may be committed twice.
+          </p>
+        </div>
 
         {!isLoading && ordered.length > 0 ? (
           <MetricBand
+            compact
             metrics={[
               { label: 'Verified facts', value: String(ordered.length) },
               {
                 label: 'Committed · one claim each',
-                value: consumersLoading ? '—' : String(consumedCount),
+                value: consumersLoading ? '0' : String(consumedCount),
               },
               { label: 'From a live chain', value: String(liveChainCount) },
             ]}
           />
         ) : null}
 
-        {/* The listing is a bounded scan of the vault's own logs, not the whole
-            history. Saying so matters more here than anywhere else in the
-            product: a page that implied completeness it does not have would
-            undercut the one claim everything else rests on. */}
-        {!isLoading && ordered.length > 0 ? (
-          <p className="mt-2 text-[12px] leading-relaxed text-faint">
+      </header>
+
+
+      {isLoading ? (
+        <p className="text-[13px] text-faint">Reading the vault from Creditcoin…</p>
+      ) : ordered.length === 0 ? (
+        <Empty title="No evidence yet">
+          The vault is deployed but holds no facts. Anyone may submit one — ingestion is
+          permissionless and requires no relationship with any originator.
+        </Empty>
+      ) : (
+        <div className="space-y-4">
+          <FactTable
+            facts={ordered}
+            consumers={consumers}
+            consumersLoading={consumersLoading}
+            loanById={loanById}
+            originatorById={originatorById}
+            onOpen={setOpen}
+            openId={open}
+          />
+
+          {/* The listing is a bounded scan of the vault's own logs, not the
+              whole history. Saying so matters more here than anywhere else in
+              the product: a page that implied completeness it does not have
+              would undercut the one claim everything else rests on. */}
+          <p className="text-[12px] leading-relaxed text-faint">
             Listed from the last {Number(VAULT_LOOKBACK_BLOCKS).toLocaleString('en-US')} Creditcoin
             blocks. There is no indexer on this chain and the vault keeps no enumerable list, so
-            discovery is a bounded log scan — an older fact is still fully citable by identifier, and{' '}
-            <span className="text-muted">the contract accepts it regardless</span>. The bound limits
-            this listing, never what the protocol will take.
+            discovery is a bounded log scan. An older fact is still fully citable by identifier,{' '}
+            <span className="text-muted">and the contract accepts it regardless</span>. The bound
+            limits this listing, never what the protocol will take.
           </p>
-        ) : null}
-      </header>
+        </div>
+      )}
 
       {/*
         Coverage answers the objection every reader of an evidence-bound book
@@ -159,25 +186,6 @@ export default function RegistryPage() {
           ) : null}
         </section>
       ) : null}
-
-      {isLoading ? (
-        <p className="text-[13px] text-faint">Reading the vault from Creditcoin…</p>
-      ) : ordered.length === 0 ? (
-        <Empty title="No evidence yet">
-          The vault is deployed but holds no facts. Anyone may submit one — ingestion is
-          permissionless and requires no relationship with any originator.
-        </Empty>
-      ) : (
-        <FactTable
-          facts={ordered}
-          consumers={consumers}
-          consumersLoading={consumersLoading}
-          loanById={loanById}
-          originatorById={originatorById}
-          onOpen={setOpen}
-          openId={open}
-        />
-      )}
 
       {selected ? (
         <FactDetail

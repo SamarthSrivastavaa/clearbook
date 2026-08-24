@@ -14,7 +14,7 @@ import { shortAddress } from '@/lib/format';
  * The landing page.
  *
  * It has one job: make a stranger understand, in about fifteen seconds, what
- * Clearbook does that nothing else does — and then show them a real instance of
+ * Clearbook does that nothing else does, then show them a real instance of
  * it rather than describing one.
  *
  * No feature grid, no testimonials, no invented statistics. The only numbers on
@@ -55,31 +55,30 @@ export default function LandingPage() {
 function Hero() {
   return (
     <section className="border-b border-rule bg-deep">
-      <div className="mx-auto grid max-w-[1400px] gap-16 px-6 py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] lg:py-28">
+      <div className="mx-auto grid max-w-[1400px] gap-x-16 gap-y-12 px-6 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,500px)] lg:py-12">
         <div className="flex max-w-2xl flex-col">
           <Eyebrow className="text-onDeepMuted">Evidence-bound credit · Creditcoin</Eyebrow>
 
-          <h1 className="display-xl mt-6 text-onDeep">
+          <h1 className="display-xl mt-5 text-onDeep">
             A loan book that
             <br />
             can be proven wrong.
           </h1>
 
-          <p className="mt-7 max-w-xl text-[17px] leading-relaxed text-onDeepMuted">
+          <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-onDeepMuted">
             Private credit reporting is self-attested. Nobody outside the fund can check whether a
-            &ldquo;repayment&rdquo; was real third-party money or the fund cycling its own.
+            repayment was real third-party money or the fund cycling its own.
           </p>
 
-          <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-onDeep">
-            Clearbook is a shared registry of cryptographically verified transfers. Every claim must
-            cite one,{' '}
+          <p className="mt-3.5 max-w-xl text-[16px] leading-relaxed text-onDeep">
+            Clearbook is a shared registry of verified transfers. Every claim cites one,{' '}
             <span className="text-onDeep underline decoration-[#3a382f] underline-offset-4">
-              no two claims can cite the same one
+              no two claims cite the same one
             </span>
-            , and anyone can prove a covenant breach in a single transaction — and be paid for it.
+            , and anyone can prove a breach in one transaction and be paid for it.
           </p>
 
-          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+          <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
             <Link
               href="/book"
               className="press hard-signal inline-flex h-12 items-center border-2 border-onDeep bg-onDeep px-7 text-[14px] font-semibold uppercase tracking-[0.06em] text-deep transition-colors hover:bg-white"
@@ -94,11 +93,11 @@ function Hero() {
             </Link>
           </div>
 
-          <div className="mt-14 flex flex-wrap gap-x-10 gap-y-3 border-t border-[#2e2c25] pt-6 lg:mt-auto">
+          <div className="mt-10 flex flex-wrap gap-x-10 gap-y-3 border-t border-[#2e2c25] pt-5 lg:mt-auto">
             {/*
               Ordered so the two facts that carry the thesis sit together: we read a
               chain carrying real value, and we deployed nothing on it. Naming only
-              the demo's staged chain here understated what the vault holds — and
+              the demo's staged chain here understated what the vault holds, and
               was inaccurate, since evidence may come from any attested chain.
             */}
             <Fact k="Source chains" v={SOURCE_CHAIN_LABEL} href="/registry" />
@@ -136,14 +135,14 @@ function Fact({ k, v, href }: { k: string; v: string; href?: string }) {
   );
 }
 
-/** The three registers — the distinction the whole product rests on. */
+/** The three registers: the distinction the whole product rests on. */
 function Mechanism() {
   const registers = [
     {
       n: '01',
       label: 'Source-chain fact',
       claim: 'What the cryptography establishes.',
-      body: 'A transaction was included in an attested block, its receipt succeeded, and one of its logs was an ERC-20 transfer between two addresses. The Block Prover precompile decides this — not us, and not a server.',
+      body: 'A transaction was included in an attested block, its receipt succeeded, and one of its logs was an ERC-20 transfer between two addresses. The Block Prover precompile decides this, not us and not a server.',
     },
     {
       n: '02',
@@ -168,7 +167,7 @@ function Mechanism() {
         </div>
         <p className="text-[14px] leading-relaxed text-muted lg:pb-2">
           Most systems collapse evidence, inference and claim into one confident sentence. Clearbook
-          keeps them apart everywhere — in the contracts, in the interface, and in what it refuses
+          keeps them apart everywhere: in the contracts, in the interface, and in what it refuses
           to say.
         </p>
       </div>
@@ -217,7 +216,7 @@ function SharedEvidence() {
             </h2>
           </div>
           <p className="prose-lead lg:pb-3">
-            Verification needs no permission — anyone can prove a transfer happened, including one
+            Verification needs no permission. Anyone can prove a transfer happened, including one
             between parties who have never heard of Clearbook. Committing that fact to a claim is
             different: it needs a treasury proven by signature, and it can happen only once.
           </p>
@@ -232,7 +231,7 @@ function SharedEvidence() {
               </h3>
             </div>
             <p className="mt-4 text-[14px] leading-relaxed">
-              The registry holds facts proven from Ethereum mainnet — real transfers, between
+              The registry holds facts proven from Ethereum mainnet: real transfers, between
               addresses we do not control, on a chain we have never deployed to. Proving one
               required permission from nobody.
             </p>
@@ -255,7 +254,7 @@ function SharedEvidence() {
           <div className="lg:pt-4">
             <p className="text-[12px] leading-relaxed text-faint">
               This establishes that the same <em>evidence</em> cannot be committed twice. It does not
-              establish collateral identity — the same underlying obligation represented by a
+              establish collateral identity. The same underlying obligation represented by a
               different transaction is not detected, and Clearbook does not claim otherwise.
             </p>
             <Link href="/registry" className="link mt-5 inline-flex text-[14px]">
@@ -268,7 +267,7 @@ function SharedEvidence() {
   );
 }
 
-/** Declared rule versus observed evidence — the covenant made legible. */
+/** Declared rule versus observed evidence: the covenant made legible. */
 function Covenant() {
   return (
     <section className="rule-t py-14">
@@ -344,11 +343,11 @@ function Covenant() {
 }
 
 /**
- * Enforcement — the consequence, on a dark band.
+ * Enforcement: the consequence, on a dark band.
  *
  * Placed here for two reasons. Narratively it is the payoff: the covenant was
  * broken, and this is what the protocol did about it. Compositionally the page
- * needed a beat — without it the hero is the only moment of contrast and
+ * needed a beat. Without it the hero is the only moment of contrast and
  * everything after it reads as one uninterrupted grey column.
  */
 function Enforcement() {
@@ -375,7 +374,7 @@ function Enforcement() {
             No arbitrator.
           </h2>
           <p className="prose-lead mt-5 max-w-md text-onDeepMuted">
-            There is no dispute period, no vote, no committee, and no appeal — because there is
+            There is no dispute period, no vote, no committee, and no appeal, because there is
             nothing to deliberate. The conditions are arithmetic over evidence the chain already
             verified, so the contract can settle them itself.
           </p>
@@ -406,7 +405,7 @@ function Enforcement() {
           </div>
           <p className="mt-6 max-w-md text-[12px] leading-relaxed text-onDeepMuted">
             One of eleven. Each is a named condition with its own error, so a failed challenge tells
-            you precisely which one refused it — not simply that it did.
+            you precisely which one refused it, rather than simply that it did.
           </p>
           {/* Bottom-aligned so the column closes level with the ledger opposite,
               rather than leaving the band visibly unbalanced. */}
@@ -427,7 +426,7 @@ function Enforcement() {
  *
  * Everything above argues that this system is real. This shows it. The two
  * panels are the application's own components rendered with values from the
- * breach that executed on-chain — markup, not screenshots, so they cannot drift
+ * breach that executed on-chain. Markup, not screenshots, so they cannot drift
  * from what the app actually does.
  */
 function Preview() {
@@ -453,7 +452,7 @@ function Preview() {
         <div className="tilt-r">
           <EvidenceArtifact />
           <p className="mt-4 max-w-md text-[13px] leading-relaxed text-muted">
-            The transaction, its receipt status, and the transaction-local log index — the
+            The transaction, its receipt status, and the transaction-local log index: the
             coordinates the replay key is computed over.
           </p>
         </div>
@@ -508,7 +507,7 @@ function Foundation() {
           </h2>
           <p className="prose-lead mt-5 max-w-sm">
             Replace the precompile with an indexer and the challenge becomes &ldquo;trust our
-            backend&rdquo; — which is the thing being eliminated. Money is slashed on these facts, so
+            backend&rdquo;, which is the thing being eliminated. Money is slashed on these facts, so
             a server&rsquo;s assertion is not an acceptable basis.
           </p>
           {contracts.clearbook ? (
@@ -547,7 +546,7 @@ function Limits() {
   const limits: Array<[string, string]> = [
     [
       'The covenant is bounded, not universal',
-      'An originator that funds a payer from an address it never binds does not breach it. Detection is depth-1 by construction — which is why the rule is framed as a covenant the originator chose, not as fraud detection.',
+      'An originator that funds a payer from an address it never binds does not breach it. Detection is depth-1 by construction, which is why the rule is framed as a covenant the originator chose, not as fraud detection.',
     ],
     [
       'Absence is unprovable',
