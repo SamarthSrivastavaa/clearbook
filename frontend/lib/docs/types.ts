@@ -21,7 +21,7 @@ export type Block =
   | { t: 'h'; text: string }
   /** A paragraph. Supports inline **bold**, `code`, and [links](/docs/x). */
   | { t: 'p'; text: string }
-  /** A lead paragraph — one per page, directly under the title. */
+  /** A lead paragraph. One per page, directly under the title. */
   | { t: 'lead'; text: string }
   | { t: 'list'; items: string[]; ordered?: boolean }
   | { t: 'code'; lang: string; code: string; caption?: string }

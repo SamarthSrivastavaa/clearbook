@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import { ScenarioGuide } from '@/components/ScenarioGuide';
 import { LoadingRows, NotDeployed, PreviewBanner, RpcError } from '@/components/States';
 import { Eyebrow, Empty, Status } from '@/components/ui';
@@ -62,11 +62,20 @@ export default function BookPage() {
     <div className="space-y-12">
       {isPreview ? <PreviewBanner /> : null}
 
-      <header>
-        <Eyebrow>Credit book</Eyebrow>
-        <h1 className="display-lg mt-2">
-          {originators.length > 1 ? 'The shared book' : primary ? primary.name : 'The Book'}
-        </h1>
+      {/*
+        The ledger is what this page is. State sits beside the title rather than
+        beneath it, and the originators sit after the book rather than in front
+        of it — both are context for the claims, and a reader who came to see
+        the book should not have to scroll past two blocks of reference data to
+        reach it.
+      */}
+      <header className="flex flex-wrap items-end justify-between gap-x-12 gap-y-6">
+        <div>
+          <Eyebrow>Credit book</Eyebrow>
+          <h1 className="display-lg mt-2">
+            {originators.length > 1 ? 'The shared book' : primary ? primary.name : 'The Book'}
+          </h1>
+        </div>
 
         <BookState
           loans={loans}
@@ -77,6 +86,26 @@ export default function BookPage() {
           bonded={originators.reduce((sum, o) => sum + o.bond, 0n)}
         />
       </header>
+
+      {isPreview ? <ScenarioGuide /> : null}
+
+      {isLoading ? (
+        <LoadingRows />
+      ) : loans.length === 0 ? (
+        <Empty title="No loans registered">
+          The contracts are deployed but no originator has registered a loan yet. A loan appears
+          here once its disbursement evidence has been verified on-chain.
+        </Empty>
+      ) : (
+        <LoanLedger
+          groups={[
+            { label: 'Requires attention', loans: attention, marked: true },
+            { label: attention.length > 0 ? 'Settled and quiet' : 'Claims', loans: rest },
+          ].filter((g) => g.loans.length > 0)}
+          originatorById={originatorById}
+          currentBlock={currentBlock ?? 0n}
+        />
+      )}
 
       {params && originators.length > 0 ? (
         <section>
@@ -90,38 +119,6 @@ export default function BookPage() {
           </div>
         </section>
       ) : null}
-
-      {isPreview ? <ScenarioGuide /> : null}
-
-      {isLoading ? (
-        <LoadingRows />
-      ) : loans.length === 0 ? (
-        <Empty title="No loans registered">
-          The contracts are deployed but no originator has registered a loan yet. A loan appears
-          here once its disbursement evidence has been verified on-chain.
-        </Empty>
-      ) : (
-        <div className="space-y-10">
-          {attention.length > 0 && currentBlock ? (
-            <LoanTable
-              title="Requires attention"
-              loans={attention}
-              originatorById={originatorById}
-              currentBlock={currentBlock}
-              marked
-            />
-          ) : null}
-
-          {rest.length > 0 ? (
-            <LoanTable
-              title={attention.length > 0 ? 'Remainder of the book' : 'Loans'}
-              loans={rest}
-              originatorById={originatorById}
-              currentBlock={currentBlock ?? 0n}
-            />
-          ) : null}
-        </div>
-      )}
     </div>
   );
 }
@@ -179,6 +176,7 @@ function BookState({
   // the labels now, so every figure lands on the same baseline.
   return (
     <MetricBand
+      compact
       metrics={[
         { label: 'Claims', value: String(loans.length) },
         { label: 'Originators', value: String(originatorCount) },
@@ -201,48 +199,71 @@ function BookState({
 /**
  * One originator's position.
  *
- * Rendered per originator rather than for the first one only: the book now holds
- * more than one institution, and a page that silently showed a single fund's
- * bond while listing everyone's claims would misstate who is exposed to what.
+ * The figure that matters is not the bond, it is how much of the bond is
+ * currently at risk — an originator with 8 tCTC posted and 7 committed is in a
+ * different position from one with 8 and 1, and three numbers in a row do not
+ * say so. The bar says it at a glance, and it is a true proportion rather than
+ * a decorative one: exposure over bond, drawn to scale.
+ *
+ * Rendered per originator rather than for the first only: the book holds more
+ * than one institution, and showing a single fund's bond beside everyone's
+ * claims would misstate who is exposed to what.
  */
 function PositionStrip({ originator, bondPerLoan }: { originator: Originator; bondPerLoan: bigint }) {
   const free = originator.bond - originator.exposure;
   const openLoans = bondPerLoan > 0n ? originator.exposure / bondPerLoan : 0n;
 
-  const figures: Array<[string, string, string?]> = [
-    ['Bond posted', `${formatCtc(originator.bond)} tCTC`],
-    ['Exposure', `${formatCtc(originator.exposure)} tCTC`, `${openLoans} open`],
-    ['Free bond', `${formatCtc(free)} tCTC`],
-  ];
+  // Integer maths throughout: bigint has no fractional division, and the bar
+  // only needs whole percentage points.
+  const atRiskPct =
+    originator.bond > 0n ? Number((originator.exposure * 100n) / originator.bond) : 0;
 
   return (
-    <div className="hard-rule border-2 border-ink bg-surface p-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h3 className="display-md">{originator.name}</h3>
-        <span className="text-[11px] text-faint">
+    <div className="border border-rule bg-paper p-6 transition-colors hover:border-ink">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h3 className="text-[17px] font-semibold tracking-tight">{originator.name}</h3>
+        <span className="ident text-[11px] text-faint">
           {originator.covenants & 0x01 ? 'CIRCULAR_REPAYMENT · immutable' : 'no covenant'}
         </span>
       </div>
 
-      <dl className="mt-5 grid grid-cols-3 gap-x-6 border-t border-rule pt-4">
-        {figures.map(([k, v, hint]) => (
-          <div key={k}>
-            <dt className="eyebrow">{k}</dt>
-            <dd className="tnum mt-1.5 text-[15px] font-medium">{v}</dd>
-            {hint ? <dd className="mt-0.5 text-[11px] text-faint">{hint}</dd> : null}
-          </div>
-        ))}
-      </dl>
+      <p className="tnum mt-5 text-[30px] font-semibold leading-none tracking-tight">
+        {formatCtc(originator.bond)}
+        <span className="ml-1.5 text-[15px] font-medium text-muted">tCTC bonded</span>
+      </p>
 
-      <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-1 border-t border-rule pt-3">
+      {/* Exposure drawn to scale. The filled part is what a challenger could
+          take today; the remainder is what this originator could still commit. */}
+      <div className="mt-5">
+        <div className="flex h-1.5 w-full overflow-hidden bg-rule" aria-hidden>
+          <div className="bg-ink" style={{ width: `${atRiskPct}%` }} />
+        </div>
+        <dl className="mt-2.5 flex flex-wrap items-baseline gap-x-6 gap-y-1 text-[12px]">
+          <div className="flex items-baseline gap-1.5">
+            <dt className="text-muted">At risk</dt>
+            <dd className="tnum font-medium">{formatCtc(originator.exposure)} tCTC</dd>
+            <dd className="text-faint">
+              · {openLoans.toString()} open claim{openLoans === 1n ? '' : 's'}
+            </dd>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <dt className="text-muted">Free</dt>
+            <dd className="tnum font-medium">{formatCtc(free)} tCTC</dd>
+          </div>
+        </dl>
+      </div>
+
+      <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-1 border-t border-rule pt-4">
         <div className="flex items-baseline gap-2">
           <dt className="text-[11px] text-faint">Circular window</dt>
-          <dd className="tnum font-mono text-[12px]">{formatBlock(originator.circularWindow)} blocks</dd>
+          <dd className="tnum font-mono text-[12px]">
+            {formatBlock(originator.circularWindow)} blocks
+          </dd>
         </div>
         <div className="flex items-baseline gap-2">
           <dt className="text-[11px] text-faint">Challenge window</dt>
           <dd className="tnum font-mono text-[12px]">
-            {formatBlock(originator.challengeWindow)} blocks · {blocksToApproxDuration(BigInt(originator.challengeWindow))}
+            {blocksToApproxDuration(BigInt(originator.challengeWindow))}
           </dd>
         </div>
       </dl>
@@ -250,153 +271,183 @@ function PositionStrip({ originator, bondPerLoan }: { originator: Originator; bo
   );
 }
 
-function LoanTable({
-  title,
-  subtitle,
-  loans,
+/**
+ * The ledger.
+ *
+ * One table, not one per group. Repeating a seven-column header for every
+ * grouping produced the look of generated output rather than a designed record,
+ * and it made two halves of the same book scan as two unrelated objects. Groups
+ * are marked by a label inside the body instead.
+ *
+ * A row states its own condition. Breached rows carry a red rail and sit on a
+ * sunken ground; rows whose challenge window is still open carry a pending
+ * rail. A reader should be able to find what matters without reading the status
+ * column — and colour is never the only signal, since the rail, the ground and
+ * the status word all agree.
+ */
+function LoanLedger({
+  groups,
   originatorById,
   currentBlock,
-  marked = false,
 }: {
-  title: string;
-  subtitle?: string;
-  loans: Loan[];
+  groups: Array<{ label: string; loans: Loan[]; marked?: boolean }>;
   originatorById: Map<string, Originator>;
   currentBlock: bigint;
-  /** Draw a status rule in the first cell, so attention rows are marked, not just grouped. */
-  marked?: boolean;
 }) {
   return (
     <section>
-      <div className="rule-b flex items-baseline justify-between gap-4 pb-2">
-        <Eyebrow>{title}</Eyebrow>
-        {subtitle ? (
-          <span className="text-[11px] text-faint">{subtitle}</span>
-        ) : null}
-      </div>
-
       <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:px-0">
-        <table className="w-full min-w-[780px] table-fixed border-collapse text-left">
+        <table className="w-full min-w-[820px] table-fixed border-collapse text-left">
           <colgroup>
-            <col className="w-[9%]" />
-            <col className="w-[21%]" />
+            <col className="w-[10%]" />
+            <col className="w-[22%]" />
             <col className="w-[15%]" />
             <col className="w-[12%]" />
-            <col className="w-[10%]" />
-            <col className="w-[19%]" />
-            <col className="w-[14%]" />
+            <col className="w-[9%]" />
+            <col className="w-[17%]" />
+            <col className="w-[15%]" />
           </colgroup>
-        <thead>
-          <tr className="rule-b">
-            {['Loan', 'Originator', 'Borrower', 'Principal', 'Token', 'Status', 'Window'].map((h, i) => (
-              <th
-                key={h}
-                scope="col"
-                className={`py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint ${
-                  i >= 2 ? 'text-right' : ''
-                }`}
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {loans.map((loan) => {
-            const originator = originatorById.get(loan.originatorId.toString());
-            const meta = STATUS_META[loan.status];
-            const challengeable = originator ? isChallengeable(loan, originator, currentBlock) : false;
-            const left = originator ? blocksLeftInWindow(loan, originator, currentBlock) : 0n;
-            const rule = !marked
-              ? ''
-              : loan.status === LoanStatus.BREACHED
-                ? 'border-l-2 border-l-breach pl-3'
-                : 'border-l-2 border-l-accent pl-3';
 
-            return (
-              <tr
-                key={loan.id.toString()}
-                className="rule-b group transition-colors hover:bg-sunken"
-              >
-                <td className={`py-3.5 ${rule}`}>
-                  <Link
-                    href={`/loan/${loan.id}`}
-                    className="font-mono text-[13px] font-medium underline decoration-transparent underline-offset-4 transition-colors group-hover:decoration-ink"
+          <thead>
+            <tr className="border-b-2 border-ink">
+              {['Claim', 'Originator', 'Borrower', 'Principal', 'Token', 'Status', ''].map((h, i) => (
+                <th
+                  key={h || 'action'}
+                  scope="col"
+                  className={`pb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint ${
+                    i >= 3 ? 'text-right' : ''
+                  }`}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {groups.map((group, gi) => (
+              <Fragment key={group.label}>
+                <tr>
+                  <th
+                    colSpan={7}
+                    scope="colgroup"
+                    className={`text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-faint ${
+                      gi === 0 ? 'pb-2 pt-4' : 'pb-2 pt-9'
+                    }`}
                   >
-                    L-{loan.id.toString().padStart(3, '0')}
-                  </Link>
-                </td>
-                <td className="py-3.5">
-                  <span className="text-[12px]">
-                    {originator ? originator.name : <span className="text-faint">unknown</span>}
-                  </span>
-                </td>
-                <td className="py-3.5">
-                  <a
-                    href={explorer.sourceAddress(loan.borrower)}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="ident ident-link"
-                    title={loan.borrower}
-                  >
-                    {shortAddress(loan.borrower)}
-                  </a>
-                </td>
-                <td className="tnum py-3.5 text-right font-mono text-[13px]">
-                  {formatTokenAmount(loan.principal, tokenMeta(loan.token).decimals)}
-                </td>
-                <td className="py-3.5 text-right">
-                  <a
-                    href={explorer.sourceToken(loan.token)}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="ident ident-link"
-                    title={loan.token}
-                  >
-                    {tokenMeta(loan.token).symbol ?? shortAddress(loan.token)}
-                  </a>
-                </td>
-                <td className="py-3.5 text-right">
-                  <div className="flex justify-end">
-                    <Status tone={meta.tone}>{meta.label}</Status>
-                  </div>
-                </td>
-                {/*
-                  The window column carries the action rather than only the
-                  time. A book that reports state and offers nothing to do with
-                  it is a report; the whole claim here is that anyone may act,
-                  so the row where acting is possible says so.
-                */}
-                <td className="tnum py-3.5 text-right text-[12px] text-muted">
-                  {loan.status === LoanStatus.REPAYMENT_CLAIMED ? (
-                    challengeable ? (
-                      <Link
-                        href={`/challenge?loan=${loan.id}`}
-                        title={`${left} Creditcoin blocks remain`}
-                        className="group inline-flex items-baseline gap-1.5 text-pending transition-colors hover:text-ink"
-                      >
-                        <span className="font-medium">Challenge</span>
-                        <span className="text-[11px] text-muted group-hover:text-ink">
-                          {blocksToApproxDuration(left)} left
-                        </span>
-                      </Link>
-                    ) : (
-                      <span className="text-faint">closed</span>
-                    )
-                  ) : loan.status === LoanStatus.BREACHED ? (
-                    <Link
-                      href={`/loan/${loan.id}`}
-                      className="text-breach transition-colors hover:text-ink"
+                    {group.label}
+                  </th>
+                </tr>
+
+                {group.loans.map((loan) => {
+                  const originator = originatorById.get(loan.originatorId.toString());
+                  const meta = STATUS_META[loan.status];
+                  const challengeable = originator
+                    ? isChallengeable(loan, originator, currentBlock)
+                    : false;
+                  const left = originator ? blocksLeftInWindow(loan, originator, currentBlock) : 0n;
+
+                  const breached = loan.status === LoanStatus.BREACHED;
+                  const rail = breached
+                    ? 'border-l-2 border-l-breach'
+                    : challengeable
+                      ? 'border-l-2 border-l-pending'
+                      : 'border-l-2 border-l-transparent';
+
+                  return (
+                    <tr
+                      key={loan.id.toString()}
+                      className={`group border-b border-rule transition-colors ${
+                        breached ? 'bg-sunken hover:bg-rule/40' : 'hover:bg-sunken'
+                      }`}
                     >
-                      See the evidence
-                    </Link>
-                  ) : (
-                    <span className="text-faint">—</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
+                      <td className={`py-3.5 pl-3 ${rail}`}>
+                        <Link
+                          href={`/loan/${loan.id}`}
+                          className="font-mono text-[13px] font-medium underline decoration-transparent underline-offset-4 transition-colors group-hover:decoration-ink"
+                        >
+                          L-{loan.id.toString().padStart(3, '0')}
+                        </Link>
+                      </td>
+
+                      <td className="py-3.5">
+                        <span className="text-[12px]">
+                          {originator ? originator.name : <span className="text-faint">unknown</span>}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5">
+                        <a
+                          href={explorer.sourceAddress(loan.borrower)}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="ident ident-link"
+                          title={loan.borrower}
+                        >
+                          {shortAddress(loan.borrower)}
+                        </a>
+                      </td>
+
+                      <td className="tnum py-3.5 text-right font-mono text-[13px]">
+                        {formatTokenAmount(loan.principal, tokenMeta(loan.token).decimals)}
+                      </td>
+
+                      <td className="py-3.5 text-right">
+                        <a
+                          href={explorer.sourceToken(loan.token)}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="ident ident-link"
+                          title={loan.token}
+                        >
+                          {tokenMeta(loan.token).symbol ?? shortAddress(loan.token)}
+                        </a>
+                      </td>
+
+                      <td className="py-3.5 text-right">
+                        <div className="flex justify-end">
+                          <Status tone={meta.tone}>{meta.label}</Status>
+                        </div>
+                      </td>
+
+                      {/*
+                        The last column carries the action, not just the time.
+                        A book that reports state and offers nothing to do with
+                        it is a report; the claim here is that anyone may act,
+                        so the row where acting is possible says so.
+                      */}
+                      <td className="tnum py-3.5 pr-1 text-right text-[12px] text-muted">
+                        {loan.status === LoanStatus.REPAYMENT_CLAIMED ? (
+                          challengeable ? (
+                            <Link
+                              href={`/challenge?loan=${loan.id}`}
+                              title={`${left} Creditcoin blocks remain`}
+                              className="inline-flex items-baseline gap-1.5 text-pending transition-colors hover:text-ink"
+                            >
+                              <span className="font-medium">Challenge</span>
+                              <span className="text-[11px] text-muted">
+                                {blocksToApproxDuration(left)} left
+                              </span>
+                            </Link>
+                          ) : (
+                            <span className="text-faint">window closed</span>
+                          )
+                        ) : breached ? (
+                          <Link
+                            href={`/loan/${loan.id}`}
+                            className="text-breach transition-colors hover:text-ink"
+                          >
+                            See the evidence
+                          </Link>
+                        ) : (
+                          <span className="text-faint">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </Fragment>
+            ))}
           </tbody>
         </table>
       </div>

@@ -58,7 +58,7 @@ const concepts: DocPage = {
         {
           term: 'Bond, bounty, burn sink',
           simple: 'What the originator stakes, what a successful challenger earns, and where the rest goes.',
-          technical: 'Bond is 1 tCTC per open claim. A proven breach slashes 100%, pays 50% to the challenger, and sends the remainder to the protocol sink — the burn address.',
+          technical: 'Bond is 1 tCTC per open claim. A proven breach slashes 100%, pays 50% to the challenger, and sends the remainder to the protocol sink, which is the burn address.',
         },
         {
           term: 'Attestation',
@@ -68,12 +68,12 @@ const concepts: DocPage = {
         {
           term: 'Proof',
           simple: 'The material that lets a contract check a transfer without trusting anyone.',
-          technical: 'A Merkle inclusion proof plus continuity roots. Supplied by the proof builder, which is untrusted — the precompile is what makes it meaningful.',
+          technical: 'A Merkle inclusion proof plus continuity roots, supplied by the proof builder. The builder is untrusted. The precompile is what makes the material mean anything.',
         },
         {
           term: 'Block Prover precompile',
           simple: 'The thing on Creditcoin that rules on whether a proof is real.',
-          technical: 'A runtime precompile at `0x…0FD2`. It proves inclusion, not success — receipt status is checked separately by `EvidenceVault`.',
+          technical: 'A runtime precompile at `0x…0FD2`. It proves inclusion, not success. Receipt status is checked separately by `EvidenceVault`.',
         },
       ],
     },
@@ -117,8 +117,8 @@ const reference: DocPage = {
       rows: [
         ['`MIN_BOND`', '1 ether'],
         ['`BOND_PER_LOAN`', '1 ether'],
-        ['`SLASH_BPS`', '10,000 — 100%'],
-        ['`BOUNTY_BPS`', '5,000 — 50% to the challenger'],
+        ['`SLASH_BPS`', '10,000 (100%)'],
+        ['`BOUNTY_BPS`', '5,000 (50% to the challenger)'],
         ['`REPAYMENT_BPS`', '10,000'],
         ['`WITHDRAW_COOLDOWN`', '1,200 blocks'],
         ['`MIN_CIRCULAR_WINDOW` / `MAX_CIRCULAR_WINDOW`', '1 / 50,000 source blocks'],

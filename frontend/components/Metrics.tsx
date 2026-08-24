@@ -35,7 +35,40 @@ const COLUMNS: Record<number, string> = {
   6: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6',
 };
 
-export function MetricBand({ metrics }: { metrics: Metric[] }) {
+export function MetricBand({
+  metrics,
+  compact = false,
+}: {
+  metrics: Metric[];
+  /**
+   * Sits beside a heading rather than beneath it: smaller figures, no rules,
+   * no full-width grid. State is context for the thing on the page, not the
+   * thing itself, and a full-bleed band of large numerals made it the loudest
+   * element above content that matters more.
+   */
+  compact?: boolean;
+}) {
+  if (compact) {
+    return (
+      <dl className="flex flex-wrap items-end gap-x-9 gap-y-4">
+        {metrics.map((m) => (
+          <div key={m.label} className="min-w-0">
+            <dt>
+              <Eyebrow>{m.label}</Eyebrow>
+            </dt>
+            <dd
+              className={`tnum mt-1.5 whitespace-nowrap text-[19px] font-semibold leading-none tracking-tight ${
+                m.tone === 'breach' ? 'text-breach' : m.tone === 'pending' ? 'text-pending' : ''
+              }`}
+            >
+              {m.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+
   const cols = COLUMNS[metrics.length] ?? 'grid-cols-2 sm:grid-cols-3';
 
   return (

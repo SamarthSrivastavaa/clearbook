@@ -28,7 +28,7 @@ const home: DocPage = {
         { label: 'Source-chain activity', sub: 'An ERC-20 transfer on a chain we do not control' },
         { label: 'Cryptographic verification', sub: 'Attestcoin proves inclusion; the precompile checks it' },
         { label: 'Shared evidence', sub: 'A TransferFact, readable by anyone', tone: 'verified' },
-        { label: 'Credit claim', sub: 'One fact, one claim — never two' },
+        { label: 'Credit claim', sub: 'One fact, one claim. Never two' },
         { label: 'Covenant', sub: 'A rule the originator published and bonded against' },
         { label: 'Challenge', sub: 'Anyone may try to prove a breach' },
         { label: 'Enforcement', sub: 'Bond slashed, challenger paid, in one transaction', tone: 'breach' },
@@ -64,7 +64,7 @@ const overview: DocPage = {
     },
     {
       t: 'p',
-      text: 'Three things happen in order. Evidence is **verified** — a transfer on another chain is proven to have occurred. Evidence is **committed** — bound to a specific credit claim, and never to a second one. Claims are **governed** — by a covenant the originator published in advance, which anyone may test.',
+      text: 'Three things happen in order. Evidence is **verified**: a transfer on another chain is proven to have occurred. Evidence is **committed**: bound to one specific credit claim, and never to a second. Claims are **governed**: held to a covenant the originator published in advance, which anyone may test.',
     },
     { t: 'h', text: 'Four parts, kept separate' },
     {
@@ -79,7 +79,7 @@ const overview: DocPage = {
     },
     {
       t: 'p',
-      text: 'The documentation keeps these apart deliberately. Collapsing them into one word — "Clearbook" — is how systems end up claiming their infrastructure is trustworthy because their contracts are.',
+      text: 'The documentation keeps these apart deliberately. Collapsing all three into the single word "Clearbook" is how a system ends up claiming its infrastructure is trustworthy because its contracts are. The contracts and the infrastructure carry very different guarantees, and a reader deserves to know which one is being invoked.',
     },
     { t: 'h', text: 'What a claim must carry' },
     {
@@ -127,7 +127,7 @@ const howItWorks: DocPage = {
     { t: 'h', text: 'Where the trust actually sits' },
     {
       t: 'p',
-      text: 'Steps 2 and 3 involve parties we do not control — the attestor set and the proof builder. Neither is trusted. The proof builder supplies material; **step 4 is what makes that material mean anything**. A malicious proof builder can deny service. It cannot forge a fact, because the precompile would reject the bundle.',
+      text: 'Steps 2 and 3 involve parties we do not control: the attestor set, and the proof builder. Neither is trusted. The proof builder supplies material, and **step 4 is what makes that material mean anything**. A malicious proof builder can refuse to answer, and so deny service. It cannot forge a fact, because the precompile would reject the bundle.',
     },
     {
       t: 'note',

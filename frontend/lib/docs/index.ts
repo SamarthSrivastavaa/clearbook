@@ -20,7 +20,7 @@ const ALL: DocPage[] = [
 export const PAGES = new Map(ALL.map((p) => [p.slug, p]));
 
 /**
- * Navigation. Order is editorial, not alphabetical — it is the order a reader
+ * Navigation. Order is editorial rather than alphabetical: it is the order a reader
  * who knows nothing should meet these ideas in.
  */
 export const SECTIONS: DocSection[] = [
@@ -79,7 +79,7 @@ export function headingId(text: string): string {
 //
 // These run when the module is first imported, which means during the build.
 // A dead internal link or a nav entry pointing at a missing page fails the
-// build rather than shipping — documentation that lies about its own structure
+// build rather than shipping. Documentation that lies about its own structure
 // is worse than documentation that is missing.
 // ---------------------------------------------------------------------------
 

@@ -13,9 +13,9 @@ const architecture: DocPage = {
       t: 'table',
       head: ['Layer', 'Component', 'Trusted?'],
       rows: [
-        ['Source chain', 'Ethereum. Third-party ERC-20 transfers', 'Yes — it is the subject'],
+        ['Source chain', 'Ethereum. Third-party ERC-20 transfers', 'Yes. It is the subject of every claim'],
         ['Verification', 'Attestor set, proof builder, Block Prover precompile', 'Precompile yes; proof builder **no**'],
-        ['Protocol', '`EvidenceVault`, `Clearbook`, `CovenantLib` on Creditcoin', 'Yes — this is the authority'],
+        ['Protocol', '`EvidenceVault`, `Clearbook`, `CovenantLib` on Creditcoin', 'Yes. This is the authority'],
         ['Infrastructure', 'Worker, Postgres, frontend', '**No.** None of it can make the vault believe anything'],
       ],
     },
@@ -55,7 +55,7 @@ const architecture: DocPage = {
     {
       t: 'note',
       title: 'The database is bookkeeping, never truth',
-      text: 'Postgres holds the scan cursor and the fact state machine. Its `UNIQUE (chain_key, block_height, tx_index, log_index)` constraint mirrors the on-chain identity exactly — so the database and the chain cannot disagree about what has been ingested. The frontend reads the chain directly and has no dependency on it.',
+      text: 'Postgres holds the scan cursor and the fact state machine. Its `UNIQUE (chain_key, block_height, tx_index, log_index)` constraint mirrors the on-chain identity exactly, so the database and the chain cannot disagree about what has been ingested. The frontend reads the chain directly and has no dependency on it.',
     },
     {
       t: 'next',
@@ -96,11 +96,31 @@ const proves: DocPage = {
         'That an off-chain loan agreement exists',
         'That anyone intended anything',
         'That any law was broken',
-        'That a transaction did **not** occur — absence is unprovable',
+        'That a transaction did **not** occur. Absence is unprovable',
         'That the same obligation is not represented by a different transaction',
         'Flows that pass through addresses the originator never bound',
         'Anything about a chain the attestor set does not attest',
       ],
+    },
+    { t: 'h', text: 'The boundary applied to a real breach' },
+    {
+      t: 'p',
+      text: 'Claim L-002 on the deployed book was challenged and its bond slashed. It is worth walking exactly what that settled and what it did not, because the difference is the whole discipline of this product.',
+    },
+    {
+      t: 'table',
+      head: ['Established', 'Not established'],
+      rows: [
+        ['Two ERC-20 transfers were included in attested Sepolia blocks and both receipts succeeded', 'That either address belongs to a fund, a person, or anyone at all'],
+        ['The treasury address had proven control of its key by EIP-712 signature', 'That the signer is the institution named on the page'],
+        ['The funded address is the address that repaid, in the same token, inside the published window', 'That the money repaid was the same money the treasury sent'],
+        ['Eleven published conditions were evaluated and all held', 'That the originator intended anything, or that any law was broken'],
+        ['A bond was slashed and a bounty paid in one transaction', 'That the book is complete, or that no other breach exists'],
+      ],
+    },
+    {
+      t: 'p',
+      text: 'A breach of `CIRCULAR_REPAYMENT` establishes that **an originator\u2019s own published rule was not met** over evidence a precompile verified. It is a broken commitment, not a finding of fraud, and the documentation says so in every place the word breach appears.',
     },
     {
       t: 'note',
@@ -146,9 +166,9 @@ const security: DocPage = {
       head: ['Threat', 'What Clearbook does', 'What it does not do'],
       rows: [
         ['Forged proof', 'The precompile rejects it. Six mutations of a valid proof were tested and all six reverted on-chain', 'Cannot detect a compromised attestor quorum'],
-        ['Replay of evidence', 'Log-level identity makes each transfer distinct; the vault is idempotent', '—'],
+        ['Replay of evidence', 'Log-level identity makes each transfer distinct; the vault is idempotent', 'No known gap'],
         ['Duplicate commitment', '`factConsumedBy` refuses a second claim, across all originators', 'Does not detect the same obligation via a different transaction'],
-        ['Reverted source transaction', '`receiptStatus == 1` is asserted; `SourceTxReverted` otherwise', '—'],
+        ['Reverted source transaction', '`receiptStatus == 1` is asserted; `SourceTxReverted` otherwise', 'No known gap'],
         ['Treasury impersonation', 'EIP-712 binding; one address binds to at most one originator, ever', 'Does not establish who controls the key'],
         ['Challenge griefing', 'Invalid challenges revert and change no state', 'Does not stop a challenger wasting their own gas'],
         ['Worker failure', 'State persisted before each transition; stranded rows re-queued at startup', 'Assumes a single worker instance'],
@@ -193,9 +213,9 @@ const limitations: DocPage = {
         {
           term: 'The window catches honest re-lending too',
           simple:
-            'If your treasury sends money to a counterparty and that same counterparty repays you shortly after, the covenant fires — even when the two are unrelated.',
+            'If your treasury sends money to a counterparty and that same counterparty repays you shortly after, the covenant fires, even when the two payments have nothing to do with each other.',
           technical:
-            'Transfer facts cannot distinguish money that funded a repayment from money that merely preceded it. A second tranche, a revolving draw, or any same-day disbursement to the address that repays you satisfies the funding leg. This is the covenant behaving as published, not a defect — and it is why circularWindow is the originator’s dial: 5,000 blocks (~17h) is a strong claim with real exposure; a tight window is operationally comfortable and claims less. An originator running an active revolver cannot use a wide window.',
+            'Transfer facts cannot distinguish money that funded a repayment from money that merely preceded it. A second tranche, a revolving draw, or any same-day disbursement to the address that repays you satisfies the funding leg. This is the covenant behaving as published rather than a defect, and it is why `circularWindow` is the originator’s dial. A window of 5,000 blocks, roughly seventeen hours, is a strong claim that carries real exposure. A tight window is operationally comfortable and claims correspondingly less. An originator running an active revolver cannot use a wide window.',
         },
         {
           term: 'Absence is unprovable',
@@ -225,7 +245,7 @@ const limitations: DocPage = {
         {
           term: 'Single worker instance',
           simple: 'Running two workers at once could duplicate work.',
-          technical: 'The startup requeue cannot distinguish a crashed row from one in flight elsewhere. It would duplicate *work*, never *evidence* — the vault stores a fact once regardless.',
+          technical: 'The startup requeue cannot distinguish a crashed row from one in flight elsewhere. It would duplicate *work*, never *evidence*, because the vault stores a fact once regardless.',
         },
         {
           term: 'Bounded evidence discovery',
@@ -247,12 +267,12 @@ const limitations: DocPage = {
 const sourceChains: DocPage = {
   slug: 'source-chains',
   title: 'Source chains',
-  summary: 'What is supported, and what supported means.',
+  summary: 'What is supported, what supported means, and who decides it.',
   audience: 'Developers',
   blocks: [
     {
       t: 'lead',
-      text: 'Chain keys are resolved from the ChainInfo precompile at runtime and never hardcoded. This page names what that resolution currently returns.',
+      text: 'A chain is supported when the attestor set attests it. Not when we list it, and not when we hold an endpoint for it. This page names what that distinction currently returns.',
     },
     {
       t: 'table',
@@ -262,19 +282,62 @@ const sourceChains: DocPage = {
         ['Ethereum Sepolia', '11155111', '1', '**Supported.** Testnet'],
       ],
     },
-    {
-      t: 'note',
-      title: 'Support is decided by the precompile, not by us',
-      text: 'Listing a chain in the interface names an endpoint; it does not add support. A chain absent from the precompile’s list is an error, not a fallback — the code refuses rather than guessing.',
-    },
-    { t: 'h', text: 'What mainnet evidence can and cannot do' },
+
+    { t: 'h', text: 'What a chain key is' },
     {
       t: 'p',
-      text: 'A real mainnet transfer can be verified and recorded in the registry — that needs permission from nobody. It **cannot** be committed to a claim, because committing requires a treasury bound by signature, and we hold no key for a stranger’s address. See [the evidence registry](/docs/evidence-registry).',
+      text: 'A chain key is the attestor set\u2019s own identifier for a chain, and it is **not** the EVM chain ID. Ethereum Mainnet is chain ID 1 but chain key 3; Sepolia is chain ID 11155111 but chain key 1. The two numbering schemes overlap at 1 while meaning entirely different chains, which is precisely the kind of coincidence that produces a confident, wrong answer.',
+    },
+    {
+      t: 'note',
+      tone: 'breach',
+      title: 'Why the key is resolved at runtime and never hardcoded',
+      text: 'A hardcoded chain key is how a Sepolia transfer ends up presented as mainnet evidence. Every path that needs a key asks the ChainInfo precompile for it, and a chain the precompile does not return is an error rather than a fallback. The code refuses instead of guessing, because a guess here is indistinguishable from a lie.',
+    },
+
+    { t: 'h', text: 'Support is decided by the precompile' },
+    {
+      t: 'p',
+      text: 'Listing a chain in this interface names an endpoint. It does not add support, and nothing we deploy could. Adding a chain is a matter for the attestor set: until quorum is being reached on that chain\u2019s finalized blocks, no proof can be built against it and the evidence does not exist as far as Creditcoin is concerned. There is no configuration flag on our side that changes this, which is the correct arrangement.',
+    },
+
+    { t: 'h', text: 'Latency is the security property' },
+    {
+      t: 'p',
+      text: 'Attestors reach quorum on **finalized** source blocks, so fresh activity is not usable as evidence for roughly eight to ten minutes. That wait is not overhead to be optimised away. It is the interval during which the source chain settles, and shortening it would mean attesting blocks that could still be reorganised.',
+    },
+
+    { t: 'h', text: 'A worked example: real mainnet evidence' },
+    {
+      t: 'p',
+      text: 'The registry holds a genuine Ethereum Mainnet USDC transfer of 10,506.417092 USDC from block 25,811,720, between two addresses we do not control and that have never heard of Clearbook. It was proven by the Block Prover precompile and stored like any other fact.',
+    },
+    {
+      t: 'flow',
+      steps: [
+        { label: 'A stranger sends USDC on Ethereum Mainnet', sub: 'chain key 3, block 25,811,720' },
+        { label: 'Attestors reach quorum on the finalized block', sub: 'nobody asked our permission' },
+        { label: 'Anyone builds a proof and submits it', sub: 'the vault is permissionless', tone: 'verified' },
+        { label: 'The fact is verified and stored', sub: 'and is now citable by anyone', tone: 'verified' },
+        { label: 'It can never be committed to a claim', sub: 'we hold no key for either address', tone: 'pending' },
+      ],
+    },
+    {
+      t: 'p',
+      text: 'That last step is the asymmetry the whole product rests on, made concrete. **Verification requires no permission; commitment does.** A fact can be proven by anyone about anyone, but binding it to a credit claim requires a treasury proven by EIP-712 signature, and no amount of verification supplies a key you do not have. See [the evidence registry](/docs/evidence-registry).',
+    },
+
+    { t: 'h', text: 'Both chains, one namespace' },
+    {
+      t: 'p',
+      text: 'Facts from mainnet and Sepolia share a single registry and a single uniqueness rule. The chain key is part of the fact identity, so a transfer at the same height and index on two different chains produces two different facts and can never be confused. The covenant then refuses to compare across chains at all: condition 3 requires both legs of an alleged breach to come from the same source chain, because a Sepolia transfer presented against a mainnet one would be a meaningless comparison dressed as evidence.',
     },
     {
       t: 'next',
-      items: [{ href: '/docs/reference', label: 'Reference', sub: 'Addresses and networks' }],
+      items: [
+        { href: '/docs/verification', label: 'Verification pipeline', sub: 'How a transfer becomes a fact' },
+        { href: '/docs/reference', label: 'Reference', sub: 'Addresses and networks' },
+      ],
     },
   ],
 };

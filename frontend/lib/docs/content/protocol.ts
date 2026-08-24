@@ -26,7 +26,7 @@ const contracts: DocPage = {
       t: 'list',
       ordered: true,
       items: [
-        '**Dedupe.** Compute `factId`. If it exists, return it and stop — no verification, no event, no state change.',
+        '**Dedupe.** Compute `factId`. If it already exists, return it and stop. No verification, no event, no state change.',
         '**Verify.** Call `verifyAndEmit` on the Block Prover precompile. Revert `ProofRejected` if it returns false.',
         '**Decode.** Run the official `EvmV1Decoder` over the verified bytes, assert `receiptStatus == 1`, extract the ERC-20 `Transfer` at the given transaction-local `logIndex`, and store.',
       ],
@@ -35,7 +35,7 @@ const contracts: DocPage = {
       t: 'note',
       tone: 'pending',
       title: 'Dedupe precedes verify, deliberately',
-      text: 'It makes replay nearly free and the worker restart-safe. The consequence is that a bundle whose identity is already stored returns early **without testing the proof** — so any forgery test must submit at an unstored identity, or it proves nothing.',
+      text: 'It makes replay nearly free and the worker restart-safe. The consequence is that a bundle whose identity is already stored returns early **without testing the proof**, so any forgery test must submit at an unstored identity or it proves nothing at all.',
     },
     { t: 'h', text: 'Fact identity' },
     {
@@ -46,7 +46,7 @@ const contracts: DocPage = {
     },
     {
       t: 'p',
-      text: 'Four coordinates, not a transaction hash. A transaction hash identifies a transaction; a claim cites a **transfer**, and one transaction routinely carries many. Keying on the hash would collapse distinct transfers into one identity — 17 and 30 relevant `Transfer` logs were observed in single real transactions.',
+      text: 'Four coordinates, not a transaction hash. A transaction hash identifies a transaction; a claim cites a **transfer**, and one transaction routinely carries many. Keying on the hash would collapse distinct transfers into a single identity. We observed 17 and 30 relevant `Transfer` logs inside single real transactions.',
     },
     {
       t: 'p',
@@ -70,7 +70,7 @@ const contracts: DocPage = {
     { t: 'h', text: 'Guard order in registerLoan' },
     {
       t: 'p',
-      text: 'The order is observable behaviour, not an implementation detail — it determines **which error a caller sees**, and therefore what they learn about why they were refused.',
+      text: 'The order is observable behaviour rather than an implementation detail. It determines **which error a caller sees**, and therefore what they learn about why they were refused.',
     },
     {
       t: 'table',
@@ -89,7 +89,7 @@ const contracts: DocPage = {
     {
       t: 'note',
       title: 'Why 4 must precede 8',
-      text: 'A second originator citing a committed fact fails at 4 with `FactAlreadyUsed`. If uniqueness were checked after the binding, that caller would instead see `TreasuryNotBound` — true, but it reports a different reason and conceals the uniqueness property entirely. A regression test pins this ordering.',
+      text: 'A second originator citing a committed fact fails at 4 with `FactAlreadyUsed`. If uniqueness were checked after the binding, that caller would instead see `TreasuryNotBound`. That is true, but it reports a different reason and conceals the uniqueness property entirely. A regression test pins this ordering.',
     },
     {
       t: 'next',
@@ -123,7 +123,7 @@ const predicate: DocPage = {
         ['`f_f`', 'The funding fact cited by the challenger'],
         ['`K(f)`, `T(f)`, `A(f)`, `H(f)`', 'chainKey, token, amount, blockHeight of fact `f`'],
         ['`S(f)`, `R(f)`', 'Sender and recipient of fact `f`'],
-        ['`bound(a)`', '`treasuryOwner[a]` — the originator that proved control of address `a`, or 0'],
+        ['`bound(a)`', '`treasuryOwner[a]`. The originator that proved control of address `a`, or 0'],
         ['`W_c`, `W_ch`', '`O.circularWindow` in source blocks; `O.challengeWindow` in Creditcoin blocks'],
       ],
     },
@@ -135,7 +135,7 @@ const predicate: DocPage = {
     {
       t: 'code',
       lang: 'text',
-      caption: 'Breach(L, f_f) — all must hold',
+      caption: 'Breach(L, f_f). All must hold',
       code: `  1.  status(L) = REPAYMENT_CLAIMED                    WrongStatus
   2.  block.number ≤ claimBlock(L) + W_ch                WindowClosed
 
@@ -164,7 +164,7 @@ const predicate: DocPage = {
     {
       t: 'note',
       title: 'Soundness and completeness',
-      text: 'The predicate is **sound** with respect to its own statement — if it returns true, those eleven relations hold over evidence the precompile verified. It is not **complete** with respect to circular financing in general: flows outside its quantification are not detected. See [limitations](/docs/limitations).',
+      text: 'The predicate is **sound** with respect to its own statement. If it returns true, those eleven relations hold over evidence the precompile verified. It is not **complete** with respect to circular financing in general: flows outside its quantification are not detected. See [limitations](/docs/limitations).',
     },
     {
       t: 'next',
@@ -203,7 +203,7 @@ toSink  = 1.0 − 0.5               =  0.5 tCTC`,
     },
     {
       t: 'p',
-      text: 'The originator’s bond decreases by `slash`; the challenger’s balance increases by `bounty`; the protocol sink receives `toSink`. The claim’s reserved exposure is released, and its status becomes `BREACHED` — terminal.',
+      text: 'The originator’s bond decreases by `slash`; the challenger’s balance increases by `bounty`; the protocol sink receives `toSink`. The claim’s reserved exposure is released, and its status becomes `BREACHED`, which is terminal.',
     },
     { t: 'h', text: 'Why the challenger posts no bond' },
     {
@@ -222,7 +222,7 @@ toSink  = 1.0 − 0.5               =  0.5 tCTC`,
     {
       t: 'note',
       title: 'The bounty must be strictly less than the slash',
-      text: 'If `bounty = slash`, an originator could challenge its own breaching claim and recover the full bond, making the covenant costless to break. `BOUNTY_BPS < SLASH_BPS` is what makes self-challenge strictly loss-making — the difference is burned, not recoverable.',
+      text: 'If `bounty = slash`, an originator could challenge its own breaching claim and recover the full bond, making the covenant costless to break. `BOUNTY_BPS < SLASH_BPS` is what makes self-challenge strictly loss-making. The difference is burned, and nothing recovers it.',
     },
     {
       t: 'next',
@@ -330,7 +330,7 @@ I5   ∀ stored f :  receiptStatus(f) = 1
       t: 'note',
       tone: 'pending',
       title: 'A passing invariant suite can still be vacuous',
-      text: 'An earlier version of this suite passed every invariant while the fuzzer never once reached `challenge()` — the properties held because the interesting states were never entered. `test_handler_reaches_a_breach` is a permanent guard that asserts the handler actually gets there. An invariant suite that cannot reach its own failure modes proves nothing.',
+      text: 'An earlier version of this suite passed every invariant while the fuzzer never once reached `challenge()`. The properties held only because the interesting states were never entered. `test_handler_reaches_a_breach` is a permanent guard that asserts the handler actually gets there. An invariant suite that cannot reach its own failure modes proves nothing.',
     },
     { t: 'h', text: 'Coverage' },
     {
@@ -339,7 +339,7 @@ I5   ∀ stored f :  receiptStatus(f) = 1
       rows: [
         ['Tests', '94, across 7 suites'],
         ['Line coverage of `src/`', '100% (151/151)'],
-        ['Branch coverage of `Clearbook.sol`', '75.61% — recorded, not hidden'],
+        ['Branch coverage of `Clearbook.sol`', '75.61%, recorded rather than hidden'],
         ['Invariant runs', '64 sequences × 4,096 calls, per invariant'],
       ],
     },
@@ -370,7 +370,7 @@ const verification: DocPage = {
     { t: 'h', text: '1 · Attestation' },
     {
       t: 'p',
-      text: 'Attestors reach quorum on a **finalized** source block. Until that happens no proof can be built against it, and the evidence simply does not exist as far as Creditcoin is concerned. The chain key is resolved from the ChainInfo precompile at runtime and never hardcoded — a hardcoded key is how a Sepolia transfer ends up presented as mainnet.',
+      text: 'Attestors reach quorum on a **finalized** source block. Until that happens no proof can be built against it, and the evidence simply does not exist as far as Creditcoin is concerned. The chain key is resolved from the ChainInfo precompile at runtime and never hardcoded. A hardcoded key is exactly how a Sepolia transfer ends up presented as mainnet.',
     },
     { t: 'h', text: '2 · Proof construction' },
     {
@@ -380,7 +380,7 @@ const verification: DocPage = {
     { t: 'h', text: '3 · On-chain verification' },
     {
       t: 'p',
-      text: '`EvidenceVault` calls the Block Prover precompile. If it returns false the transaction reverts `ProofRejected` and nothing is stored. A valid proof mutated in any of six ways — a Merkle sibling, a continuity root, the lower endpoint digest, the block height, an `isLeft` flag, one byte of the transaction — was rejected on-chain in every case.',
+      text: '`EvidenceVault` calls the Block Prover precompile. If it returns false the transaction reverts `ProofRejected` and nothing is stored. A valid proof was mutated in six ways: a Merkle sibling, a continuity root, the lower endpoint digest, the block height, an `isLeft` flag, and one byte of the transaction. Every one of the six was rejected on-chain.',
     },
     { t: 'h', text: '4 · Receipt decoding' },
     {
@@ -390,7 +390,7 @@ const verification: DocPage = {
     {
       t: 'list',
       items: [
-        '`receiptStatus == 1`, else `SourceTxReverted` — the precompile proves inclusion, not success, and a reverted transfer moved no value',
+        '`receiptStatus == 1`, else `SourceTxReverted`. The precompile proves inclusion rather than success, and a reverted transfer moved no value',
         'A log exists at the given transaction-local index, else `LogIndexOutOfRange`',
         'That log is a well-formed ERC-20 `Transfer`, else `NotATransferLog` or `MalformedTransferLog`',
       ],
@@ -399,7 +399,7 @@ const verification: DocPage = {
       t: 'note',
       tone: 'verified',
       title: 'Where the trust actually sits',
-      text: 'Stages 1 and 2 involve parties outside our control. Neither is trusted. Stage 3 is what converts material into fact — replace it with anything that merely reports, and every downstream guarantee becomes "trust our backend".',
+      text: 'Stages 1 and 2 involve parties outside our control. Neither is trusted. Stage 3 is what converts material into fact. Replace it with anything that merely reports, and every downstream guarantee collapses into "trust our backend".',
     },
     { t: 'h', text: 'Timing' },
     {
@@ -435,7 +435,7 @@ const referenceChallenger: DocPage = {
   blocks: [
     {
       t: 'lead',
-      text: 'Enforcement that requires someone to be watching is only as good as whoever is watching. Clearbook ships a process that watches — and it has no privilege whatsoever.',
+      text: 'Enforcement that requires someone to be watching is only as good as whoever is watching. Clearbook ships a process that watches, and it holds no privilege whatsoever.',
     },
     {
       t: 'p',
@@ -453,7 +453,7 @@ const referenceChallenger: DocPage = {
       ],
       cannotTitle: 'It does not',
       cannot: [
-        'Monitor anyone — it reads a public book, like any observer',
+        'Monitor anyone. It reads a public book, exactly as any observer would',
         'Decide that a covenant was breached; only the contract does that',
         'Hold any role, permission, or privileged access',
         'Guarantee detection, or claim a book is clean',
@@ -472,7 +472,7 @@ const referenceChallenger: DocPage = {
     },
     {
       t: 'p',
-      text: '**It reports the shape rather than flattening it.** Transfer facts cannot distinguish money that funded a repayment from money that merely preceded it, so a second tranche looks exactly like a circular flow. Both break a rule the originator published and bonded against, so the challenger acts on both — but it records which it found. A third party the treasury funded repaying the loan has no ordinary lending explanation; the borrower repaying after receiving more money has an obvious one. Set `CHALLENGER_STRICT=true` to refuse the weaker shape entirely. See [limitations](/docs/limitations).',
+      text: '**It reports the shape rather than flattening it.** Transfer facts cannot distinguish money that funded a repayment from money that merely preceded it, so a second tranche looks exactly like a circular flow. Both break a rule the originator published and bonded against, so the challenger acts on both, but it records which of the two it found. A third party the treasury funded repaying the loan has no ordinary lending explanation; the borrower repaying after receiving more money has an obvious one. Set `CHALLENGER_STRICT=true` to refuse the weaker shape entirely. See [limitations](/docs/limitations).',
     },
     {
       t: 'flow',
@@ -488,7 +488,7 @@ const referenceChallenger: DocPage = {
     { t: 'h', text: 'Races are expected' },
     {
       t: 'p',
-      text: 'A human may challenge the same claim first. Another challenger may win. The window may close between simulation and inclusion. In every case the transaction simply reverts and the process moves on — losing a race is the normal outcome of a competitive bounty, not a failure.',
+      text: 'A human may challenge the same claim first. Another challenger may win. The window may close between simulation and inclusion. In every case the transaction simply reverts and the process moves on. Losing a race is the normal outcome of a competitive bounty rather than a failure.',
     },
     { t: 'h', text: 'Why competition is the point' },
     {
