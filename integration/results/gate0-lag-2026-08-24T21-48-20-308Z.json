@@ -1,0 +1,129 @@
+{
+  "observedAt": "2026-08-24T21:48:20.308Z",
+  "samples": 7,
+  "intervalMs": 60000,
+  "chains": [
+    {
+      "chainKey": 3,
+      "chainId": 1,
+      "firstAttested": 25827750,
+      "lastAttested": 25827790,
+      "totalAdvance": 40,
+      "advancing": true,
+      "lagFirst": null,
+      "lagLast": null,
+      "samples": [
+        {
+          "at": "2026-08-24T21:41:54.682Z",
+          "attestedHeight": 25827750,
+          "exists": true,
+          "sourceHead": null,
+          "lag": null
+        },
+        {
+          "at": "2026-08-24T21:43:08.906Z",
+          "attestedHeight": 25827760,
+          "exists": true,
+          "sourceHead": null,
+          "lag": null
+        },
+        {
+          "at": "2026-08-24T21:44:10.835Z",
+          "attestedHeight": 25827770,
+          "exists": true,
+          "sourceHead": null,
+          "lag": null
+        },
+        {
+          "at": "2026-08-24T21:45:12.630Z",
+          "attestedHeight": 25827770,
+          "exists": true,
+          "sourceHead": null,
+          "lag": null
+        },
+        {
+          "at": "2026-08-24T21:46:14.462Z",
+          "attestedHeight": 25827780,
+          "exists": true,
+          "sourceHead": null,
+          "lag": null
+        },
+        {
+          "at": "2026-08-24T21:47:16.406Z",
+          "attestedHeight": 25827780,
+          "exists": true,
+          "sourceHead": null,
+          "lag": null
+        },
+        {
+          "at": "2026-08-24T21:48:18.367Z",
+          "attestedHeight": 25827790,
+          "exists": true,
+          "sourceHead": null,
+          "lag": null
+        }
+      ]
+    },
+    {
+      "chainKey": 1,
+      "chainId": 11155111,
+      "firstAttested": 11559710,
+      "lastAttested": 11559740,
+      "totalAdvance": 30,
+      "advancing": true,
+      "lagFirst": 35,
+      "lagLast": 35,
+      "samples": [
+        {
+          "at": "2026-08-24T21:41:54.682Z",
+          "attestedHeight": 11559710,
+          "exists": true,
+          "sourceHead": 11559745,
+          "lag": 35
+        },
+        {
+          "at": "2026-08-24T21:43:08.906Z",
+          "attestedHeight": 11559710,
+          "exists": true,
+          "sourceHead": 11559751,
+          "lag": 41
+        },
+        {
+          "at": "2026-08-24T21:44:10.835Z",
+          "attestedHeight": 11559720,
+          "exists": true,
+          "sourceHead": 11559756,
+          "lag": 36
+        },
+        {
+          "at": "2026-08-24T21:45:12.630Z",
+          "attestedHeight": 11559720,
+          "exists": true,
+          "sourceHead": 11559760,
+          "lag": 40
+        },
+        {
+          "at": "2026-08-24T21:46:14.462Z",
+          "attestedHeight": 11559730,
+          "exists": true,
+          "sourceHead": 11559765,
+          "lag": 35
+        },
+        {
+          "at": "2026-08-24T21:47:16.406Z",
+          "attestedHeight": 11559730,
+          "exists": true,
+          "sourceHead": 11559770,
+          "lag": 40
+        },
+        {
+          "at": "2026-08-24T21:48:18.367Z",
+          "attestedHeight": 11559740,
+          "exists": true,
+          "sourceHead": 11559775,
+          "lag": 35
+        }
+      ]
+    }
+  ]
+}

@@ -10,9 +10,9 @@ const send = (method, params = {}) => new Promise((res) => { const m = ++id; pen
 await new Promise((r) => ws.on('open', r));
 ws.on('message', (raw) => { const m = JSON.parse(raw.toString()); if (m.id && pending.has(m.id)) pending.get(m.id)(m.result); });
 await send('Page.enable');
-await send('Emulation.setDeviceMetricsOverride', { width, height: 1150, deviceScaleFactor: 2, mobile: width < 700 });
+await send('Emulation.setDeviceMetricsOverride', { width, height: 1400, deviceScaleFactor: 2, mobile: width < 700 });
 await send('Page.navigate', { url });
-await new Promise((r) => setTimeout(r, 25000));
+await new Promise((r) => setTimeout(r, 30000));
 const sw = await send('Runtime.evaluate', { expression: 'JSON.stringify({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth})', returnByValue: true });
 console.log(`${width}px overflow:`, sw.result.value);
 const shot = await send('Page.captureScreenshot', { format: 'png' });
