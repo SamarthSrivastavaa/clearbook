@@ -582,6 +582,25 @@
   box-shadow: 5px 5px 0 var(--color-rule-strong);
 }
 
+/*
+ * A disabled control sits flat on the page.
+ *
+ * Button already asks for `disabled:shadow-none`, but these displacement
+ * classes are unlayered CSS and unlayered rules beat anything in Tailwind's
+ * utilities layer regardless of order. The result was a disabled primary
+ * button still displaced in signal blue, reading as pressable when it was
+ * not. Stating the rule on the classes themselves is what actually applies
+ * the intent the component already documented.
+ */
+.hard:disabled,
+.hard-sm:disabled,
+.hard-xs:disabled,
+.hard-sm-signal:disabled,
+.hard-signal:disabled,
+.hard-rule:disabled {
+  box-shadow: none;
+}
+
 /* Buttons press into their own shadow rather than lifting off the page. */
 .press {
   transition:

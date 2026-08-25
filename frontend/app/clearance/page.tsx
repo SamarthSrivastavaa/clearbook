@@ -137,11 +137,20 @@ export default function ClearancePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-12 px-5 py-12 sm:px-8 sm:py-16">
-      <header className="max-w-2xl">
-        <Eyebrow>Clearance</Eyebrow>
-        <h1 className="display-lg mt-3">Check evidence before you lend against it.</h1>
-        <p className="mt-4 text-[15px] leading-relaxed text-muted">
+    <div className="space-y-8">
+      {/*
+        Two columns rather than a stack. Stacked, the title and its lead ran to
+        roughly 260px and pushed the input and the examples below the fold, so
+        the first thing a reader saw on the one screen that produces a decision
+        was a headline and nothing to act on. Side by side they occupy the
+        height of the taller column alone, and the check clears the fold.
+      */}
+      <header className="grid gap-x-12 gap-y-4 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+        <div>
+          <Eyebrow>Clearance</Eyebrow>
+          <h1 className="display-lg mt-2">Check evidence before you lend against it.</h1>
+        </div>
+        <p className="text-[14px] leading-relaxed text-muted lg:pb-1">
           Paste the transaction you are about to advance against. Clearbook proves it happened,
           derives the fact identity the protocol would assign it, and reports whether that fact is
           already committed to a claim on this book.{' '}
@@ -150,7 +159,7 @@ export default function ClearancePage() {
       </header>
 
       {/* ---------------------------------------------------------------- input */}
-      <section className="hard-xs border-2 border-ink bg-surface p-6">
+      <section className="hard-xs border-2 border-ink bg-surface p-5 sm:p-6">
         <div className="flex flex-wrap items-end gap-4">
           <div className="min-w-[280px] flex-1">
             <Input
@@ -194,9 +203,9 @@ export default function ClearancePage() {
         ) : null}
 
         {/* One click to a real answer. The verdict is never named here. */}
-        <div className="mt-6 border-t border-rule pt-5">
+        <div className="mt-5 border-t border-rule pt-4">
           <Eyebrow>Or check one of these</Eyebrow>
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <div className="mt-2.5 grid gap-3 sm:grid-cols-3">
             {EXAMPLES.map((ex) => (
               <button
                 key={ex.hash}
@@ -254,7 +263,7 @@ export default function ClearancePage() {
       {/* ------------------------------------------------------------ the limit */}
       <section className="border-t border-rule pt-6">
         <Eyebrow>What this check does not do</Eyebrow>
-        <div className="mt-3 grid gap-x-10 gap-y-4 text-[13px] leading-relaxed text-muted sm:grid-cols-2">
+        <div className="mt-3 grid max-w-5xl gap-x-10 gap-y-4 text-[13px] leading-relaxed text-muted sm:grid-cols-2">
           <p>
             Clearbook prevents the same <span className="text-ink">proven fact</span> from being
             committed twice. It does not prevent two originators from pledging the same real-world
