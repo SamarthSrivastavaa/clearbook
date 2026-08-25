@@ -335,3 +335,40 @@ So the contract always behaved correctly; only the harness could not read what i
 
 **Fix, if it mattered:** lease rows with a `locked_by` / `locked_until` column and requeue only leases that have expired. Not done because the worker is a single-instance orchestrator by design, and because nothing it does is authoritative - the vault, not the worker, decides what is true.
 
+---
+
+### K-022 · `??` on an environment variable treated blank as configured, and it broke the deployed prover proxy
+
+**Class:** BUG (ours). **Status:** fixed 2026-08-25. **Severity: this one was live.**
+
+`frontend/app/api/prover/route.ts` resolved the proof builder's origin with:
+
+```ts
+const PROVER_URL = process.env.PROOF_BUILDER_URL ?? 'https://prover.cc3-testnet.creditcoin.network';
+```
+
+`??` falls back only on `null` or `undefined`. The deploy platform had `PROOF_BUILDER_URL` **defined but empty**, so the fallback never fired and `PROVER_URL` was the empty string. Every forward then became a relative path, `fetch` refused to parse it, and the proxy answered:
+
+```
+{"error":"prover_unreachable","detail":"Failed to parse URL from /api/v1/attested-height/1"}  HTTP 504
+```
+
+The upstream prover was healthy throughout, answering `{"attestedHeight":11563040}` when called directly.
+
+**Impact.** `/verify` — the judge-facing page, and the strongest single demonstration in the product — was non-functional on the deployed site. Anyone pasting a transaction hash was told the prover was unreachable. The failure was invisible from the outside because the page rendered normally and the error message blamed an external dependency for a fault that was ours.
+
+**How it was found.** Building `/clearance` required the same proof path from Node. The end-to-end run reported `proof-unavailable`, which was initially assumed to be an addressing artifact of running outside a browser. Calling the deployed endpoint directly with `curl` disproved that.
+
+**Fix.** Blank is treated as absent, and the value is normalised:
+
+```ts
+const PROVER_URL = (process.env.PROOF_BUILDER_URL ?? '').trim().replace(/\/$/, '') || PROVER_FALLBACK;
+```
+
+Verified by running a production build with `PROOF_BUILDER_URL=""` set explicitly, reproducing the exact broken condition: the route now returns `{"attestedHeight":11563060}` and HTTP 200.
+
+**The class, not the instance.** The same pattern was audited across the repository. Two further live-path occurrences were hardened in `frontend/lib/verifier.ts` (the Sepolia and Ethereum Mainnet RPC endpoints), where a blank value would have built a client against no endpoint and made every read fail as though the chain were down, and one in `frontend/app/layout.tsx`.
+
+**Still open, deliberately.** Roughly a dozen `Number(process.env.X ?? default)` sites remain in `worker/`, `integration/` and `demo/`. `Number('')` is `0`, so a blank `WORKER_TICK_MS` would produce a zero-delay poll loop rather than a 30-second one. These are off the demo and submission path and were left alone rather than churned; they are recorded here so the next person does not have to rediscover the class.
+
+**Lesson.** For environment variables, `??` is almost always the wrong operator. A variable that exists and is empty is not configuration, it is the absence of configuration, and only `||` (or an explicit blank check) treats it that way.

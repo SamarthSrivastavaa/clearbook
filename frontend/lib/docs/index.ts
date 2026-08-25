@@ -27,7 +27,15 @@ export const SECTIONS: DocSection[] = [
   { title: 'Introduction', pages: ['', 'overview', 'how-it-works', 'concepts'] },
   {
     title: 'Product',
-    pages: ['evidence-registry', 'coverage', 'duplicate-commitment', 'claims', 'covenants', 'challenges'],
+    pages: [
+      'evidence-registry',
+      'coverage',
+      'duplicate-commitment',
+      'clearance',
+      'claims',
+      'covenants',
+      'challenges',
+    ],
   },
   {
     title: 'Protocol',

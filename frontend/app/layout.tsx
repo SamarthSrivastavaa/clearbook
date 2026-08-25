@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   // Absolute base for social images. Without it Next resolves them against
   // localhost and the shared card silently breaks in production.
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://clearbook-sable.vercel.app',
+    (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim() || 'https://clearbook-sable.vercel.app',
   ),
   title: 'Clearbook — evidence-bound covenant compliance',
   description:

@@ -26,7 +26,9 @@
     "gate8a": "tsx integration/gate8a-crash.ts",
     "gate9": "tsx integration/gate9-challenger.ts",
     "gate10": "tsx integration/gate10-coverage.ts",
-    "worker": "tsx worker/src/main.ts"
+    "worker": "tsx worker/src/main.ts",
+    "gate11": "tsx integration/gate11-clearance.ts",
+    "clearance:check": "tsx demo/clearance-check.ts"
   },
   "license": "MIT",
   "dependencies": {

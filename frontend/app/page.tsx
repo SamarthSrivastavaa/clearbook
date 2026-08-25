@@ -257,9 +257,18 @@ function SharedEvidence() {
               establish collateral identity. The same underlying obligation represented by a
               different transaction is not detected, and Clearbook does not claim otherwise.
             </p>
-            <Link href="/registry" className="link mt-5 inline-flex text-[14px]">
-              Open the evidence registry →
-            </Link>
+            {/* Two ways in, and they are different questions. The registry is the
+                record; clearance is the decision a lender makes before adding to
+                it. A reader who has just been told commitment is exclusive is
+                exactly the reader who wants to know how to check. */}
+            <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+              <Link href="/registry" className="link inline-flex text-[14px]">
+                Open the evidence registry →
+              </Link>
+              <Link href="/clearance" className="link inline-flex text-[14px]">
+                Check evidence before you lend →
+              </Link>
+            </div>
           </div>
         </div>
       </div>

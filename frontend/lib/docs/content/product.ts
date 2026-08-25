@@ -446,4 +446,137 @@ committed   those whose factId appears as a claim's disbursement`,
   ],
 };
 
-export const productPages: DocPage[] = [registry, coverage, duplicate, claims, covenants, challenges];
+const clearance: DocPage = {
+  slug: 'clearance',
+  title: 'Clearance',
+  summary:
+    'A pre-advance check: whether a verified fact is already committed to a claim on this book.',
+  audience: 'Users',
+  blocks: [
+    {
+      t: 'lead',
+      text: 'Clearance is the one screen in Clearbook that produces a decision rather than a display. A lender pastes the transaction it is about to advance against, and the book answers in one of three ways, each carrying its own scope.',
+    },
+    { t: 'h', text: 'Why the check exists' },
+    {
+      t: 'p',
+      text: 'The uniqueness rule described in [one fact, one claim](/docs/duplicate-commitment) is enforced by the protocol, but only at the moment a claim is registered. Until Clearance, the only way to discover that a fact was already spent was to send a transaction and have it revert with `FactAlreadyUsed`. That is a fine guarantee and a poor workflow: the party who most needs the answer is the one deciding whether to lend, and that decision happens **before** anything is registered.',
+    },
+    {
+      t: 'p',
+      text: 'Clearance turns an after-the-fact refusal into a question anyone can ask in advance, with no wallet, no signature and no write.',
+    },
+    { t: 'h', text: 'The three answers' },
+    {
+      t: 'table',
+      head: ['Outcome', 'What it means', 'What it does not mean'],
+      rows: [
+        [
+          '**Clear in Clearbook**',
+          'The transaction was verified by the Block Prover precompile, and no fact it carries is consumed by a claim on this book.',
+          'That the underlying real-world obligation is unpledged anywhere else.',
+        ],
+        [
+          '**Encumbered in Clearbook**',
+          'At least one verified fact in this transaction is already committed to a claim. The protocol will refuse a second claim citing it.',
+          'That the borrower has done anything wrong. A funding leg is legitimately committed once.',
+        ],
+        [
+          '**Unverifiable**',
+          'No answer can be given, and the exact reason is named: reverted, unattested, not found, no transfer log, or the prover is unavailable.',
+          'That the transaction is bad. Most unverifiable results are timing, not fraud.',
+        ],
+      ],
+    },
+    {
+      t: 'note',
+      tone: 'pending',
+      title: 'The failure direction is deliberate',
+      text: 'Every path that cannot produce an answer returns **unverifiable**, never clear. A clearance check that quietly degraded to "clear" when its prover was down would be confidently wrong at exactly the moment the infrastructure it depends on had failed. `npm run gate11` asserts this for every failure path.',
+    },
+    { t: 'h', text: 'What runs' },
+    {
+      t: 'flow',
+      steps: [
+        { label: 'Locate the transaction', sub: 'Read from the source chain directly' },
+        { label: 'Resolve the chain key', sub: 'From the ChainInfo precompile, never hardcoded' },
+        { label: 'Derive fact identity', sub: 'One per qualifying transfer leg' },
+        { label: 'Check attestation', sub: 'Attestors attest finalized blocks' },
+        { label: 'Fetch proof', sub: 'From the untrusted proof builder' },
+        { label: 'Verify at the precompile', sub: 'Nothing downstream runs unless this returns true', tone: 'verified' },
+        { label: 'Read the registry', sub: 'EvidenceVault.exists' },
+        { label: 'Read factConsumedBy', sub: 'The global mapping decides the answer' },
+      ],
+    },
+    { t: 'h', text: 'One transaction can carry several facts' },
+    {
+      t: 'p',
+      text: 'A transaction may contain more than one ERC-20 transfer. Each qualifying leg gets its own fact identity, and each is checked separately. **Any encumbered leg encumbers the transaction**, because a transaction is not safe to advance against merely because one of its legs happens to be free.',
+    },
+    {
+      t: 'p',
+      text: 'A leg is identified by its position in that transaction\u2019s own log array, not by the block-global log index a log query returns. This mirrors `EvidenceVault._decodeAndStore`, which indexes the receipt it decoded. Using the block-global value would compute an identity for a different log, and the answer would silently be about the wrong thing.',
+    },
+    {
+      t: 'code',
+      lang: 'solidity',
+      caption: 'The rules Clearance mirrors, from EvidenceVault',
+      code: `if (logIndex >= receipt.receiptLogs.length) revert LogIndexOutOfRange();
+
+EvmV1Decoder.LogEntry memory lg = receipt.receiptLogs[logIndex];
+if (lg.topics.length != 3 || lg.topics[0] != ERC20_TRANSFER_TOPIC) revert NotATransferLog();
+if (lg.data.length != 32) revert MalformedTransferLog();`,
+    },
+    {
+      t: 'p',
+      text: 'The three-topic rule is what excludes an ERC-721 Transfer, which shares the same topic0 but carries a fourth indexed topic that would otherwise be misread as an amount.',
+    },
+    { t: 'h', text: 'The boundary' },
+    {
+      t: 'split',
+      canTitle: 'Clearance can tell you',
+      can: [
+        'That a transaction provably occurred on a chain the attestors attest.',
+        'The exact fact identity the protocol would assign each transfer in it.',
+        'Whether each of those facts is already stored in the shared registry.',
+        'Whether each is already committed to a claim, and to which loan.',
+        'That this holds across every originator, not just the one you asked about.',
+      ],
+      cannotTitle: 'Clearance cannot tell you',
+      cannot: [
+        'That the underlying obligation is unpledged outside this book.',
+        'That the same obligation is not represented by a different transaction.',
+        'That an originator has not simply kept this activity off the book entirely.',
+        'That a clear result makes the collateral safe to lend against.',
+      ],
+    },
+    {
+      t: 'note',
+      title: 'Fact identity is not collateral identity',
+      text: 'This is the limit that matters most. Clearbook prevents the same **proven fact** from being committed twice. It does not prevent two originators from pledging the same real-world obligation through two different transactions. A check that implied otherwise would be worse than no check, so the interface states the scope beside every answer rather than leaving the reader to remember it. See [what Clearbook proves](/docs/proves) and [coverage](/docs/coverage), which measures the activity a book never registered at all.',
+    },
+    { t: 'h', text: 'Checking it yourself' },
+    {
+      t: 'p',
+      text: 'Every input is public and the whole path is read-only, so the answer can be reproduced without permission. `npm run gate11` checks the local fact-identity derivation against `EvidenceVault.computeFactId` on the deployed contract across the uint64 and uint32 edges, and `npm run clearance:check` runs the same function the page runs from a terminal.',
+    },
+    {
+      t: 'next',
+      items: [
+        { href: '/docs/duplicate-commitment', label: 'One fact, one claim', sub: 'The rule Clearance surfaces' },
+        { href: '/docs/coverage', label: 'Activity coverage', sub: 'What never reached the book at all' },
+        { href: '/docs/proves', label: 'What Clearbook proves', sub: 'The exact boundary' },
+      ],
+    },
+  ],
+};
+
+export const productPages: DocPage[] = [
+  registry,
+  coverage,
+  duplicate,
+  clearance,
+  claims,
+  covenants,
+  challenges,
+];

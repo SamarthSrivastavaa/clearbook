@@ -13,8 +13,19 @@ import { NextResponse } from 'next/server';
  *   /api/v1/proof-by-tx/{chainKey}/{txHash}
  */
 
-const PROVER_URL =
-  process.env.PROOF_BUILDER_URL ?? 'https://prover.cc3-testnet.creditcoin.network';
+const PROVER_FALLBACK = 'https://prover.cc3-testnet.creditcoin.network';
+
+/**
+ * The proof builder's origin.
+ *
+ * `??` was wrong here and broke the deployed site: it falls back only on null or
+ * undefined, so a platform environment variable that exists but is empty left
+ * this as the empty string. Every forward then became a relative URL, `fetch`
+ * refused to parse it, and the proxy reported the prover unreachable while the
+ * prover was in fact healthy. An env var that is present but blank must be
+ * treated as absent, so this normalises and falls back on any empty value.
+ */
+const PROVER_URL = (process.env.PROOF_BUILDER_URL ?? '').trim().replace(/\/$/, '') || PROVER_FALLBACK;
 
 const TIMEOUT_MS = 30_000;
 

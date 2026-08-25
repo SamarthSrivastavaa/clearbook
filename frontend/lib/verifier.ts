@@ -93,9 +93,24 @@ export const ccClient = createPublicClient({
 });
 
 /** Read-only source-chain client, used to locate a pasted transaction. */
+/**
+ * An endpoint override, treating blank as absent.
+ *
+ * A build platform that defines a variable with no value hands us the empty
+ * string, and `??` would accept it: the client would then be built against no
+ * endpoint at all and every read would fail for reasons that look like the chain
+ * being down. This is the same fault that silently disabled the proof proxy in
+ * production, so the whole class is handled in one place.
+ */
+const endpoint = (value: string | undefined, fallback: string) =>
+  (value ?? '').trim() || fallback;
+
 export const sourceClient = createPublicClient({
   transport: http(
-    process.env.NEXT_PUBLIC_SOURCE_CHAIN_RPC_URL ?? 'https://sepolia-proxy-rpc.creditcoin.network',
+    endpoint(
+      process.env.NEXT_PUBLIC_SOURCE_CHAIN_RPC_URL,
+      'https://sepolia-proxy-rpc.creditcoin.network',
+    ),
   ),
 });
 
@@ -110,7 +125,7 @@ export const sourceClient = createPublicClient({
 const SOURCE_CLIENTS: Record<number, ReturnType<typeof createPublicClient>> = {
   1: sourceClient,
   3: createPublicClient({
-    transport: http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL ?? 'https://eth.drpc.org'),
+    transport: http(endpoint(process.env.NEXT_PUBLIC_MAINNET_RPC_URL, 'https://eth.drpc.org')),
   }),
 };
 
@@ -199,8 +214,21 @@ interface ProverError {
   detail?: string;
 }
 
+/**
+ * The proxy's origin.
+ *
+ * In the browser this is the empty string, so every request below stays a
+ * same-origin relative fetch and behaves exactly as it always has. Outside the
+ * browser there is no origin to be relative to, and `fetch` rejects the path
+ * before any network call happens — which made the proof step untestable from
+ * Node and let a gate believe the prover was down when it was merely
+ * unaddressable. `PROVER_ORIGIN` supplies a base for that case only.
+ */
+const PROVER_ORIGIN =
+  'window' in globalThis ? '' : (process.env.PROVER_ORIGIN ?? '').replace(/\/$/, '');
+
 export async function fetchAttestedHeight(chainKey: number): Promise<number | null> {
-  const res = await fetch(`/api/prover?kind=attested-height&chainKey=${chainKey}`);
+  const res = await fetch(`${PROVER_ORIGIN}/api/prover?kind=attested-height&chainKey=${chainKey}`);
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as ProverError;
     throw new Error(err.detail ?? 'prover unavailable');
@@ -210,7 +238,7 @@ export async function fetchAttestedHeight(chainKey: number): Promise<number | nu
 }
 
 export async function fetchProof(chainKey: number, txHash: Hex): Promise<ProofBundle> {
-  const res = await fetch(`/api/prover?kind=proof&chainKey=${chainKey}&txHash=${txHash}`);
+  const res = await fetch(`${PROVER_ORIGIN}/api/prover?kind=proof&chainKey=${chainKey}&txHash=${txHash}`);
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as ProverError;
     throw new Error(body.detail ?? `The proof builder returned ${res.status}.`);

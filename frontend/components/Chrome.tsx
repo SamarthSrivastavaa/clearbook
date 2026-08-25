@@ -21,6 +21,7 @@ import { Ident } from '@/components/ui';
 const ROUTES = [
   { href: '/book', label: 'Book' },
   { href: '/registry', label: 'Registry' },
+  { href: '/clearance', label: 'Clearance' },
   { href: '/challenge', label: 'Challenge' },
   { href: '/verify', label: 'Verify' },
   { href: '/docs', label: 'Docs' },
@@ -102,7 +103,7 @@ export function Chrome({ children }: { children: React.ReactNode }) {
             <span className="text-[16px] font-semibold tracking-tight">Clearbook</span>
           </Link>
 
-          {/* Hidden below sm, where it gets its own row: five items plus the
+          {/* Hidden below sm, where it gets its own row: six items plus the
               wordmark, chain state and wallet do not fit one phone-width line,
               and the overflow scroll that used to absorb them left Verify, Docs
               and the wallet unreachable with nothing to say they were there. */}

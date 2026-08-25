@@ -13,11 +13,13 @@ const ROUTES = [
   '/',
   '/book',
   '/registry',
+  '/clearance',
   '/challenge',
   '/verify',
   '/loan/2',
   '/docs',
   '/docs/coverage',
+  '/docs/clearance',
   '/docs/reference-challenger',
   '/docs/protocol',
 ];
