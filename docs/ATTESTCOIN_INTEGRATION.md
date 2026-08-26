@@ -153,15 +153,21 @@ Settled by experiment. `integration/gate7-forged.ts` takes a real verifying proo
 
 `EvidenceVault` keeps its `require`-on-bool regardless. It costs nothing and is the only thing standing between us and a future change that returns false instead. `test_verifier_revert_also_fails_closed` asserts the vault stores nothing under **either** behaviour, so the design was never dependent on the answer.
 
-### Measured gas — [U] pending deployment
+### Measured gas — [L]
 
-Not yet measured on-chain. What is known:
+Measured on-chain against the deployed vault. Gate 4, 2026-08-24, 16 submissions.
 
-- Published model: `≈ 2.3e-5 + 2.9e-7 × continuityHashCount` CTC `[P]`
-- Measured CC3 gas price: **0.5 gwei** `[L]`
-- Measured deployment cost of both contracts: **~0.0015 CTC** (~3M gas) `[L]`
+| Metric | Measured |
+|---|---|
+| `submitTransferFact` | **160,440 to 224,090 gas** (0.00008 to 0.000112 tCTC) |
+| CC3 gas price | **0.5 gwei** |
+| Deployment, both contracts | **~0.0015 CTC** (~3M gas) |
 
-Per-submission gas against the real precompile will be recorded here after Gate 4. It must be measured under `via_ir = true`, since that setting changes code generation.
+**It is a range because the cost is proof-size dependent.** Continuity-root count varies with how far the source block sits from a checkpoint; proofs in this sample carried between 12 and 81 roots. A single number would imply a precision the cost model does not have.
+
+Against the published model `≈ 2.3e-5 + 2.9e-7 × continuityHashCount` CTC `[P]`, which predicts 2.4e-5 CTC for a 4-root proof, our top-of-range measurement is 1.12e-4 CTC. These are not the same quantity: the formula prices the precompile call alone, while ours is the whole transaction including ~7 KB of calldata, the full receipt decode, six storage writes and an event. See DECISIONS D-046.
+
+Measured under `via_ir = true`, which is mandatory here and changes code generation, so these figures are only reproducible with that setting.
 
 ### Measured latency — [L]
 

@@ -29,6 +29,7 @@ export default function LandingPage() {
 
       <div className="mx-auto max-w-[1400px] px-6">
         <LiveSignal />
+        <TwoGaps />
         <Mechanism />
       </div>
 
@@ -132,6 +133,97 @@ function Fact({ k, v, href }: { k: string; v: string; href?: string }) {
         <div className="mt-1 text-[13px] text-onDeep">{v}</div>
       )}
     </div>
+  );
+}
+
+/**
+ * The two gaps.
+ *
+ * Attestcoin settles one question completely: did this transaction happen. Two
+ * questions survive it, and a book that answers neither is not usable as credit
+ * evidence no matter how sound each individual proof is.
+ *
+ * This section exists because the product answers both and previously said so
+ * in two places that never met. Reuse was argued in the shared-evidence band;
+ * omission was measured on the registry and mentioned nowhere on this page at
+ * all. Naming them as a pair is the whole point: they are complementary failure
+ * modes, not two features.
+ *
+ * No cards and no figures here on purpose. The section states a model; the
+ * sections after it are where each half is demonstrated on live state.
+ */
+function TwoGaps() {
+  const gaps = [
+    {
+      n: '01',
+      gap: 'Omission',
+      question: 'Was the relevant activity exposed at all?',
+      mechanism: 'Coverage',
+      body: 'Nothing forces an originator to register the loan it would rather nobody read. Clearbook cannot prevent that, so it measures it: the share of an originator\u2019s qualifying transfers, from treasuries it bound by signature, that actually reached a claim. A ratio with its denominator beside it, never a score.',
+      href: '/registry',
+      cta: 'See it measured',
+    },
+    {
+      n: '02',
+      gap: 'Reuse',
+      question: 'Has this evidence already been committed?',
+      mechanism: 'Evidence exclusivity',
+      body: 'A verified fact can back at most one credit claim, and that limit holds across every originator in the registry rather than merely within one. The second attempt does not get a warning. It reverts.',
+      href: '/clearance',
+      cta: 'Check a transaction',
+    },
+  ];
+
+  return (
+    <section className="rule-t py-14">
+      <div className="grid items-end gap-x-16 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+        <div>
+          <Eyebrow>The two gaps</Eyebrow>
+          <h2 className="display-lg mt-3">Proof is not enough.</h2>
+        </div>
+        <p className="text-[14px] leading-relaxed text-muted lg:pb-2">
+          Attestcoin proves a payment happened. It cannot say whether the payments you were shown
+          are all of them, and it cannot say whether the one in front of you is already backing
+          somebody else’s loan. Clearbook governs both.
+        </p>
+      </div>
+
+      <ol className="mt-12 grid items-stretch gap-x-16 gap-y-10 sm:grid-cols-2">
+        {gaps.map((g) => (
+          <li key={g.n} className="flex h-full flex-col border-t-2 border-ink pt-5">
+            <div className="flex items-baseline gap-3">
+              <span className="ident text-[11px] text-signal">{g.n}</span>
+              <h3 className="statement">{g.gap}</h3>
+            </div>
+            <p className="mt-2 text-[13px] text-faint">{g.question}</p>
+
+            <p className="mt-4 text-[13px] leading-relaxed text-muted">{g.body}</p>
+
+            <div className="mt-auto flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-t border-rule pt-3">
+              <span className="eyebrow">{g.mechanism}</span>
+              <Link href={g.href} className="link text-[13px]">
+                {g.cta} &rarr;
+              </Link>
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      {/* Where the two answers are actually spent. Stated as one line rather
+          than a third column, because clearance and enforcement are downstream
+          of the model, not part of it. */}
+      <p className="mt-10 max-w-3xl text-[13px] leading-relaxed text-faint">
+        Both answers feed the same two places:{' '}
+        <Link href="/clearance" className="link">
+          clearance
+        </Link>{' '}
+        before an advance is made, and{' '}
+        <Link href="/challenge" className="link">
+          enforcement
+        </Link>{' '}
+        when a covenant the originator published turns out to be broken.
+      </p>
+    </section>
   );
 }
 

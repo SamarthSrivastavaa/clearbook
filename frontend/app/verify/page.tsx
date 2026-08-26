@@ -360,14 +360,32 @@ export default function VerifyPage() {
           ) : null}
         </Section>
 
-      <p className="max-w-3xl text-[12px] leading-relaxed text-faint">
-        This proves the transaction was included in a block the attestor set has attested and that
-        its receipt succeeded. It proves nothing about who controls either address, why the transfer
-        happened, or whether an off-chain agreement exists.{' '}
-        <Link href="/docs/verification" className="link">
-          How verification works
-        </Link>
-      </p>
+      {/*
+        Verify answers the first question completely and the second not at all.
+        Saying where the second is answered costs one sentence and stops the page
+        reading as the end of the path; it is the beginning of it. Deliberately a
+        pointer rather than a second check, so this page never duplicates
+        Clearance.
+      */}
+      <div className="max-w-3xl space-y-3">
+        <p className="text-[12px] leading-relaxed text-faint">
+          This proves the transaction was included in a block the attestor set has attested and that
+          its receipt succeeded. It proves nothing about who controls either address, why the
+          transfer happened, or whether an off-chain agreement exists.{' '}
+          <Link href="/docs/verification" className="link">
+            How verification works
+          </Link>
+        </p>
+
+        <p className="border-t border-rule pt-3 text-[13px] leading-relaxed text-muted">
+          <span className="text-ink">That was the first question.</span> Whether this evidence is
+          already committed to a claim on this book is a separate one, and the answer is not on this
+          page.{' '}
+          <Link href="/clearance" className="link">
+            Check clearance &rarr;
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

@@ -339,7 +339,7 @@ I5   ∀ stored f :  receiptStatus(f) = 1
       rows: [
         ['Tests', '94, across 7 suites'],
         ['Line coverage of `src/`', '100% (151/151)'],
-        ['Branch coverage of `Clearbook.sol`', '75.61%, recorded rather than hidden'],
+        ['Branch coverage of `Clearbook.sol`', '78.05%, recorded rather than hidden'],
         ['Invariant runs', '64 sequences × 4,096 calls, per invariant'],
       ],
     },
@@ -409,7 +409,7 @@ const verification: DocPage = {
         ['Broadcast to usable evidence', '~8–10 minutes'],
         ['Share of that spent awaiting attestation', '97–99%'],
         ['`verify()` at the precompile', '0.8 s'],
-        ['`submitTransferFact`', '~226,000 gas'],
+        ['`submitTransferFact`', '160k–224k gas'],
       ],
     },
     {

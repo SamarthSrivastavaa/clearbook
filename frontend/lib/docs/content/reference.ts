@@ -188,9 +188,9 @@ const reference: DocPage = {
       rows: [
         ['Broadcast to usable evidence', '~8–10 minutes'],
         ['`verify()` at the precompile', '0.8 s'],
-        ['`submitTransferFact`', '~226,000 gas'],
+        ['`submitTransferFact`', '160k–224k gas'],
         ['Deploying both contracts', '0.0018 tCTC'],
-        ['Test suite', '95 tests, 100% line coverage of `src/`; branch coverage 75.61%'],
+        ['Test suite', '110 tests, 100% line coverage of `src/`; branch coverage 85.71%'],
       ],
     },
   ],

@@ -297,11 +297,91 @@ export function useBreachEvidence(loanId: bigint | null, fromBlock: bigint | nul
  * seconds); anything older can still be cited by pasting its identifier, so the
  * bound limits discovery, never what a challenger is allowed to do.
  */
+/**
+ * Runs `work` over `items` at most `limit` at a time.
+ *
+ * A full `Promise.all` fan-out over the chunked span timed out: the Creditcoin
+ * RPC tolerates a 20,000-block `getLogs` in about 3.4s on its own, but eight of
+ * them at once exceeded its 10s query timeout, and the Clearbook contract is the
+ * heavier of the two to scan because it carries far more events than the vault.
+ * Three at a time keeps every individual request inside the timeout while still
+ * finishing in a third of the sequential wall time.
+ */
+async function mapLimit<T, R>(items: T[], limit: number, work: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      out[i] = await work(items[i]!);
+    }
+  });
+  await Promise.all(runners);
+  return out;
+}
+
 const transferFactStoredEvent = (evidenceVaultAbi as any).find(
   (e: any) => e.type === 'event' && e.name === 'TransferFactStored',
 );
 
-export const VAULT_LOOKBACK_BLOCKS = 20_000n;
+/**
+ * How far back the registry lists.
+ *
+ * This was 20,000 blocks, which at a measured 15.0s block time is about three
+ * and a half days. Facts older than that silently vanished from the listing:
+ * on 2026-08-26 the vault held 17 facts and the page showed 6, and the one
+ * piece of real Ethereum MAINNET evidence had aged out entirely, so the
+ * registry reported "from a live chain: 0" while the README led with it. A
+ * bounded scan is correct; a bound that expires the product's headline evidence
+ * mid-demo is not.
+ *
+ * 60,000 blocks is roughly ten days, and it is a ceiling set by the RPC rather
+ * than by preference. The Creditcoin endpoint enforces a 10-second query
+ * timeout: a single getLogs measured 3.4s at 20,000 blocks, 9.1s at 50,000, and
+ * failed outright at 100,000. Wider windows were tried and abandoned because
+ * they either timed out or left the page loading for tens of seconds, which is
+ * worse than a stated bound.
+ *
+ * The operational consequence is real and belongs in the runbook rather than
+ * hidden here: evidence older than about ten days drops out of this listing, so
+ * the demo book must be re-seeded inside that window. An older fact is still
+ * fully citable by identifier and the contract accepts it regardless.
+ */
+export const VAULT_LOOKBACK_BLOCKS = 60_000n;
+
+/**
+ * Chunk size and fan-out, both measured against this RPC rather than assumed.
+ *
+ * Smaller chunks are dramatically better here, and not by a little. Fetching the
+ * same 60,000-block window over the vault:
+ *
+ *     10,000 x 6 concurrent ->  3.2s
+ *     20,000 x 3 concurrent ->  7.2s
+ *     10,000 x 3 concurrent ->  6.5s
+ *     30,000 x 2 concurrent -> 29.3s
+ *     60,000 in one call    -> timed out
+ *
+ * All five return the identical 17 logs, so this is purely a cost of how the
+ * endpoint serves ranges. The obvious intuition, that fewer larger calls beat
+ * more smaller ones, is exactly backwards on this chain.
+ *
+ * The fan-out is nonetheless 3 rather than the 6 that won in isolation, because
+ * in a browser the two do not compose the way the benchmark suggests. Measured
+ * on the real page, time until the table renders:
+ *
+ *     10,000 x 6 concurrent -> 15.8s
+ *     10,000 x 3 concurrent ->  6.1s     <- chosen
+ *
+ * A browser allows only about six connections to one host, and this page also
+ * reads loans, originators, parameters and a consumer per fact from the same
+ * endpoint. At 6 the scan takes every available connection and starves the rest
+ * of the page; at 3 it leaves room and the whole render finishes sooner. Tuning
+ * this against Node alone would have made the page slower while appearing to
+ * make it faster.
+ */
+const VAULT_SCAN_CHUNK = 10_000n;
+const VAULT_SCAN_CONCURRENCY = 3;
 
 export interface VaultFact {
   factId: Hex;
@@ -328,12 +408,26 @@ export function useVaultFacts() {
     queryFn: async (): Promise<VaultFact[]> => {
       const latest = await client!.getBlockNumber();
       const from = latest > VAULT_LOOKBACK_BLOCKS ? latest - VAULT_LOOKBACK_BLOCKS : 0n;
-      const logs = await client!.getLogs({
-        address: contracts.evidenceVault!,
-        event: transferFactStoredEvent,
-        fromBlock: from,
-        toBlock: 'latest',
-      } as any);
+
+      // One call over the whole span exceeds the RPC's query timeout, so the
+      // range is split and the chunks are issued together. Wall time stays
+      // close to a single chunk rather than the sum of them.
+      const spans: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
+      for (let start = from; start <= latest; start += VAULT_SCAN_CHUNK) {
+        const end = start + VAULT_SCAN_CHUNK - 1n > latest ? latest : start + VAULT_SCAN_CHUNK - 1n;
+        spans.push({ fromBlock: start, toBlock: end });
+      }
+
+      const batches = await mapLimit(spans, VAULT_SCAN_CONCURRENCY, (span) =>
+        client!.getLogs({
+          address: contracts.evidenceVault!,
+          event: transferFactStoredEvent,
+          fromBlock: span.fromBlock,
+          toBlock: span.toBlock,
+        } as any),
+      );
+      const logs = batches.flat();
+
       return logs.map((l: any) => ({
         factId: l.args.factId as Hex,
         chainKey: Number(l.args.chainKey),

@@ -1,6 +1,6 @@
 # SECURITY.md
 
-Status: **deployed to Creditcoin CC3 testnet and exercised end-to-end.** 95 tests pass against a mock verifier, and the full protocol path — proof, on-chain decode, commitment, breach, slash, bounty — has executed live. Every claim below carries the evidence class that supports it.
+Status: **deployed to Creditcoin CC3 testnet and exercised end-to-end.** 110 tests pass against a mock verifier, and the full protocol path — proof, on-chain decode, commitment, breach, slash, bounty — has executed live. Every claim below carries the evidence class that supports it.
 
 The full threat table with per-threat tests is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 

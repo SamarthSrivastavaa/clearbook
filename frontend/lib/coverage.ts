@@ -41,8 +41,15 @@ const TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, addres
 /** Source-chain blocks measured. Bounded because an unbounded scan is not servable. */
 export const COVERAGE_WINDOW_BLOCKS = 20_000n;
 
-/** Creditcoin blocks searched for treasury bindings. Same bound as the fact registry. */
-export const BINDING_LOOKBACK_BLOCKS = 20_000n;
+/**
+ * Creditcoin blocks searched for treasury bindings. Same bound as the fact
+ * registry, and raised for the same reason: at 20,000 blocks a binding older
+ * than about three and a half days fell out of range, and an originator whose
+ * treasury had aged out measured as having declared nothing at all. Coverage
+ * would then report "no treasury" for a book that had one. The single binding
+ * on this deployment sits 26,459 blocks back, which the old bound missed.
+ */
+export const BINDING_LOOKBACK_BLOCKS = 60_000n;
 
 /**
  * The source RPC rejects `eth_getLogs` spans above 10,000 blocks outright
@@ -54,6 +61,17 @@ const SOURCE_CHUNK = 5_000n;
 
 /** Creditcoin's RPC times out at 10s on wider spans for sparse events. */
 const CC_CHUNK = 2_000n;
+
+/**
+ * Chunk size for the binding scan, measured rather than guessed.
+ *
+ * Scanning the Clearbook contract is heavier than scanning the vault because it
+ * carries far more events. A single `getLogs` measured 1.45s at 10,000 blocks
+ * and 4.9s at 20,000; three 20,000-block calls issued together exceeded the
+ * RPC's 10s query timeout outright. 10,000 with a fan-out of two keeps every
+ * request comfortably inside it.
+ */
+const CC_SCAN_CHUNK = 10_000n;
 
 export interface CoverageScope {
   chainKey: number;
@@ -104,6 +122,30 @@ export function factIdOf(chainKey: number, blockHeight: bigint, txIndex: bigint,
   );
 }
 
+/**
+ * Runs `work` over `items` at most `limit` at a time.
+ *
+ * A full `Promise.all` fan-out over the chunked span timed out: the Creditcoin
+ * RPC tolerates a 20,000-block `getLogs` in about 3.4s on its own, but eight of
+ * them at once exceeded its 10s query timeout, and the Clearbook contract is the
+ * heavier of the two to scan because it carries far more events than the vault.
+ * Three at a time keeps every individual request inside the timeout while still
+ * finishing in a third of the sequential wall time.
+ */
+async function mapLimit<T, R>(items: T[], limit: number, work: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      out[i] = await work(items[i]!);
+    }
+  });
+  await Promise.all(runners);
+  return out;
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const treasuryBoundEvent = (clearbookAbi as any).find(
   (e: any) => e.type === 'event' && e.name === 'TreasuryBound',
@@ -113,20 +155,30 @@ const treasuryBoundEvent = (clearbookAbi as any).find(
 export async function boundTreasuries(originatorId: bigint, ccHead: bigint): Promise<BoundTreasury[]> {
   if (!contracts.clearbook) return [];
   const from = ccHead > BINDING_LOOKBACK_BLOCKS ? ccHead - BINDING_LOOKBACK_BLOCKS : 0n;
-  const found: BoundTreasury[] = [];
 
-  for (let start = from; start <= ccHead; start += CC_CHUNK) {
-    const end = start + CC_CHUNK - 1n > ccHead ? ccHead : start + CC_CHUNK - 1n;
-    const logs = await ccClient.getLogs({
-      address: contracts.clearbook,
+  // Chunked and issued together. Sequentially, 160,000 blocks at the old chunk
+  // size was eighty round trips; in parallel at this size it is eight.
+  const spans: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
+  for (let start = from; start <= ccHead; start += CC_SCAN_CHUNK) {
+    const end = start + CC_SCAN_CHUNK - 1n > ccHead ? ccHead : start + CC_SCAN_CHUNK - 1n;
+    spans.push({ fromBlock: start, toBlock: end });
+  }
+
+  const batches = await mapLimit(spans, 2, (span) =>
+    ccClient.getLogs({
+      address: contracts.clearbook!,
       event: treasuryBoundEvent,
       args: { originatorId } as never,
-      fromBlock: start,
-      toBlock: end,
-    });
-    for (const l of logs as unknown as Array<{ args: { ethAddress: Address; ccBlock: bigint } }>) {
-      found.push({ address: l.args.ethAddress, boundAt: BigInt(l.args.ccBlock) });
-    }
+      fromBlock: span.fromBlock,
+      toBlock: span.toBlock,
+    }),
+  );
+
+  const found: BoundTreasury[] = [];
+  for (const l of batches.flat() as unknown as Array<{
+    args: { ethAddress: Address; ccBlock: bigint };
+  }>) {
+    found.push({ address: l.args.ethAddress, boundAt: BigInt(l.args.ccBlock) });
   }
   return found;
 }

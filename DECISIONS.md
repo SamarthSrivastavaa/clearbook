@@ -786,10 +786,12 @@ At the measured CC3 gas price of **0.5 gwei**:
 |---|---|---|
 | Deploy `EvidenceVault` | 1,726,788 | 0.00086 tCTC |
 | Deploy `Clearbook` | 1,904,472 | 0.00095 tCTC |
-| `submitTransferFact` | ~226,000 | 0.000113 tCTC |
+| `submitTransferFact` | 160,440 to 224,090 | 0.00008 to 0.000112 tCTC |
 | `challenge()` (successful) | ~180,000 | ~0.00009 tCTC |
 
-**On the published formula.** BUILD.md §1.2 quotes `≈ 2.3e-5 + 2.9e-7 × continuityHashCount` CTC, which for a 4-root proof predicts **2.4e-5 CTC**. We measured **1.13e-4 CTC** for `submitTransferFact` — roughly 4.7× higher.
+**`submitTransferFact` is a range, not a point.** The figure above is the full spread of **16 real submissions** against the deployed vault (`integration/results/gate4-decode.json`, 2026-08-24). Cost scales with the continuity-root count, which is itself a function of how far the source block sits from a checkpoint: proofs in that sample carried between 12 and 81 roots. Quoting a single number here would imply a precision the cost model does not have, so the range is published instead.
+
+**On the published formula.** BUILD.md §1.2 quotes `≈ 2.3e-5 + 2.9e-7 × continuityHashCount` CTC, which for a 4-root proof predicts **2.4e-5 CTC**. Our top-of-range measurement is **1.12e-4 CTC**, roughly 4.7× higher.
 
 These are not the same quantity, and saying so matters. The formula prices the **precompile call alone**; our figure is the whole transaction: base cost, calldata for a ~7 KB `txBytes`, the precompile call, the full `EvmV1Decoder` receipt decode, six storage writes and an event. The formula is not wrong — it simply measures a component, and the difference is the cost of everything Clearbook does *around* verification.
 

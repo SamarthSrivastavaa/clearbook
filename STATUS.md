@@ -222,7 +222,7 @@ transaction reverts. If it disappears, anyone can submit the identical bundle.
 | 0 | Chain discovery, attestation live and advancing | PASS |
 | 1a | Real package paths compile, verifier interface resolves | PASS |
 | 2 | Contracts build, `forge fmt`, `solhint` clean | PASS |
-| 3 | 95 tests, 100% line coverage of `src/` | PASS |
+| 3 | 110 tests, 100% line coverage of `src/` | PASS |
 | 2/3 | Proof obtained, precompile `verify()` returns true | PASS |
 | 4 | On-chain decode matches the source chain — 120/120 checks over 10 facts | PASS |
 | 5 | Circular flow breaches; honest loan reverts | PASS |
@@ -269,7 +269,7 @@ on-chain `TransferFactStored` logs.
 | Broadcast → usable evidence | ~8–10 min (97–99% is the attestation wait) |
 | `verify()` at the precompile | 0.8 s |
 | Deploy both contracts | 0.0018 tCTC |
-| `submitTransferFact` | ~226,000 gas / 0.000113 tCTC |
+| `submitTransferFact` | 160k–224k gas, scaling with continuity-root count |
 | `challenge()` (successful) | ~180,000 gas |
 
 ## 8. Demo system
@@ -284,8 +284,8 @@ presenting** — the challenge window is 1,200 Creditcoin blocks (~5 h).
 
 ## 9. Testing
 
-- **92 Foundry tests**, 6 suites, 0 failures
-- **100% line coverage** of `src/` (151/151); branch coverage 75.61%, recorded not hidden
+- **110 Foundry tests**, 8 suites, 0 failures
+- **100% line coverage** of `src/` (175/175); branch coverage 85.71% (54/63), recorded not hidden
 - **5 invariants** at 4,096 calls each, plus `test_handler_reaches_a_breach` — a
   permanent guard added after the invariant suite was found to be vacuously
   passing without ever reaching `challenge()`

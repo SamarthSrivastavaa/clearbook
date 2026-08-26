@@ -83,11 +83,12 @@ export default function RegistryPage() {
       */}
       <header className="flex flex-wrap items-end justify-between gap-x-12 gap-y-6">
         <div>
-          <Eyebrow>Evidence registry</Eyebrow>
+          <Eyebrow>Evidence layer</Eyebrow>
           <h1 className="display-lg mt-2">The evidence this book runs on.</h1>
           <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
-            Verification needs no permission. <span className="text-ink">Commitment does</span>,
-            and no fact may be committed twice.
+            Attestcoin settles whether a payment happened. This page carries the two questions that
+            survive it: <span className="text-ink">whether anything was left out</span>, and{' '}
+            <span className="text-ink">whether what is here has already been spent</span>.
           </p>
         </div>
 
@@ -150,7 +151,12 @@ export default function RegistryPage() {
       {originators.length > 0 ? (
         <section className="space-y-4">
           <div>
-            <Eyebrow>Declared activity</Eyebrow>
+            <div className="flex flex-wrap items-baseline gap-x-3">
+              <Eyebrow>Omission</Eyebrow>
+              <span className="text-[12px] text-muted">
+                Coverage: how much declared activity actually reached a claim
+              </span>
+            </div>
             <h2 className="mt-2 text-[19px] font-semibold tracking-tight">
               How much of each book is actually on the book.
             </h2>
@@ -239,7 +245,12 @@ function FactTable({
         no information while occupying a tenth of the table.
       */}
       <div className="rule-b flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 pb-2">
-        <Eyebrow>Verified facts</Eyebrow>
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <Eyebrow>Reuse</Eyebrow>
+          <span className="text-[12px] text-muted">
+            Evidence exclusivity: a verified fact backs one claim, across every originator
+          </span>
+        </div>
         <span className="text-[11px] text-faint">
           Every row was proven on-chain by the Block Prover precompile before storage. Consumption is
           read from Clearbook, never inferred.

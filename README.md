@@ -1,191 +1,252 @@
 # Clearbook
 
-**Evidence-bound covenant compliance for credit originators, on Creditcoin.**
+**Attestcoin proves what happened. Clearbook decides what that evidence can be used for.**
 
-A private-credit loan book is a self-reported spreadsheet. Nobody can check whether a "repayment" was real third-party money or the fund cycling its own. Clearbook is a **shared, cryptographically verified evidence registry** that several originators use at once, and it makes a published loan book **refutable**: an originator posts a bond, publishes a covenant, and registers loans whose disbursement and repayment claims must each cite a cryptographically verified source-chain `Transfer`. Anyone may then prove a covenant breach in a single permissionless transaction — and get paid for it.
+A shared, cryptographically verified evidence registry for private-credit claims,
+deployed on Creditcoin CC3 testnet. Every claim on the book cites a source-chain
+transfer that was proven on-chain by the Attestcoin Block Prover precompile, no
+single verified transfer can back two claims across any originator, and any
+covenant breach can be proven and enforced by anyone.
 
-**Live: [clearbook-sable.vercel.app](https://clearbook-sable.vercel.app)** — reads Creditcoin CC3 directly in the browser. No backend, no database, no server holding state; every figure on the page is a chain read.
+<!-- TODO before submitting: add the demo video link here once recorded (28 Aug).
+     Format:  **[3-minute demo](URL)** ·                                        -->
 
-## Attestcoin integration, in short
+**[Live app](https://clearbook-sable.vercel.app)** ·
+**[Attestcoin integration](docs/ATTESTCOIN_INTEGRATION.md)** ·
+**[What it does and does not prove](OVERVIEW.md#part-6--what-it-cannot-do)**
 
-Clearbook's `EvidenceVault` calls the Creditcoin **Block Prover precompile at `0x…0FD2`** (`verifyAndEmit`) to prove that a specific Ethereum transaction was included in an attested block, then decodes the returned receipt with the official `EvmV1Decoder`. On top of the reference integration it adds:
-
-- **Runtime `chainKey` discovery** via the ChainInfo precompile `0x…0FD3` — no chain key is hardcoded anywhere.
-- **`receiptStatus == 1` asserted by us** — the precompile does *not* check whether the source transaction succeeded.
-- **Log-level replay protection** — `keccak(chainKey, blockHeight, txIndex, logIndex)`, deliberately stricter than the reference implementation's transaction-level key, because one transaction routinely carries many relevant `Transfer` logs (we measured 17 and 30 in real transactions).
-- **Ordinary third-party ERC-20 logs** — Clearbook deploys **nothing** on the source chain.
-
-Full detail, including a candid "protocol limits we hit" section: [`docs/ATTESTCOIN_INTEGRATION.md`](docs/ATTESTCOIN_INTEGRATION.md).
+![Clearance returning ENCUMBERED](docs/img/clearance-encumbered.png)
 
 ---
 
-## Deployed on Creditcoin CC3 testnet
+## The problem
 
-| Contract | Address |
+Lenders keep their own books, so the same payment can be shown to two different
+lenders as backing for two different loans and neither can tell.
+
+In early 2026 the UK bridging lender **Market Financial Solutions** collapsed.
+Over **£2 billion** of lending exposure became entangled across banks and credit
+funds, Barclays among them, after court proceedings surfaced allegations that the
+same property assets had been pledged multiple times. Judges cited collateral
+verification failures within the lending chain. Multiple lenders each believed
+they held a senior claim on the same assets.
+
+It was possible because verification was off-chain, fragmented and trust-based
+rather than mathematically enforced.
+
+Clearbook does not claim to solve that in general. It makes the specific class of
+evidence it *can* verify single-use across a shared registry, and it states
+exactly where that boundary sits.
+
+---
+
+## The mechanism
+
+```
+An ERC-20 transfer happens on Ethereum      a token we don't control
+        ▼
+Attestors attest the finalized block        ~8-10 minutes
+        ▼
+Merkle inclusion + continuity proof
+        ▼
+Block Prover precompile verifies it         on Creditcoin, 0.8s
+        ▼
+Receipt decoded on-chain, receiptStatus == 1 asserted
+        ▼
+TransferFact stored                          immutable, readable by anyone
+        ▼
+A claim commits it                           once, and only once
+        ▼
+Covenant evaluated over it                   11 conditions
+        ▼
+Anyone can challenge                         bond slashed, challenger paid
+```
+
+Each step refuses to proceed if the one before it cannot be established.
+
+---
+
+## Why Attestcoin is load-bearing, not a dependency
+
+This is the part worth reading if you read nothing else.
+
+A fact's identity is:
+
+```solidity
+factId = keccak256(abi.encode(chainKey, blockHeight, txIndex, logIndex))
+```
+
+and `factConsumedBy[factId]` is a **single global mapping**, not one scoped per
+originator, which is what makes a fact spent by one institution visibly
+unavailable to every other.
+
+Now look at where `txIndex` comes from
+([`EvidenceVault.sol:67`](contracts/src/EvidenceVault.sol#L67)):
+
+```solidity
+// 2. txIndex comes from the precompile, never from the caller.
+uint64 txIndex = VERIFIER.calculateTxIndex(merkleProof);
+```
+
+The Attestcoin precompile recovers the transaction's ordinal position from the
+**left/right laterality of the merkle authentication path**. It is not supplied by
+the submitter and not read from an RPC.
+
+**The consequence:** if the caller could choose `txIndex`, they could mint
+unlimited distinct identities for the same underlying transfer and commit it to
+unlimited claims. The one-fact-one-claim guarantee would not weaken. It would
+collapse.
+
+**Attestcoin is not Clearbook's data source. It is the security anchor of
+Clearbook's core invariant.**
+
+Two further details that are easy to get wrong and fatal if you do:
+
+- **`chainKey` is not the EVM chain id.** Resolved from the ChainInfo precompile at runtime, never hardcoded. They collide at `1` while meaning different chains: chainKey 1 is Sepolia, chainKey 3 is Ethereum Mainnet.
+- **`logIndex` is transaction-local**, the position inside that transaction's own log array, not the block-global index `eth_getLogs` returns. The vault indexes `receipt.receiptLogs[logIndex]` on a decoded receipt.
+
+Full detail: [`docs/ATTESTCOIN_INTEGRATION.md`](docs/ATTESTCOIN_INTEGRATION.md).
+
+---
+
+## Clearance: check evidence before you lend against it
+
+Paste a transaction. Clearbook proves it happened, derives the identity the
+protocol would assign each transfer leg, and reports whether that fact is already
+committed to a claim. **No wallet, no signature, no write.**
+
+| Outcome | Meaning |
 |---|---|
-| **`EvidenceVault`** | [`0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af`](https://creditcoin-testnet.blockscout.com/address/0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af) |
-| **`Clearbook`** | [`0xCA02D51722947d7a93EDBe398498667bab368315`](https://creditcoin-testnet.blockscout.com/address/0xCA02D51722947d7a93EDBe398498667bab368315) |
+| **Clear in Clearbook** | Verified, and no fact it carries is consumed by a claim on this book |
+| **Encumbered in Clearbook** | At least one verified fact here is already committed. The protocol will refuse a second claim citing it |
+| **Unverifiable** | No answer can be given, and the exact reason is named |
 
-**Every gate in the build specification passes.**
+Three rules are enforced in code, not left to the author:
 
-| Gate | What it proves | Result |
-|---|---|---|
-| 0 | Chain discovery · attestation live and advancing | **PASS** |
-| 1a | Real package paths compile · full verifier interface resolves | **PASS** |
-| 2 | Contracts build · fmt · lint clean | **PASS** |
-| 3 | 95 tests · 100% line coverage of `src/` | **PASS** |
-| 2/3 | Proof obtained · precompile `verify()` returns true | **PASS** |
-| **4** | **On-chain decode matches the source chain — 120/120 checks over 10 facts** | **PASS** |
-| **5** | **Circular flow breaches; honest loan reverts** | **PASS** |
-| **6** | **Bond slashed, bounty paid, sink credited — all exact** | **PASS** |
-| **7** | **Six forged proofs rejected, on-chain** | **PASS** |
-| **8a** | **Worker killed mid-flight recovers; no fact lost, no duplicate submission** | **PASS** |
-
-### The shared registry
-
-Evidence is a single global namespace. A verified `TransferFact` can back **at most one claim, across every originator** — `factConsumedBy` is one mapping, not one per fund, and the guard is checked before the treasury binding so the refusal reports the right reason.
-
-Two originators are registered on the deployed book. The second attempting a fact the first had already committed was refused `FactAlreadyUsed` and reverted on-chain.
-
-The registry also holds **real Ethereum mainnet evidence**: a 10,506.42 USDC transfer between two addresses we do not control, in block 25,811,720. It is verified and permanently uncommittable — committing needs a treasury proven by signature, and we hold no key for either address. **Verification requires no permission; commitment does.**
-
-### The evidence, in short
-
-**A real breach was proven on-chain.** Loan 2 — a genuine circular flow staged on Sepolia — was challenged by a third party and slashed: bond **−1.0 tCTC**, challenger bounty **+0.5**, protocol sink **+0.5**, exposure released. Every figure read from chain before and after. Challenge transaction: [`0x3a22a0ff…`](https://creditcoin-testnet.blockscout.com/tx/0x3a22a0fffd9d78ed6547658406f641fb337fe9e4638ac9e35eaa9c9020e93d47)
-
-**An honest loan cannot be breached.** The honest control reverts `DisbursementNotFunding` — condition 11, the check that exists precisely so a genuine loan does not look circular. A mechanism that only ever fires detects nothing. `npm run demo:seed` re-asserts this on every run against the currently open loan; older loans revert `WindowClosed` once their challenge window has passed, which is the window check firing first, not the covenant.
-
-**Forged proofs are rejected.** Six mutations of a valid proof — a Merkle sibling, a continuity root, the lower endpoint digest, the block height, an `isLeft` flag, one byte of the transaction — all six reverted on-chain:
-
-`0x160fb333…` · `0x55f1ca63…` · `0x52924b60…` · `0xc535729c…` · `0x8ac73141…` · `0xf0943102…`
-
-This also settled a contradiction in the protocol documentation: the precompile **reverts** rather than returning false.
-
-**Nothing was deployed on Ethereum.** All ten demo transfers use canonical Sepolia WETH — a contract we do not control. `cast code $TOKEN` returns bytecode; `cast code $TREASURY` returns `0x`.
-
-**Measured, not quoted.** A fresh transaction becomes usable evidence in **~8–10 minutes**, of which 97–99% is the attestation wait; `verify()` itself returns in **0.8s**. Deployment cost **0.0018 tCTC**; each fact submission **0.000113 tCTC**.
-
-Raw evidence: [`integration/results/`](integration/results/) · [`demo/staged/`](demo/staged/). Reasoning: [`DECISIONS.md`](DECISIONS.md).
+1. **The verdict never renders without its scope.** "Clear" alone would be read as "this collateral is safe", which Clearbook cannot know.
+2. **Every failure returns unverifiable, never clear.** A check that degraded to "clear" when its prover was down would be confidently wrong exactly when its infrastructure had failed. `npm run gate11` asserts this for every failure path.
+3. **Every transfer leg is checked**, and any encumbered leg encumbers the transaction.
 
 ---
 
-## Three tiers — read this before reading anything else
+## Covenants and permissionless enforcement
 
-Clearbook is careful about the difference between what a blockchain proves and what a human might infer. These tiers are kept visually distinct in the UI and are enforced as a hard requirement in code and copy.
+An originator publishes a rule up front and posts a bond against it.
+`CIRCULAR_REPAYMENT` says a repayment must not come from money the originator's
+own treasury just sent the borrower. Eleven conditions, evaluated on-chain.
 
-### 1. FACTUAL BLOCKCHAIN EVIDENCE
-What the cryptography establishes, and nothing more:
-> Inclusion of a transaction in an attested source-chain block was verified by the Creditcoin Block Prover precompile. Its receipt reported success, and log *n* was an ERC-20 `Transfer` of *amount* of token *T* from address *A* to address *B*.
+Anyone who can prove a breach using verified facts takes **half the slashed
+bond**; the other half is burned. No committee, no dispute period, no appeal.
 
-### 2. CLEARBOOK INTERPRETATION
-What this application decides on top of that evidence:
-> Address *A* was bound to originator *O* by signature at block *N*. Clearbook therefore treats this transfer as the disbursement of loan *L* under the claim the originator registered, and evaluates it against covenant `CIRCULAR_REPAYMENT` with the window the originator published.
-
-### 3. REAL-WORLD CLAIM — **NOT MADE**
-What Clearbook does **not** assert, ever:
-> That address *A* belongs to any person or company. That an off-chain loan agreement exists. That anyone intended anything. That any law was broken. That the book is complete or clean.
-
-A breach of `CIRCULAR_REPAYMENT` establishes that **two verified transfers occurred in a specific relationship**, and therefore that the originator's own published rule was not met. It establishes nothing else.
+A **reference challenger** runs autonomously: it read the book, evaluated the
+covenant and challenged a live claim **15 blocks** after it was made, unprompted.
+It holds no privileged role, its address is disclosed in the interface, and
+anything it did a stranger could do.
 
 ---
 
-## Trust model
+## Coverage
+
+The obvious objection to any evidence-bound book is that an originator simply
+does not register the activity it would rather nobody looked at. Clearbook cannot
+prevent that. It measures it.
 
 ```
-UNTRUSTED  : worker, frontend, RPC providers, proof builder, originator,
-             borrower, challenger, all user input
-SEMI-TRUST : Attestcoin attestor set (quorum honesty), Creditcoin validators
-TRUSTED    : Ethereum consensus (finality), Creditcoin consensus,
-             the 0x0FD2 precompile implementation
+coverage = committed / qualifying
 ```
 
-**The worker is orchestration, not authority.** It acquires proof bundles and submits transactions. It cannot make the vault believe anything: a corrupted bundle fails verification and the transaction reverts. Delete the worker and any third party can submit the identical bundle — the on-chain result is unchanged.
-
-**The proof builder is untrusted.** It supplies proof *material*; the precompile is what makes that material meaningful. A malicious proof builder can deny service; it cannot forge a fact.
-
-See [`SECURITY.md`](SECURITY.md) for the full threat model, invariants, and an honest table of which claims are live-verified versus still unproven.
+A ratio with a stated denominator and an explicit scope. Never a score, never
+colour-graded, and never rendered without its denominator beside it.
 
 ---
 
-## Reproduce it
+## What is deployed
 
-Requires Node ≥ 24, npm, and Foundry.
+| Contract | Address (Creditcoin CC3, chainId 102031) |
+|---|---|
+| `EvidenceVault` | [`0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af`](https://creditcoin-testnet.blockscout.com/address/0x5b6048C74165237fF4A8A3cfe1d38E6fE7b547Af) |
+| `Clearbook` | [`0xCA02D51722947d7a93EDBe398498667bab368315`](https://creditcoin-testnet.blockscout.com/address/0xCA02D51722947d7a93EDBe398498667bab368315) |
+
+Precompiles consumed: Block Prover `0x…0FD2`, ChainInfo `0x…0fd3`.
+
+**Real Ethereum mainnet evidence:** a 10,506.42 USDC transfer between two
+strangers at block 25,811,720, verified and stored. We deployed nothing on
+Ethereum; the tokens are canonical and we control neither address.
+
+---
+
+## Testing and reproducibility
+
+**110 tests across 8 suites**, all passing. Five invariants at 64 × 4,096 calls
+each, plus a permanent guard asserting the fuzzer actually reaches `challenge()`
+. An earlier version passed every invariant while never entering the interesting
+states.
+
+Coverage of `src/`: **100.00% lines** (175/175), **100.00% functions** (20/20),
+96.85% statements, 246/254, and **85.71% branches** (54/63). Branch coverage is
+published rather than omitted. Reproduce with `forge coverage --ir-minimum`;
+plain `forge coverage` cannot compile this tree because disabling `viaIR`
+triggers stack-too-deep in the official decoder.
+
+Integration gates, none permitted to skip on missing configuration:
 
 ```bash
-git clone --recurse-submodules <repo-url> && cd clearbook
+npm run gate2    # prove a transaction, verify at the precompile
+npm run gate7    # mutate a valid proof six ways; all six rejected
+npm run gate8a   # worker crash safety
+npm run gate9    # the reference challenger, end to end
+npm run gate10   # coverage, cross-checked by a second implementation
+npm run gate11   # clearance identity and fail-closed behaviour
+```
+
+Measured, not quoted: **~8–10 min** broadcast to usable evidence, **0.8s** for
+`verify()`, **160k–224k gas** to submit a fact across 16 real submissions (it
+scales with continuity-root count), **15.0s** CC3 block time over a 500-block
+sample.
+
+---
+
+## What Clearbook does NOT prove
+
+Stated here rather than buried, because a check that implied more than it
+delivers would be worse than no check.
+
+- **Fact identity is not collateral identity.** Clearbook prevents the same *proven fact* from being committed twice. It does **not** prevent two originators pledging the same real-world obligation through two *different* transactions.
+- **Coverage sees only bound treasuries.** An originator operating from an address it never declared is outside the denominator.
+- **Clearance sees this book only.** An obligation pledged in a facility that does not record here is invisible to it.
+- **Absence is unprovable.** Merkle inclusion proofs cannot show something did not happen. Clearbook never certifies a book as clean; it makes specific claims refutable.
+- **An address is not an entity.** A bound treasury is an address that produced a signature.
+- **The covenant is bounded.** Depth-1 by construction. A legitimate second tranche is challengeable because the rule tests shape, not intent, pinned in `CovenantSemantics.t.sol` rather than papered over.
+- **Testnet economics.** Bonds are testnet CTC.
+
+Full list: [`OVERVIEW.md`](OVERVIEW.md) Part 6.
+
+---
+
+## Running it
+
+```bash
 npm install
-cp .env.example .env          # defaults point at public CC3 testnet endpoints
+cp .env.example .env          # RPCs and throwaway keys only
 
-npm run gate0                 # capability discovery (~70s: includes a 60s re-poll)
-npm run gate0:lag             # attestation lag observation (~6 min)
-npm run gate1                 # discover a real third-party ERC-20 Transfer
-npm run gate2                 # prove it, verify it at 0x0FD2, decode, cross-check
-npm run gate7                 # mutate a valid proof six ways; all must be rejected
+cd contracts && forge test    # 110 tests
+cd frontend  && npm run dev   # http://localhost:3000
 
-cd contracts && forge build && forge test   # 95 tests
+npm run demo:status           # is the book presentable right now?
+npm run clearance:check       # run the Clearance path from a terminal
 ```
 
-No API keys and no funded wallet are needed for any of the above — every endpoint is public and every call is read-only.
-
-Against the live deployment (read-only, no gas):
-
-```bash
-npm run recheck               # re-asserts GATE 5/6 economics and the controls
-```
-
-Running or re-running the demo (needs funded throwaway wallets):
-
-```bash
-npm run demo:status           # is a challenge window open right now?
-npm run demo:stage            # broadcast fresh source-chain transfers
-npm run demo:prove            # wait for attestation, fetch + verify proofs
-npm run gate4                 # submit the verified facts to the vault
-npm run demo:seed             # register loans, claim, leave the breach un-taken
-npm run demo:run              # presenter checklist with live state
-
-npm run demo:reset            # redeploy clean (dry run unless --confirm)
-```
-
-**Before presenting, run `npm run demo:status`** — it asks the chain whether any
-claim is currently challengeable and says plainly whether to reseed.
-
-The challenge window is 1,200 Creditcoin blocks (~5 h at 15s blocks) and it
-closes silently. Seed too early and it lapses mid-presentation; too late and
-attestation has no margin — so seed **2–5 hours before**, allowing ~15 minutes
-for source-chain attestation. The console degrades honestly when no window is
-open (it cites the breach that already settled), but the live path is the thing
-worth showing. See `DEMO.md`.
-
-`make help` lists the same targets.
+Stack: Solidity 0.8.28 with `via_ir`, Foundry, Next.js 16, wagmi, viem,
+Tailwind 4. No backend and no database, every figure in the UI is a chain read
+in the browser. The single server route is a CORS proxy to the proof builder that
+holds no secrets and signs nothing.
 
 ---
 
-## Honest limits
+## Why Creditcoin
 
-The covenant is **bounded, not universal**: an originator that funds a payer from an address it never binds does not breach it. Detection is depth-1 by construction, which is precisely why the rule is framed as *a covenant the originator chose and bonded against*, rather than as fraud detection.
-
-**Absence is unprovable.** Merkle inclusion proofs cannot show a transaction did *not* occur, so Clearbook never certifies a book as clean — it makes specific claims refutable.
-
-Full list, including what is still unverified and what is currently blocked: [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md).
-
----
-
-## Documentation
-
-| File | Contents |
-|---|---|
-| [`DECISIONS.md`](DECISIONS.md) | Append-only log: every decision, its evidence class, and what would reverse it |
-| [`SECURITY.md`](SECURITY.md) | Trust boundary, provenance discipline, replay design, invariants |
-| [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md) | Honest limits, plus open issues found during the build |
-| [`TESTING.md`](TESTING.md) | Test strategy, coverage policy, how to run each gate |
-| [`DEPLOYMENT.md`](DEPLOYMENT.md) | Network config, compiler settings, deployment and verification |
-| [`DEMO.md`](DEMO.md) | Demo scenarios and presenter checklist |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Component map, evidence lifecycle, state machine, trust boundary |
-| [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | T1–T26 with the test that proves each mitigation |
-| [`docs/LATENCY.md`](docs/LATENCY.md) | Measured end-to-end latency, method, and what it means |
-
-**Evidence classes** used throughout: **[P]** primary doc · **[C]** source-code verified · **[L]** live verified · **[I]** inference · **[U]** unverified · **[B]** blocked. Nothing is marked `[L]` that has not actually been executed.
-
-## License
-
-MIT
+Creditcoin is the only chain where a smart contract can natively verify an
+Ethereum transaction and then act on it, without a bridge and without a
+centralized oracle. Clearbook needs exactly that: the verification must happen
+where the credit logic executes, because the identity the verification produces
+*is* what the credit logic keys on.

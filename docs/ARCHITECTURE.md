@@ -166,7 +166,7 @@ The one thing the UI cannot read from contract state is a fact's **source-chain 
 
 ```
 contracts/src/     EvidenceVault · Clearbook · CovenantLib · IEvidenceVault
-contracts/test/    95 tests — unit, security, invariants, deploy guards
+contracts/test/    110 tests — unit, security, invariants, deploy guards
 contracts/script/  Deploy.s.sol with production guards
 integration/       gate0 · gate0-lag · gate1 · gate1a · gate2/3 · gate7 · measure-latency
 worker/src/        discover · watch · prove · precheck · submit · db · log · health · main · index
