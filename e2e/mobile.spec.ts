@@ -42,10 +42,11 @@ test.describe('mobile', () => {
     }
   });
 
-  test('the landing verdict is legible on a phone', async ({ page }) => {
+  test('the two gaps are legible on a phone', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Encumbered in Clearbook')).toBeVisible({ timeout: 45_000 });
-    await expect(page.getByRole('link', { name: /Inspect the claim/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /proof is not enough/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Omission$/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Reuse$/ })).toBeVisible();
   });
 
   test('clearance input and examples are usable', async ({ page }) => {

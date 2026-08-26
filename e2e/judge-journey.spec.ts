@@ -28,30 +28,32 @@ test.describe('landing', () => {
     expect(errors, `uncaught page errors: ${errors.join(' | ')}`).toHaveLength(0);
   });
 
-  test('zero-config entry shows a live verdict with no wallet', async ({ page }) => {
+  test('the landing page needs no wallet to be read', async ({ page }) => {
     await page.goto('/');
 
-    const card = page.locator('div').filter({ hasText: /^Evidence status/ }).first();
-    await expect(card).toBeVisible();
-
-    // The verdict is read from the deployed contract, so it must resolve without
-    // any interaction. If this ever hangs, the judge's first impression is a
-    // skeleton, which is the specific failure this surface exists to prevent.
-    await expect(page.getByText('Encumbered in Clearbook')).toBeVisible({ timeout: 45_000 });
-    await expect(page.getByText(/live read . deployed contract/i)).toBeVisible();
-    await expect(page.getByRole('link', { name: /Loan #\d+/ })).toBeVisible();
-
-    // No wallet was connected at any point.
+    // The whole landing page is chain reads and static copy. Nothing on it
+    // should require a connection, and the wallet control stays an offer rather
+    // than a gate.
+    // The hero's calls to action also appear in the closing section, so both
+    // matchers are deliberately scoped to the first occurrence.
     await expect(page.getByRole('button', { name: /connect wallet/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /open the credit book/i }).first()).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: /verify a transaction yourself/i }).first(),
+    ).toBeVisible();
   });
 
-  test('inspect the claim reaches a real loan', async ({ page }) => {
+  test('both gaps route to the surface that answers them', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Encumbered in Clearbook')).toBeVisible({ timeout: 45_000 });
 
-    await page.getByRole('link', { name: /Inspect the claim/i }).click();
-    await expect(page).toHaveURL(/\/loan\/\d+/);
-    await expect(page.getByText(/covenant/i).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /see it measured/i })).toHaveAttribute(
+      'href',
+      '/registry',
+    );
+    await expect(page.getByRole('link', { name: /check a transaction/i })).toHaveAttribute(
+      'href',
+      '/clearance',
+    );
   });
 });
 
@@ -91,6 +93,20 @@ test.describe('registry', () => {
 });
 
 test.describe('clearance', () => {
+  /**
+   * These two tests make real cross-chain round trips: locate on Ethereum, fetch
+   * proof material from the shared Attestcoin proof builder, and have the
+   * precompile rule on it. Run alone each finishes in about five seconds; run
+   * back to back inside the full suite the second one intermittently exceeds its
+   * budget, because the prover is public infrastructure whose latency we do not
+   * control.
+   *
+   * One retry, scoped to this block only. This is not a licence to ignore
+   * failures: a test that fails twice is a real failure, and every other block in
+   * the suite still runs strict with no retries at all.
+   */
+  test.describe.configure({ retries: 1 });
+
   test('returns ENCUMBERED for a fact already committed', async ({ page }) => {
     await page.goto('/clearance');
     await expect(page.getByRole('heading', { name: /check evidence before you lend/i })).toBeVisible();
