@@ -29,3 +29,7 @@ demo/staged/*.log
 
 # Judge-facing strategy and submission drafts. Not part of the shipped repo.
 submission/
+
+# Playwright
+test-results/
+playwright-report/

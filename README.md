@@ -40,6 +40,31 @@ exactly where that boundary sits.
 
 ---
 
+## Proof is not enough
+
+Attestcoin answers one question completely: **did this transaction happen?**
+Two questions survive that answer, and a book closing neither is not usable as
+credit evidence no matter how sound each individual proof is.
+
+| Gap | The question | Mechanism |
+|---|---|---|
+| **Omission** | Were the relevant payments exposed at all? | **Coverage** |
+| **Reuse** | Has this evidence already been committed? | Global **`factConsumedBy`** |
+
+**Omission** is the subtler one. Whoever submits proofs chooses which proofs to
+submit, and every one of them verifies. A book can be composed entirely of true
+facts and still be a lie by selection. Clearbook cannot prevent that, so it
+measures it.
+
+**Reuse** is the one nothing else closes. A verified transfer is evidence, and
+evidence can be presented twice. Proving a payment happened says nothing about
+whether another lender is already relying on it.
+
+These are not two features. They are the two ways evidence-backed credit fails,
+and the product is the pair.
+
+---
+
 ## The mechanism
 
 ```
@@ -187,6 +212,10 @@ Coverage of `src/`: **100.00% lines** (175/175), **100.00% functions** (20/20),
 published rather than omitted. Reproduce with `forge coverage --ir-minimum`;
 plain `forge coverage` cannot compile this tree because disabling `viaIR`
 triggers stack-too-deep in the official decoder.
+
+**16 Playwright end-to-end tests** walk the judge journey against the real
+deployment, run across desktop and mobile profiles for 28 executions. No mocks,
+and no test skips silently: `npm run e2e`.
 
 Integration gates, none permitted to skip on missing configuration:
 

@@ -2,7 +2,7 @@
   "name": "clearbook",
   "version": "0.0.0",
   "private": true,
-  "description": "Clearbook \u2014 evidence-bound covenant compliance for credit originators",
+  "description": "Clearbook \u00e2\u20ac\u201d evidence-bound covenant compliance for credit originators",
   "type": "module",
   "scripts": {
     "gate0": "tsx integration/gate0-capabilities.ts",
@@ -28,7 +28,10 @@
     "gate10": "tsx integration/gate10-coverage.ts",
     "worker": "tsx worker/src/main.ts",
     "gate11": "tsx integration/gate11-clearance.ts",
-    "clearance:check": "tsx demo/clearance-check.ts"
+    "clearance:check": "tsx demo/clearance-check.ts",
+    "e2e": "playwright test",
+    "e2e:desktop": "playwright test --project=desktop",
+    "e2e:mobile": "playwright test --project=mobile"
   },
   "license": "MIT",
   "dependencies": {
@@ -40,6 +43,7 @@
     "pg": "8.23.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/node": "26.2.0",
     "@types/pg": "8.23.1",
     "solhint": "6.2.4",

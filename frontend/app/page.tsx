@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { LiveSignal } from '@/components/LiveSignal';
 import { ProvenanceCaption, ProvenanceChain } from '@/components/ProvenanceChain';
+import { EvidenceStatus } from '@/components/EvidenceStatus';
 import { ClaimArtifact, ConditionArtifact, EvidenceArtifact } from '@/components/Artifacts';
 import { Footer } from '@/components/Footer';
 import { Plate } from '@/components/Plate';
@@ -107,10 +108,15 @@ function Hero() {
           </div>
         </div>
 
+        {/*
+          Live state, not a diagram. The static provenance chain that used to sit
+          here explained the protocol; this shows it having already decided
+          something, read from the deployed contract, before the visitor clicks
+          anything or connects a wallet. The chain itself now sits under the
+          covenant, where it illustrates a breach that has actually executed.
+        */}
         <div className="lg:pt-2">
-          <Eyebrow className="mb-6 text-onDeepMuted">One breach, end to end</Eyebrow>
-          <ProvenanceChain />
-          <ProvenanceCaption />
+          <EvidenceStatus />
         </div>
       </div>
     </section>
@@ -437,6 +443,26 @@ function Covenant() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/*
+          The provenance rail, rehomed from the hero. It belongs beside a breach
+          that actually executed rather than above the fold as an abstract
+          diagram: here it traces the causes of the very covenant result stated
+          immediately above it, which is the one place the chain is not decoration.
+        */}
+        <div className="mt-14 grid gap-x-16 gap-y-8 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+          <div>
+            <Eyebrow>One breach, end to end</Eyebrow>
+            <ProvenanceChain />
+            <ProvenanceCaption />
+          </div>
+          <p className="text-[13px] leading-relaxed text-muted lg:pt-8">
+            Every step above is a link in one causal chain, and each refuses to proceed if the one
+            before it cannot be established. Nothing in it was asserted by us: the source-chain
+            transfers were proven by the Block Prover precompile, the covenant was evaluated
+            on-chain, and the slash executed in the same transaction that proved the breach.
+          </p>
         </div>
       </div>
     </section>
