@@ -1,9 +1,8 @@
 # Clearbook
 
-**Attestcoin proves what happened. Clearbook decides what that evidence can be used for.**
+**Attestcoin makes an external event provable. Clearbook makes a proven event committable once — across independent originators on this book.**
 
-A shared, cryptographically verified evidence registry for private-credit claims,
-deployed on Creditcoin CC3 testnet. Every claim on the book cites a source-chain
+Evidence-exclusivity infrastructure for credit, deployed on Creditcoin CC3 testnet. Every claim on the book cites a source-chain
 transfer that was proven on-chain by the Attestcoin Block Prover precompile, no
 single verified transfer can back two claims across any originator, and any
 covenant breach can be proven and enforced by anyone.
@@ -91,7 +90,27 @@ Each step refuses to proceed if the one before it cannot be established.
 
 ---
 
-## Why Attestcoin is load-bearing, not a dependency
+## See it refuse
+
+The landing page does not describe the guarantee. It runs it.
+
+A verified transfer that already backs a claim is held on the page, and the
+deployed contract is asked whether a **different** originator could commit that
+same evidence. The answer that comes back is `FactAlreadyUsed`, and it is the
+contract's, not ours: the call runs as the second originator's own owner account,
+and if the guard were removed the panel would report that it failed to fire. No
+wallet, no signature, no setup.
+
+Underneath, optionally, you can have that exact attempt broadcast as a real
+transaction with the gas sponsored — still no wallet. It is mined and reverts,
+receipt status 0, and the fact stays committed to the claim that had it. The
+endpoint takes no transaction parameters from the request and simulates before
+sending, broadcasting only when the contract already refuses.
+
+One fact, one claim — and that holds across independent originators sharing this
+book, not merely within a single claim.
+
+## An identity no claimant can forge
 
 This is the part worth reading if you read nothing else.
 
@@ -102,7 +121,7 @@ factId = keccak256(abi.encode(chainKey, blockHeight, txIndex, logIndex))
 ```
 
 and `factConsumedBy[factId]` is a **single global mapping**, not one scoped per
-originator, which is what makes a fact spent by one institution visibly
+originator, which is what makes a fact committed by one institution visibly
 unavailable to every other.
 
 Now look at where `txIndex` comes from
@@ -117,10 +136,13 @@ The Attestcoin precompile recovers the transaction's ordinal position from the
 **left/right laterality of the merkle authentication path**. It is not supplied by
 the submitter and not read from an RPC.
 
-**The consequence:** if the caller could choose `txIndex`, they could mint
-unlimited distinct identities for the same underlying transfer and commit it to
-unlimited claims. The one-fact-one-claim guarantee would not weaken. It would
-collapse.
+**The consequence, and it is a closed set.** No part of the identity can be
+freely asserted: `txIndex` is recovered from the proof and cannot be supplied,
+`chainKey` and `blockHeight` are rejected by the precompile if they do not match
+the proof, and `logIndex` must address a real transfer inside the verified
+receipt. A caller who could choose `txIndex` would mint unlimited distinct
+identities for one transfer and commit each to a different claim. The
+one-fact-one-claim guarantee would not weaken. It would collapse.
 
 **Attestcoin is not Clearbook's data source. It is the security anchor of
 Clearbook's core invariant.**
