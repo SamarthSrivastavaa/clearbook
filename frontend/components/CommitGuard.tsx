@@ -85,7 +85,7 @@ export function CommitGuard({
 
       <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-muted">
         <span className="text-ink">{otherOriginatorName}</span> is a separate originator with its
-        own bond and its own bound treasury. This asks the contract, right now, whether it would let
+        own owner and its own posted bond. This asks the contract, right now, whether it would let
         that originator commit this same fact to a claim of its own.
       </p>
 
