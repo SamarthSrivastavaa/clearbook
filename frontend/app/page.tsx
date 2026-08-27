@@ -3,11 +3,13 @@ import Link from 'next/link';
 import { LiveSignal } from '@/components/LiveSignal';
 import { ProvenanceCaption, ProvenanceChain } from '@/components/ProvenanceChain';
 import { ClaimArtifact, ConditionArtifact, EvidenceArtifact } from '@/components/Artifacts';
+import { CollideButton } from '@/components/CollideButton';
+import { CommitGuard } from '@/components/CommitGuard';
 import { Footer } from '@/components/Footer';
 import { Plate } from '@/components/Plate';
 import { Ticker } from '@/components/Ticker';
 import { Eyebrow } from '@/components/ui';
-import { PRECOMPILES, SOURCE_CHAIN_LABEL, contracts, explorer } from '@/lib/config';
+import { DEMO_ARTIFACTS, PRECOMPILES, SOURCE_CHAIN_LABEL, contracts, explorer } from '@/lib/config';
 import { shortAddress } from '@/lib/format';
 
 /**
@@ -259,8 +261,8 @@ function Mechanism() {
         </div>
         <p className="text-[14px] leading-relaxed text-muted lg:pb-2">
           Most systems collapse evidence, inference and claim into one confident sentence. Clearbook
-          keeps them apart everywhere: in the contracts, in the interface, and in what it refuses
-          to say.
+          keeps them apart everywhere: in the contracts, in the interface, and in what it refuses to
+          say.
         </p>
       </div>
 
@@ -340,15 +342,15 @@ function SharedEvidence() {
             </div>
             <p className="mt-4 text-[14px] leading-relaxed">
               A second originator attempting a fact another has already committed is refused with{' '}
-              <code className="font-mono text-[13px]">FactAlreadyUsed</code>. The registry runs that
-              call live against the deployment rather than asserting the outcome.
+              <code className="font-mono text-[13px]">FactAlreadyUsed</code>. That is not a claim
+              made here in prose. It is run below, against the deployment, as you read this.
             </p>
           </div>
 
           <div className="lg:pt-4">
             <p className="text-[12px] leading-relaxed text-faint">
-              This establishes that the same <em>evidence</em> cannot be committed twice. It does not
-              establish collateral identity. The same underlying obligation represented by a
+              This establishes that the same <em>evidence</em> cannot be committed twice. It does
+              not establish collateral identity. The same underlying obligation represented by a
               different transaction is not detected, and Clearbook does not claim otherwise.
             </p>
             {/* Two ways in, and they are different questions. The registry is the
@@ -362,6 +364,48 @@ function SharedEvidence() {
               <Link href="/clearance" className="link inline-flex text-[14px]">
                 Check evidence before you lend →
               </Link>
+            </div>
+          </div>
+        </div>
+
+        {/*
+          The property above, executed rather than described.
+
+          Full width and beneath both cards, because it is evidence for the pair
+          rather than an illustration belonging to one of them. The inputs are
+          pinned (DEMO_ARTIFACTS.pinnedFact) so this renders immediately: waiting
+          on a registry scan here would put a skeleton where the argument is
+          supposed to be. Pinning is sound because consumption is permanent —
+          `factConsumedBy` has no clearing path — so the fact cannot quietly
+          become available again and make this panel wrong.
+        */}
+        {/* Same column template as the cards above, with the demonstration
+            spanning the two of them. Left to stretch the full width it ran past
+            where that row ends and broke the band's rhythm. */}
+        <div className="mt-12 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,300px)]">
+          <div className="lg:col-span-2">
+            <p className="max-w-2xl text-[13px] leading-relaxed text-muted">
+              <span className="text-ink">Exclusivity, live.</span> One verified transfer, already
+              committed by Meridian. The panel asks Creditcoin whether a different originator could
+              commit the same evidence to a claim of its own. Nothing is connected, and the answer
+              below is the contract&rsquo;s, not ours.
+            </p>
+            <CommitGuard
+              factId={DEMO_ARTIFACTS.pinnedFact.factId}
+              token={DEMO_ARTIFACTS.pinnedFact.token}
+              borrower={DEMO_ARTIFACTS.pinnedFact.borrower}
+              amount={DEMO_ARTIFACTS.pinnedFact.amount}
+              otherOriginatorId={DEMO_ARTIFACTS.secondOriginatorId}
+              otherOriginatorName={DEMO_ARTIFACTS.secondOriginatorName}
+              otherOriginatorOwner={DEMO_ARTIFACTS.secondOriginatorOwner}
+              incumbentLoanId={DEMO_ARTIFACTS.pinnedFact.incumbentLoanId}
+              recordedTxHash={DEMO_ARTIFACTS.duplicateCommitmentTx}
+            />
+            {/* The optional escalation, deliberately beneath the verdict rather
+                than beside it: the eth_call above is the proof, and this only
+                turns it into a receipt for a reader who wants one. */}
+            <div className="px-5">
+              <CollideButton />
             </div>
           </div>
         </div>
@@ -383,7 +427,8 @@ function Covenant() {
             published itself.
           </h2>
           <p className="mt-4 text-[14px] leading-relaxed text-muted">
-            Not a rule we imposed. An originator opts into <code className="font-mono text-[14px] text-ink">CIRCULAR_REPAYMENT</code> at
+            Not a rule we imposed. An originator opts into{' '}
+            <code className="font-mono text-[14px] text-ink">CIRCULAR_REPAYMENT</code> at
             registration, publishes its window on-chain, and posts a bond against it. A rule you can
             change after publishing is not a covenant, so it is immutable thereafter.
           </p>
@@ -393,26 +438,27 @@ function Covenant() {
           <div className="bg-paper p-7">
             <Eyebrow>Declared</Eyebrow>
             <p className="mt-3 text-[14px] leading-relaxed">
-              No repayment may come from an address the originator&rsquo;s own treasury funded for at
-              least the repayment amount, in the same token, within{' '}
+              No repayment may come from an address the originator&rsquo;s own treasury funded for
+              at least the repayment amount, in the same token, within{' '}
               <span className="tnum font-medium">5,000</span> source-chain blocks.
             </p>
             <p className="mt-3 text-[13px] leading-relaxed text-muted">
-              In plain terms: the money coming back should not be the fund&rsquo;s own money going out
-              and returning.
+              In plain terms: the money coming back should not be the fund&rsquo;s own money going
+              out and returning.
             </p>
           </div>
 
           <div className="bg-paper p-7">
             <Eyebrow>Observed</Eyebrow>
             <p className="mt-3 text-[14px] leading-relaxed">
-              The treasury sent the payer <span className="tnum font-medium">0.01 WETH</span> at block{' '}
-              <span className="tnum font-medium">11,538,688</span>. The payer returned{' '}
+              The treasury sent the payer <span className="tnum font-medium">0.01 WETH</span> at
+              block <span className="tnum font-medium">11,538,688</span>. The payer returned{' '}
               <span className="tnum font-medium">0.01 WETH</span> to the treasury at block{' '}
               <span className="tnum font-medium">11,538,689</span>.
             </p>
             <p className="mt-3 text-[13px] leading-relaxed text-muted">
-              One block apart, well inside the declared window. Both transfers independently verified.
+              One block apart, well inside the declared window. Both transfers independently
+              verified.
             </p>
           </div>
 
@@ -432,15 +478,14 @@ function Covenant() {
                 </p>
               </div>
               <p className="max-w-sm text-[12px] leading-relaxed text-faint">
-                A breach establishes that two verified transfers occurred in a specific relationship,
-                and therefore that the originator&rsquo;s own published rule was not met. It does not
-                establish intent, control of either address, the existence of an off-chain loan, or
-                any violation of law.
+                A breach establishes that two verified transfers occurred in a specific
+                relationship, and therefore that the originator&rsquo;s own published rule was not
+                met. It does not establish intent, control of either address, the existence of an
+                off-chain loan, or any violation of law.
               </p>
             </div>
           </div>
         </div>
-
       </div>
     </section>
   );
@@ -465,9 +510,16 @@ function Enforcement() {
     <section className="band-deep relative isolate mt-20 overflow-hidden">
       {/* Depth, not decoration: the band is flat black otherwise, and this is the
           one place where institutional weight is the point. */}
-      <Plate name="archive" className="absolute inset-0 -z-10 h-full w-full opacity-25" tone="deep" />
+      <Plate
+        name="archive"
+        className="absolute inset-0 -z-10 h-full w-full opacity-25"
+        tone="deep"
+      />
       <div className="band-grid band-grid-fade absolute inset-0 -z-10" aria-hidden />
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-deep via-deep/94 to-deep/80" aria-hidden />
+      <div
+        className="absolute inset-0 -z-10 bg-gradient-to-br from-deep via-deep/94 to-deep/80"
+        aria-hidden
+      />
 
       <div className="mx-auto grid max-w-[1400px] gap-14 px-6 py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:py-24">
         <div className="flex flex-col">
@@ -576,7 +628,12 @@ function Foundation() {
     {
       k: 'Block Prover precompile',
       v: (
-        <a href={explorer.ccAddress(PRECOMPILES.blockProver)} target="_blank" rel="noreferrer noopener" className="ident ident-link">
+        <a
+          href={explorer.ccAddress(PRECOMPILES.blockProver)}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="ident ident-link"
+        >
           {shortAddress(PRECOMPILES.blockProver)}
         </a>
       ),
@@ -606,8 +663,7 @@ function Foundation() {
           <Eyebrow>Technical foundation</Eyebrow>
           <h2 className="display-lg mt-4">
             Nothing here is
-            <br />
-            a server&rsquo;s word.
+            <br />a server&rsquo;s word.
           </h2>
           <p className="prose-lead mt-5 max-w-sm">
             Replace the precompile with an indexer and the challenge becomes &ldquo;trust our

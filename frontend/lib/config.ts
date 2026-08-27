@@ -1,4 +1,4 @@
-import { defineChain, type Address } from 'viem';
+import { defineChain, type Address, type Hex } from 'viem';
 
 /**
  * Network and deployment configuration.
@@ -177,4 +177,23 @@ export const DEMO_ARTIFACTS = {
   /** B's owner. The simulation must run AS this account: registerLoan checks
    *  ownership first, so any other sender is refused for the wrong reason. */
   secondOriginatorOwner: '0xCC37dc94204D78608d79E24D9cCccd7328a94FD8' as Address,
+
+  /**
+   * The fact Meridian committed to loan 1, pinned.
+   *
+   * The landing page demonstrates exclusivity against this fact directly, which
+   * means it must render without first scanning the registry for a consumed
+   * one. Pinning is safe rather than brittle: a stored fact is immutable, and
+   * `factConsumedBy` has no clearing path, so this fact is consumed permanently.
+   * Every value below was read from the deployed vault, not transcribed from a
+   * seeding script.
+   */
+  pinnedFact: {
+    factId: '0x381fd23402601eecc14df7785f595488235490ef367e989bc3746f3c56171ac3' as Hex,
+    token: '0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9' as Address,
+    borrower: '0x293D20928EC6ee153219d37a060Ee7af751B61e0' as Address,
+    amount: 10000000000000000n,
+    /** Meridian's claim. The incumbent the second originator collides with. */
+    incumbentLoanId: 1n,
+  },
 } as const;

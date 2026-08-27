@@ -43,6 +43,72 @@ test.describe('landing', () => {
     ).toBeVisible();
   });
 
+  /**
+   * The landing page's strongest claim is the one it executes rather than
+   * states. This asserts the live call actually resolves for a reader who has
+   * connected nothing: a skeleton here, or a wallet prompt, is the specific
+   * regression worth catching. The verdict text is the contract's own error, so
+   * if the guard were removed from Clearbook this would fail rather than pass
+   * quietly.
+   */
+  test('the exclusivity refusal runs live on the landing page with no wallet', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(page.getByText('FactAlreadyUsed').first()).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByText(/already committed to/i).first()).toBeVisible();
+    // The receipt for the refusal we actually broadcast.
+    await expect(page.getByRole('link', { name: /reverted on-chain/i })).toBeVisible();
+    // Still an offer, never a gate.
+    await expect(page.getByRole('button', { name: /connect wallet/i })).toBeVisible();
+  });
+
+  /**
+   * The escalation is present and is an offer, not a dependency.
+   *
+   * This deliberately does NOT click. A click broadcasts a real transaction and
+   * spends real gas, so putting it in a suite that runs on every change would
+   * drain a throwaway wallet and make the run depend on block times. The
+   * broadcast path is verified against the live chain separately; what matters
+   * here is the regression that would actually hurt — Layer 1 quietly becoming
+   * dependent on Layer 2.
+   */
+  test('the on-chain escalation is offered without the proof depending on it', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(page.getByText('FactAlreadyUsed').first()).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByRole('button', { name: /send this attempt on-chain/i })).toBeEnabled();
+  });
+
+  test('the relayer endpoint refuses to be a signing service', async ({ request }) => {
+    // No method other than POST may send anything.
+    expect((await request.get('/api/collide')).status()).toBe(405);
+
+    // A body naming a different destination, value and calldata must not change
+    // the transaction. The route reads no body at all, so the only outcomes are
+    // a real send of the pinned call, or a refusal — never something addressed
+    // to what was asked for here.
+    const res = await request.post('/api/collide', {
+      data: {
+        to: '0x000000000000000000000000000000000000dEaD',
+        data: '0xdeadbeef',
+        value: '1000000000000000000',
+        originatorId: 99,
+      },
+    });
+    const body = await res.json();
+    expect([200, 409, 429, 503]).toContain(res.status());
+    expect([
+      'reverted',
+      'pending',
+      'rate_limited',
+      'disabled',
+      'relayer_error',
+      'precondition_changed',
+    ]).toContain(body.state);
+    // Whatever happened, it was never a successful commitment.
+    expect(body.state).not.toBe('mined_unexpectedly');
+  });
+
   test('both gaps route to the surface that answers them', async ({ page }) => {
     await page.goto('/');
 
