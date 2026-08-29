@@ -1,8 +1,10 @@
 # Clearbook — what it is and what is built
 
-Written 25 August 2026. Every figure here was read from the running system or
-from the repository, not recalled. Where something is unmeasured or unproven, it
-says so.
+Written 25 August 2026, revised 28 August 2026 after the front-door
+demonstration shipped. Every figure here was read from the running system, the
+deployed contracts, or the repository — not recalled. Where something is
+unmeasured or unproven, it says so, and where a number moves with a rolling
+window, the window is named.
 
 ---
 
@@ -77,14 +79,24 @@ No committee. No appeal. No permission needed to be the person who checks.
 ## The one idea to take away
 
 > **Checking that a payment happened needs nobody's permission.
-> Using that payment to back a loan claim does.**
+> Committing that payment to a credit claim does — and only one party ever can.**
 
-Anyone can prove a transfer occurred — including a transfer between two
-strangers who have never heard of Clearbook. But *committing* that transfer to a
-credit claim requires proving you control the address the money left, and it can
-only ever happen once.
+Anyone can prove a transfer occurred, including a transfer between two strangers
+who have never heard of Clearbook. Committing that transfer to a credit claim is
+different: it requires proving you control the address the money left, and it can
+happen exactly once — not once per lender, but once across every originator
+sharing the book.
 
-That asymmetry is the whole design.
+Said the other way round:
+
+> **Attestcoin makes an external event provable. Clearbook makes a proven event
+> committable once — across independent originators on this book.**
+
+That asymmetry is the whole design. Note precisely what it does and does not
+cover: the guarantee is about a *verified fact*, never about a borrower's
+real-world obligation. Nothing here stops someone borrowing again, or two lenders
+financing the same asset through two different transactions. What cannot happen
+is a second claim citing evidence that has already been committed.
 
 ---
 
@@ -98,9 +110,17 @@ private-credit claims**, deployed on Creditcoin.
 The precise implementation claim:
 
 > Verified source-chain `TransferFact`s can be committed to credit claims, cannot
-> be committed to multiple claims, are measurable against the activity an
-> originator declared, are checkable before an advance, and are governed by
-> immutable covenants that anyone may challenge and enforce.
+> be committed to multiple claims **by any originator on the book**, are
+> measurable against the activity an originator declared, are checkable before an
+> advance, and are governed by immutable covenants that anyone may challenge and
+> enforce.
+
+The exclusion is global rather than per-claimant, and that is the load-bearing
+word. `factConsumedBy` is one mapping for the whole registry, so a fact committed
+by one institution is visibly unavailable to every other. Recovering an event's
+identity from proof material is a reasonable thing to do with the Attestcoin
+precompile and we would not claim to be alone in doing it; what the design turns
+on is that the recovered key is consumed once, globally.
 
 ## The mechanism, end to end
 
@@ -155,6 +175,34 @@ returns. The vault indexes `receipt.receiptLogs[logIndex]` on a decoded receipt,
 so anything computing identity from the block-global value is describing a
 different log, or no log at all.
 
+### Why the identity cannot be forged
+
+The uniqueness rule is only as strong as the key it is enforced on, so the key is
+a **closed set**: no part of it can be freely asserted by whoever submits the
+claim.
+
+| Component | How it is constrained |
+|---|---|
+| `txIndex` | **Recovered by the precompile** from the merkle proof's own left-right structure via `calculateTxIndex`. The caller cannot supply it at all |
+| `chainKey` | Passed to `verifyAndEmit` and rejected if it does not match the proof |
+| `blockHeight` | Same — rejected on mismatch |
+| `logIndex` | Must address a real ERC-20 `Transfer` inside the receipt just decoded |
+
+Suppose instead a caller could choose the transaction index. The same payment
+could be registered as 87, then 88, then 89, without limit — every one a distinct
+identity, every one committable to a different claim. The rule would still be
+enforced perfectly, against identities that mean nothing. Uniqueness would not
+degrade; it would cease to exist.
+
+This is the supporting argument, not the headline. Recovering identity from proof
+material is a sensible use of this precompile and is not claimed as unique to
+Clearbook. What the closed set buys is that the *global, one-time consumption* of
+that key cannot be sidestepped by minting a second identity for the same event.
+
+One consequence worth stating because it looks like a bug and is not: a single
+transaction containing several genuine ERC-20 transfers correctly yields several
+distinct facts. They are different events, and each is committable once.
+
 ## The covenant, formally
 
 `CIRCULAR_REPAYMENT`, covenant id 1. Eleven conditions, evaluated on-chain, all
@@ -203,16 +251,43 @@ the product look larger.
 ## `/` — Landing
 
 **Job:** make a stranger understand the product in about fifteen seconds, then
-show them a real instance of it rather than describing one.
+let them watch it happen rather than read about it.
 
 Opens with a live ticker of chain reads — block height, verified facts, bonds at
 stake — so the first thing on screen proves the page is reading a live chain. The
 hero carries a real breach that actually executed, rendered as the chain of
-causes that produced it. Later sections state the three registers, the shared
-evidence property, the covenant, enforcement, the technical foundation, and the
-honest limits.
+causes that produced it. Later sections state the three registers, the covenant,
+enforcement, the technical foundation, and the honest limits.
 
-**Why it exists:** first contact. It is also the only page with a full footer.
+### The demonstration, in two layers
+
+The **One fact, one claim** band does not describe the guarantee. It runs it.
+
+**Layer 1 — the live refusal.** A verified transfer that already backs a claim is
+pinned there, and the page asks the deployed contract whether a *different*
+originator could commit the same evidence. This is a real `eth_call`, executed as
+the second originator's own owner account — `registerLoan` checks `NotOwner`
+before it checks uniqueness, so a call from any other sender would be refused for
+the wrong reason and would prove nothing. The panel renders whatever the contract
+returns: a different error renders that error's name, and a call that succeeded
+is reported as the guard failing to fire. It requires no wallet, no gas and no
+setup, and it resolves in tens of milliseconds because the inputs are pinned
+rather than discovered by scanning.
+
+Pinning is sound rather than brittle. A stored fact is immutable and
+`factConsumedBy` has no clearing path, so the fact cannot quietly become
+available again and make the panel wrong.
+
+**Layer 2 — the optional escalation.** Beneath the verdict, a reader can have the
+same attempt broadcast as a real transaction with the gas sponsored, still
+without a wallet. It is mined, it reverts, and the hash is offered for
+independent inspection on the explorer. Layer 2 is never required: if the relayer
+is unavailable the interface says so and attributes the failure to us rather than
+to the protocol, and Layer 1's verdict stays on screen.
+
+**Why it exists:** first contact, and the only place where the central property
+is demonstrated rather than asserted. It is also the only page with a full
+footer.
 
 ## `/book` — The shared book
 
@@ -406,8 +481,8 @@ a known fact returns early without re-verifying.
 
 Two invariants worth naming because the product's argument rests on them:
 `factConsumedBy` is a **single global mapping**, not one scoped per originator,
-which is what makes a fact spent by one institution visibly unavailable to every
-other. And `bindTreasury` reverts `AlreadyBound` with **no unbind path** — a
+which is what makes a fact committed by one institution visibly unavailable to
+every other. And `bindTreasury` reverts `AlreadyBound` with **no unbind path** — a
 treasury declaration is permanent, so an originator cannot quietly drop an
 address once its activity becomes inconvenient to measure.
 
@@ -426,6 +501,46 @@ startup.
 Postgres holds the scan cursor and the state machine. It is **bookkeeping, never
 truth** — the frontend reads the chain directly and has no dependency on it.
 
+## Layer 2, in detail
+
+The escalation on the landing page is the only component in Clearbook that holds
+a key, so it is worth stating exactly what it can and cannot do.
+
+**It is not a signing service.** `/api/collide` reads **no request body at all**.
+The destination, calldata, value, gas and signer are assembled server-side from
+constants. Nothing a caller supplies can redirect it — verified by sending a body
+naming a different destination, a value of 1e18 and arbitrary calldata, then
+reading the resulting transaction from the chain: it went to Clearbook, carried
+value 0, and encoded originator 2, exactly as pinned.
+
+**It simulates before it broadcasts, and this is the safety property that
+matters.** The server sends only if the contract *currently* refuses with
+`FactAlreadyUsed`. Were consumption state ever to change, an unguarded broadcast
+would **succeed** and permanently commit the fact under the second originator —
+the one action here capable of damaging the registry. Gating on the refusal makes
+that unreachable rather than merely unlikely.
+
+**Repeated use cannot mutate protocol state**, because the only transaction it
+can send is one guaranteed to revert. The cost of abuse is gas and nothing else.
+A 60-second per-IP cooldown and an hourly ceiling bound that; both are in-memory,
+so on multi-instance hosting they are per-instance and best-effort. Measured cost
+is ~0.00008 tCTC per send against a ~1 tCTC throwaway balance.
+
+**Blast radius, stated plainly.** The signer must be the second originator's own
+owner, because ownership is checked first and any other sender would prove
+nothing. That key can withdraw that originator's bond or bind a treasury to it.
+It cannot reach the consumed fact, the incumbent claim, the evidence vault, or
+Layer 1's verdict — `registerLoan` reaches `FactAlreadyUsed` before
+`InsufficientBond`, so even an unbonded originator still produces the same
+refusal. It is a throwaway testnet key holding testnet funds. This is an
+application-level constraint, not a cryptographic sandbox, and it is not
+described as one.
+
+**Failure is attributed honestly.** Every outcome — reverted, simulation
+mismatch, relayer unavailable, rate-limited, receipt timeout, or an unexpected
+success — is reported as itself. A failure of our plumbing must never read as a
+failure of the guarantee, and the copy says which is which.
+
 ## Reference challenger
 
 An autonomous watcher that reads the book, evaluates the covenant predicate over
@@ -441,9 +556,16 @@ a funding leg by shape rather than asserting intent.
 
 ## Frontend
 
-Next.js 16, wagmi, viem, Tailwind 4. **No backend and no database.** Every figure
-is a chain read in the browser. The one server route is a CORS proxy to the proof
-builder that holds no secrets and signs nothing. 38 routes build.
+Next.js 16, wagmi, viem, Tailwind 4. **No database.** Every figure on every page
+is a chain read made in the browser.
+
+Two server routes exist, and they are different in kind:
+
+- `/api/prover` — a CORS proxy to the Attestcoin proof builder. It holds no
+  secrets, signs nothing, and adds no trust: the proof it forwards is meaningless
+  until the precompile verifies it on-chain.
+- `/api/collide` — the Layer 2 relayer. This one does sign, and is therefore
+  described in full under *Layer 2, in detail* below.
 
 Warm paper, near-black ink, one structural accent in signal blue that is
 deliberately *not* a protocol colour, so it can never be misread as verified,
@@ -468,6 +590,19 @@ headless box-model audit rather than by eye.
 | The worker survives a crash | Killed mid-flight at every state; no fact lost, no duplicate submission |
 | Enforcement needs no human | The reference challenger detected and settled a breach unprompted, 15 blocks from claim to challenge |
 | Coverage is a measurement | Recomputed by a second, independently written implementation (ethers vs viem); the two must agree exactly or gate 10 fails |
+| The refusal is live, not asserted | Landing `eth_call` as the second originator's owner returns `0x75606a00` = `FactAlreadyUsed`, re-checked against the deployed contract on 28 Aug |
+| A judge can cause a real rejection | Sponsored broadcast mined and reverted; receipt status 0, sender the second originator's owner, destination Clearbook, value 0, verified with `cast` rather than read from our own UI |
+| The escalation changes nothing | `factConsumedBy` still returns 1 after six real broadcasts |
+| Input cannot redirect the relayer | A request body naming a different destination, 1e18 value and arbitrary calldata produced the identical pinned transaction on-chain |
+| Layer 1 does not depend on Layer 2 | Production run with the relayer disabled: the interface attributed the failure to us and the refusal stayed on screen |
+
+### Verified on production, 28 August 2026
+
+Landing 200 · `/api/collide` GET → 405, POST → 200 · Layer 1 resolves in **37ms**
+with no wallet · Layer 2 click-to-result measured at **9.4s and 19.4s** · zero
+page errors and zero horizontal overflow on desktop and mobile · **110 Foundry
+tests**, **34 Playwright tests** across two viewports, TypeScript and production
+build clean.
 | Clearance derives the book's own identities | Local `factId` checked against `EvidenceVault.computeFactId` on the deployed contract, including the uint64 and uint32 ceilings |
 | Clearance fails closed | Every unverifiable path asserted to return `unverifiable`, never `clear` |
 | Nothing deployed on Ethereum | All evidence is canonical tokens we do not control |
@@ -539,6 +674,28 @@ Stated here rather than buried. These are permanent properties, not a backlog.
 - **Testnet economics.** The protocol is deployed to CC3 testnet and bonds are
   testnet CTC. Evidence may originate from Ethereum mainnet, but nothing here
   custodies real value.
+- **Every listing is a rolling window, and the interface is bounded by RPC, not
+  by preference.** Three different windows govern what is visible, and conflating
+  them causes exactly the wrong conclusion:
+
+  | Window | Width | What leaves it |
+  |---|---|---|
+  | Evidence listing | 60,000 CC blocks (~10 days) | Facts drop off `/registry` |
+  | Treasury binding scan | 60,000 CC blocks (~10 days) | The declared-treasury line on a Coverage card |
+  | Coverage measurement | 20,000 **source** blocks (~2.8 days) | The Coverage **denominator** only |
+
+  Nothing on-chain is lost when something leaves a window — `factConsumedBy`,
+  bindings and claims are permanent, and Layer 1 reads them directly rather than
+  by scanning, which is why the refusal is unaffected. What changes is what a
+  bounded scan can see. Coverage says so rather than printing a zero: *"nothing
+  to divide, so no ratio is shown."* A zero would be a finding about the fund;
+  an empty window is a finding about the window, and those are different
+  sentences.
+- **Layer 2's relayer is application-constrained, not cryptographically
+  sandboxed.** The endpoint cannot be redirected by request input and cannot
+  mutate protocol state, but the key it holds carries that originator's own
+  privileges. It is a throwaway testnet key, and the honest description is a
+  bounded blast radius rather than none.
 
 No Credal or other Creditcoin ecosystem integration exists. Credal is a
 mainnet-only API with no public documentation, no developer portal and no
