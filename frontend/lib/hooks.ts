@@ -257,6 +257,10 @@ export interface BreachEvidence {
   block: bigint;
 }
 
+/** Same bound as the vault scan, and for the same RPC reason. */
+const BREACH_SCAN_CHUNK = 10_000n;
+const BREACH_SCAN_CONCURRENCY = 3;
+
 export function useBreachEvidence(loanId: bigint | null, fromBlock: bigint | null) {
   const client = usePublicClient();
   const enabled =
@@ -267,13 +271,33 @@ export function useBreachEvidence(loanId: bigint | null, fromBlock: bigint | nul
     enabled,
     staleTime: Infinity,
     queryFn: async (): Promise<BreachEvidence | null> => {
-      const logs = await client!.getLogs({
-        address: contracts.clearbook!,
-        event: covenantBreachedEvent,
-        args: { loanId: loanId! },
-        fromBlock: fromBlock!,
-        toBlock: 'latest',
-      } as any);
+      // Chunked, for the same reason every other scan here is chunked: the CC
+      // RPC has a hard query timeout, and a breach that happened tens of
+      // thousands of blocks ago makes a single span exceed it. Measured on
+      // 31 Aug against a live loan whose breach sat 51,926 blocks back — one
+      // unchunked call timed out after 41s and the query resolved to null, so
+      // the page silently dropped the challenger, the proving transaction and
+      // the response lag while rendering every other field normally. Evidence
+      // that exists must not disappear because of how we asked for it.
+      const latest = await client!.getBlockNumber();
+      const spans: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
+      for (let start = fromBlock!; start <= latest; start += BREACH_SCAN_CHUNK) {
+        const end =
+          start + BREACH_SCAN_CHUNK - 1n > latest ? latest : start + BREACH_SCAN_CHUNK - 1n;
+        spans.push({ fromBlock: start, toBlock: end });
+      }
+
+      const batches = await mapLimit(spans, BREACH_SCAN_CONCURRENCY, (span) =>
+        client!.getLogs({
+          address: contracts.clearbook!,
+          event: covenantBreachedEvent,
+          args: { loanId: loanId! },
+          fromBlock: span.fromBlock,
+          toBlock: span.toBlock,
+        } as any),
+      );
+
+      const logs = batches.flat();
       const last: any = logs[logs.length - 1];
       if (!last) return null;
       return {

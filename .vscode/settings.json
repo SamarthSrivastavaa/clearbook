@@ -1,0 +1,8 @@
+{
+  "// note": "Pins the editor's Solidity language server to the same compiler foundry.toml uses (solc 0.8.28). Without this the extension defaults to its bundled version and reports a false 'requires different compiler version' error on every file. Editor-only: it changes nothing about how contracts are built or deployed.",
+  "solidity.compileUsingRemoteVersion": "v0.8.28+commit.7893614a",
+  "solidity.defaultCompiler": "remote",
+  "solidity.packageDefaultDependenciesContractsDirectory": "contracts/src",
+  "solidity.packageDefaultDependenciesDirectory": "node_modules",
+  "solidity.formatter": "forge"
+}
